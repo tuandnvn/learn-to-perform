@@ -1,4 +1,6 @@
 import numpy as np
+from numpy.linalg import norm
+import math
 
 '''
 Author: Tuan Do
@@ -51,7 +53,7 @@ class Geometry2D (object):
 	def get_markers(self):
 		rotate_matrix = np.array([[ np.cos(-self.transform.rotation), -np.sin(-self.transform.rotation) ], 
 			[np.sin(-self.transform.rotation), np.cos(-self.transform.rotation)]])
-		return self.transform.position + np.dot(self.markers, rotate_matrix)
+		return self.transform.position + np.dot(self.markers, rotate_matrix) * self.transform.scale
 
 
 class Cube2D (Geometry2D):
@@ -72,29 +74,33 @@ class Cube2D (Geometry2D):
 	def __str__(self):
 		return 'Cube :' + ', '.join(str(th) for th in self.get_markers())
 
-class Box2D (Geometry2D):
-	'''
-	markers: corners points of a rectangular with size 1 centering at (0,0)
-	of size (4, 2)
-	'''
-	markers = np.array([[1,1], [1,-1], [-1, 1], [-1,-1]], dtype = np.float32)
+class Polygon2D (Geometry2D):
 
 	#-------------------------------------------------------------------
 	'''
-	It is not exactly a cube, but just a square, with markers 
-	being the corners of the square 
+	Polygon is basically a convex hull polygon with markers on the 
+
+	We would not check the condition of being convex hull, it is the responsibility
+	of users to input a correct convex polygon
 	'''
-	def __init__(self, transform):
+	def __init__(self, markers, transform):
+		self.markers = markers
 		Geometry2D.__init__(self, transform)
 
 	def __str__(self):
-		return 'Cube :' + ', '.join(str(th) for th in self.get_markers())
+		return 'Polygon :' + ', '.join(str(th) for th in self.get_markers())
 
 
 class Environment (object):
-	def __init__(self, speed = 1):
+	'''
+	Parameters
+	----------
+	boundary: should be of type Polygon2D
+	speed: movement of object per frame meter/frame
+	'''
+	def __init__(self, boundary = None, speed = 1):
 		self.objects = []
-		self.limit = []
+		self.boundary = boundary
 		self.__speed = speed
 
 	# Movement of object per frame meter/frame
@@ -216,6 +222,67 @@ class Environment (object):
 				return 2
 
 			return 0
+
+	'''
+	A very simple checking to see if p is included in o
+
+	Parameters
+	----------
+	p: A point [x,y]
+	o: Should be a Polygon2D object
+
+	Return
+	----------
+	value: = True if p is bounded by o (or p is on o boundary), = False otherwise
+	'''
+	@staticmethod
+	def is_point_bounded( p, o ):
+		ms = o.get_markers()
+		for i in range(1, len(ms)):
+			# three indices on a row
+			first, second, third = i - 1, i, (i + 1) % len(ms)
+			# three corners on a row
+			first, second, third = ms[first], ms[second], ms[third]
+
+			if all(np.equal(first, p)) or all(np.equal(second, p)) or all(np.equal(third, p)):
+				return True
+
+			l1 = first - second
+			l2 = p - second
+			l3 = third - second
+
+			# check if l2 is between l1 and l3
+			first_second_third = np.arccos(np.clip( np.dot(l1, l3)/norm(l1)/norm(l3), -1, 1))
+			first_second_p = np.arccos(np.clip( np.dot(l1, l2)/norm(l1)/norm(l2), -1, 1))
+			third_second_p = np.arccos(np.clip( np.dot(l2, l3)/norm(l2)/norm(l3), -1, 1))
+
+			if math.isclose(first_second_third, first_second_p + third_second_p, rel_tol=1e-3, abs_tol=1e-5):
+				continue
+
+			return False
+
+		return True
+
+
+	'''
+	A very simple checking to see if o1 is included in o2
+
+	Parameters
+	----------
+	o1: A geometric object
+	o2: Should be a Polygon2D object
+
+	Return
+	----------
+	value: = True if o1 is bounded by o2, = False otherwise
+	'''
+	@staticmethod
+	def is_bounded( o1, o2 ):
+		for marker in o1.get_markers():
+			if not Environment.is_point_bounded(marker, o2):
+				return False
+		return True
+
 
 	'''
 	A very simple checking condition is to check if every segments

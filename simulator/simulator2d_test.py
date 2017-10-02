@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from simulator2d import Environment, Cube2D, Transform2D
+from simulator2d import Environment, Cube2D, Transform2D, Polygon2D
 
 class TestSimulator2D ( unittest.TestCase ):
 	def setUp(self):
@@ -87,6 +87,40 @@ class TestSimulator2D ( unittest.TestCase ):
 		o2 = Cube2D(Transform2D( [1.7,1.7], np.pi/4, 1.0))
 
 		self.assertTrue( Environment.is_overlap(o1, o2) )
+
+	def test_is_point_bounded(self):
+		o = Polygon2D ( markers = np.array([[0,1], [1,-1], [-1, -1]], dtype = np.float32), 
+			transform = Transform2D( [0.0,0.0], 0.0, 1.0))
+		p = [0,0]
+		self.assertTrue(Environment.is_point_bounded(p, o))
+
+		p = [0,1]
+		self.assertTrue(Environment.is_point_bounded(p, o))
+
+		p = [1,0]
+		self.assertFalse(Environment.is_point_bounded(p, o))
+
+		o = Polygon2D ( markers = np.array([[1,2], [-1,2], [-1, -2], [1,-2]], dtype = np.float32), 
+			transform = Transform2D( [0.0,0.0], 0.0, 1.0))
+		p = [2,0]
+		self.assertFalse(Environment.is_point_bounded(p, o))
+
+		p = [1,0]
+		self.assertTrue(Environment.is_point_bounded(p, o))
+
+	def test_is_bounded(self):
+		o2 = Polygon2D ( markers = np.array([[1,1], [-1,1], [-1, -1], [1,-1]], dtype = np.float32), 
+			transform = Transform2D( [0.0,0.0], 0.0, 1.0))
+		o1 = Cube2D (transform = Transform2D( [-0.5,0.0], np.pi/4, 0.5))
+
+		self.assertFalse(Environment.is_bounded(o1, o2))
+
+		o1 = Cube2D (transform = Transform2D( [-0.5,0.0], np.pi/2, 0.5))
+
+		print(o1)
+		print (o2)
+
+		self.assertTrue(Environment.is_bounded(o1, o2))
 
 	def test_environment(self):
 		o1 = Cube2D(Transform2D( [0.0,0.0], 0.0, 1.0))
