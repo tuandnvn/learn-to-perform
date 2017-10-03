@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from simulator2d import Environment, Cube2D, Transform2D, Polygon2D
+from simulator2d import Environment, Cube2D, Transform2D, Polygon2D, Command
 
 class TestSimulator2D ( unittest.TestCase ):
 	def setUp(self):
@@ -117,9 +117,6 @@ class TestSimulator2D ( unittest.TestCase ):
 
 		o1 = Cube2D (transform = Transform2D( [-0.5,0.0], np.pi/2, 0.5))
 
-		print(o1)
-		print (o2)
-
 		self.assertTrue(Environment.is_bounded(o1, o2))
 
 	def test_environment(self):
@@ -132,6 +129,32 @@ class TestSimulator2D ( unittest.TestCase ):
 		e.add_object(o1)
 		e.add_object(o2)
 		e.add_object(o3)
+
+		self.assertIn(o1, e.objects)
+		self.assertNotIn(o2, e.objects)
+		self.assertIn(o3, e.objects)
+
+		# True scale
+		o1 = Cube2D(Transform2D( [0.0,0.0], 0.0, 0.1))
+		o2 = Cube2D(Transform2D( [-0.9,0.0], np.pi/4, 0.1))
+		o3 = Cube2D(Transform2D( [0.9,0.0], np.pi/2, 0.1))
+
+		e = Environment(boundary = Polygon2D ( markers = np.array([[1,1], [-1,1], [-1, -1], [1,-1]], dtype = np.float32), 
+			transform = Transform2D( [0.0,0.0], 0.0, 1.0)),  speed = 0.2 )
+
+		e.add_object(o1)
+		e.add_object(o2)
+		e.add_object(o3)
+
+		self.assertIn(o1, e.objects)
+		self.assertNotIn(o2, e.objects)
+		self.assertIn(o3, e.objects)
+
+		# Actions on a certain object
+		# Let move o3 around o1
+		commands = [ Command([0.0, 0.8], 0.0), Command([-0.9,0.0], -np.pi/2), Command([0.8, 0], 0.0) ]
+
+		print (e.act(1, commands))
 
 		print (e)
 

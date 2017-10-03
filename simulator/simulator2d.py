@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg import norm
 import math
+from scipy.spatial import ConvexHull
 
 '''
 Author: Tuan Do
@@ -14,7 +15,7 @@ it doesn't cross with a static object.
 This simulator should be able to allow users to create objects in the scene, at least
 in the form of cube blocks, and then perform a movement of object:
 
-- Translocate object with a rotation: (x, y, theta)
+- Tranform of an object: (x, y, theta)
 '''
 class Transform2D (object):
 	'''
@@ -28,6 +29,9 @@ class Transform2D (object):
 		self.rotation = rotation
 		self.scale = scale
 
+	def clone(self):
+		return Transform2D(np.copy(self.position), self.rotation, self.scale)
+
 class Geometry2D (object):
 	'''
 	markers: a set of points on the geometry object that allow tracking
@@ -38,8 +42,9 @@ class Geometry2D (object):
 	'''
 	transform: Transform2D
 	'''
-	def __init__(self, transform):
+	def __init__(self, transform, markers = markers):
 		self.transform = transform
+		self.markers = markers
 	
 	'''
 	Get the markers after transforming with transform
@@ -55,13 +60,16 @@ class Geometry2D (object):
 			[np.sin(-self.transform.rotation), np.cos(-self.transform.rotation)]])
 		return self.transform.position + np.dot(self.markers, rotate_matrix) * self.transform.scale
 
+	def clone(self):
+		return Geometry2D(transform = self.transform.clone(), markers = np.copy(self.markers))
+
 
 class Cube2D (Geometry2D):
 	'''
 	markers: corners points of a standard square with size 1 centering at (0,0)
 	of size (4, 2)
 	'''
-	markers = np.array([[1,1], [1,-1], [-1, 1], [-1,-1]], dtype = np.float32)
+	markers = np.array([[1,1], [1,-1], [-1,-1], [-1, 1]], dtype = np.float32)
 
 	#-------------------------------------------------------------------
 	'''
@@ -69,7 +77,7 @@ class Cube2D (Geometry2D):
 	being the corners of the square 
 	'''
 	def __init__(self, transform):
-		Geometry2D.__init__(self, transform)
+		Geometry2D.__init__(self, transform, markers = Cube2D.markers)
 
 	def __str__(self):
 		return 'Cube :' + ', '.join(str(th) for th in self.get_markers())
@@ -83,13 +91,22 @@ class Polygon2D (Geometry2D):
 	We would not check the condition of being convex hull, it is the responsibility
 	of users to input a correct convex polygon
 	'''
-	def __init__(self, markers, transform):
-		self.markers = markers
+	def __init__(self, transform = Transform2D([0,0], 0, 1), markers = Cube2D.markers):
 		Geometry2D.__init__(self, transform)
+		self.markers = markers
 
 	def __str__(self):
 		return 'Polygon :' + ', '.join(str(th) for th in self.get_markers())
 
+class Command ( object ):
+	#-------------------------------------------------------------------
+	'''
+	Just set the tranform of the object to a new transform (but not new scale)
+	'''
+	def __init__( self, position, rotation ):
+		self.position = np.array(position)
+		self.position.shape = (1,2)
+		self.rotation = rotation
 
 class Environment (object):
 	'''
@@ -335,15 +352,18 @@ class Environment (object):
 	Parameters
 	----------
 	o: A geometric object
+	exclude_indices: indices of object in self.objects that should not be checked for overlapping
 
 	Return
 	----------
 	value: = True consistent, = False not consistent
 	'''
-	def is_overlap_consistency(self, o):
-		for other in self.objects:
-			if Environment.is_overlap(o, other):
-				return False
+	def is_overlap_consistency(self, o, exclude_indices = []):
+		for i in range(len(self.objects)):
+			if not i in exclude_indices:
+				other = self.objects[i]
+				if Environment.is_overlap(o, other):
+					return False
 
 		return True
 
@@ -359,13 +379,164 @@ class Environment (object):
 	value: = True can add object, = False couldn't add object
 	'''
 	def add_object(self, o):
-		if (self.is_overlap_consistency(o)):
+		if (self.boundary == None or Environment.is_bounded(o, self.boundary)) and\
+		self.is_overlap_consistency(o):
 			self.objects.append(o)
 			return True
 		return False
 
 	'''
+	Get convex hull of an object
+
+	Parameters
+	----------
+	points: n points, np.array of size (n, 2)
+
+	Return
+	----------
+	o: convex hull, a Polygon2D
+	'''
+	@staticmethod
+	def get_convex_hull( points ):
+		# My own implementation
+		# if len(points) < 1:
+		# 	return
+		# # Get the point that has smallest y, if there are multiple, get the one that has lowest x
+		# # This point must lies on the convex hull
+		# min_y = np.min(points[:,1])
+		# # all points that has x == min_x
+		# q = points[points[:,1] == min_y]
+
+		# min_x = np.min(q[:,0])
+		# # start_point = [min_x, min_y]
+		# # order the remaining points by ranking slope of vector made by start_point and other points
+		
+		# # return a tuple 
+		# # ( angle with (0,0)->(1,0) , distance from min_x, min_y) 
+		# def rank(point):
+		# 	vector = point - [min_x, min_y]
+
+		# 	return (np.arctan2(vector[1], vector[0]) , norm(vector))
+
+
+		# sorted_points = sorted(points, key = lambda point : rank(point) )
+
+		# # This is not convex yet
+		# boundary = []
+		# boundary.append(sorted_points[0])
+
+		# for i in range(1, len(sorted_points)):
+		# 	# Check if sorted_points[i] is included in the ray to the next sorted_points
+		# 	if i < len(sorted_points) - 1:
+		# 		vector_i = sorted_points[i] - [min_x, min_y]
+		# 		vector_i_1 = sorted_points[i+1] - [min_x, min_y]
+		# 		if np.arctan2(vector_i[1], vector_i[0]) == np.arctan2(vector_i_1[1], vector_i_1[0]):
+		# 			continue
+		# 	boundary.append(sorted_points[i])
+
+		# convex_hull = []
+		convex_hull = ConvexHull(points)
+		return Polygon2D(markers = points[convex_hull.vertices])
+
+
+	'''
+	Act on one object with a list of commands
+
+	Parameters
+	----------
+	obj_index: To get an object from the set of objects in the environments
+
+	Returns
+	----------
+	command_index: index of the last command that has been successfully executed
+	captures: = markers positions at different frames extrapolated by speed per frame
+	with the first frame being at the position where the action starts.
+	'''
+	def act(self, obj_index, commands):
+		if 0 <= obj_index < len(self.objects):
+			obj = self.objects[obj_index]
+		else:
+			raise ValueError('Object index %d is not in the range' % obj_index)
+
+
+		captures = []
+		captures.append(obj.get_markers())
+
+		# frame need to be subtracted from previous segment of movement
+		# should < self.speed
+		left_over_distance = 0.0
+
+		# Project the movement of the object according to each command
+		# Make sure there is clearance of the path between beginning and end points
+		for command_index in range(len(commands)):
+			print ('Before %s' % obj)
+			command = commands[command_index]
+			# check clearance by creating a path object
+			# a simple assumption is that the path is made from the object at its
+			# original rotation 
+			# however we would extrapolate object rotation along the path
+			original_transform = obj.transform.clone()
+
+			markers_before = obj.get_markers()
+			obj.transform.position = command.position
+			# Only change position to check path
+			markers_after = obj.get_markers()
+
+			# Create path as the flow of the object from original position to new position without rotating
+			path = Environment.get_convex_hull ( np.concatenate([markers_before, markers_after]))
+
+			# Now change the rotation as well
+			obj.transform.rotation = command.rotation
+
+			# Check to see if the path is inside the playfield
+			# and path doesn't overlap with other objects
+			# and final position doesn't overlap with other objects
+			if (self.boundary == None or Environment.is_bounded(path, self.boundary)) and\
+				self.is_overlap_consistency(path, exclude_indices = [obj_index]) and\
+				self.is_overlap_consistency(obj, exclude_indices = [obj_index]):
+				# command satisfy
+				# add capture
+				path_distance = norm(obj.transform.position - original_transform.position)
+
+				print ('path_distance = %.2f' % path_distance)
+				pos = self.speed - left_over_distance
+				while pos < path_distance:
+					print ('pos = %.2f' % pos)
+					new_obj = obj.clone()
+
+					interpolated_position = (pos / path_distance) * original_transform.position +\
+					 	(1 - pos/path_distance) * obj.transform.position
+					interpolated_rotation = (pos / path_distance) * original_transform.rotation +\
+					 	(1 - pos/path_distance) * obj.transform.rotation
+
+					new_obj.transform.position = interpolated_position
+					new_obj.transform.rotation = interpolated_rotation
+
+					captures.append(new_obj.get_markers())
+
+					# increase step
+					pos += self.speed
+
+				left_over_distance = self.speed + path_distance - pos
+				print ('After %s' % obj)
+			else:
+				obj.transform = original_transform
+				command_index -= 1
+				break
+
+		print ('Final %s' % obj)
+		return (command_index, captures)
+
+
+	'''
 	Just print out the objects
 	'''
 	def __str__(self):
-		return 'Environment: \n' + '\n'.join([ str(o) for o in self.objects])
+		tr = 'Environment: \n'
+
+		if self.boundary != None:
+			tr += 'Boundary: ' + str(self.boundary) + '\n'
+
+		tr += '\n'.join([ str(o) for o in self.objects])
+
+		return tr
