@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
-from simulator2d import Environment, Cube2D, Transform2D, Polygon2D, Command
+from simulator2d import Environment
+from utils import Cube2D, Transform2D, Polygon2D, Command
 
 class TestSimulator2D ( unittest.TestCase ):
 	def setUp(self):
