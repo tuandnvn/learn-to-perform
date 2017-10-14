@@ -6,7 +6,7 @@
     <file>rgb_10_4_2017_10_32_48PM.avi</file>
     <file>rig_10_4_2017_10_32_48PM.xml</file>
   </files>
-  <objects no="5">
+  <objects no="6">
     <object id="o1" name="Performer 1" filename="C:\Users\CWC-BH2\AnnotatorWorkspace\SlideToward\Session3\rgb_10_4_2017_10_32_48PM.avi" objectType="3D" generate="PROVIDED" color="-16744448" borderSize="1" semanticType="bodyRig" shape="Annotator.RigObject" rigIndex="2" source="rig_10_4_2017_10_32_48PM.xml" sourceScheme="bodyScheme.xml" />
     <object id="o2" name="Stella Artois" filename="C:\Users\CWC-BH2\AnnotatorWorkspace\SlideToward\Session3\rgb_10_4_2017_10_32_48PM.avi" objectType="3D" generate="TRACKED" color="-16777216" borderSize="1" semanticType="" shape="Annotator.GlyphBoxObject">
       <markers>
@@ -75046,6 +75046,18 @@
             <code>1 ,1 ,1 ,0 ,1 ,1 ,0 ,0 ,1 ,0 ,1 ,0 ,0 ,1 ,0 ,1 ,0 ,0 ,1 ,0 ,1 ,0 ,0 ,1 ,0 </code>
           </face>
         </marker>
+      </markers3d>
+    </object>
+    <object id="o6" name="table" filename="rgb_10_4_2017_10_32_48PM.avi" objectType="3D" generate="MANUAL" color="-65536" borderSize="1" semanticType="" shape="Annotator.PolygonObject">
+      <markers>
+        <marker type="LOCATION" frame="0">648.3117,667.169,900.1559,587.3766,1403.844,771.8961,1134.546,968.8833</marker>
+        <marker type="LOCATION" frame="915">648.3117,667.169,900.1559,587.3766,1403.844,771.8961,1134.546,968.8833</marker>
+        <marker type="LOCATION" frame="2496">648.3117,667.169,1117.091,659.6884,1403.844,771.8961,1134.546,968.8833</marker>
+      </markers>
+      <markers3d>
+        <marker frame="0">-0.5449997,-0.184102,1.65,-0.1758586,-0.07052555,1.971,0.5186367,-0.291097,1.392,0.1131959,-0.4042002,1.034</marker>
+        <marker frame="915">-0.5433482,-0.1835441,1.645,-0.1756802,-0.07045399,1.969,0.5063565,-0.2862889,1.369,0.1131959,-0.4042002,1.034</marker>
+        <marker frame="2496">-0.5496239,-0.1856641,1.664,0.1863946,-0.1713345,1.692,0.5037674,-0.284825,1.362,0.1098576,-0.4022481,1.029</marker>
       </markers3d>
     </object>
   </objects>

@@ -6,7 +6,7 @@
     <file>rgb_10_4_2017_10_42_35PM.avi</file>
     <file>rig_10_4_2017_10_42_35PM.xml</file>
   </files>
-  <objects no="4">
+  <objects no="5">
     <object id="o1" name="Performer 1" filename="C:\Users\CWC-BH2\AnnotatorWorkspace\SlideNext\Session2\rgb_10_4_2017_10_42_35PM.avi" objectType="3D" generate="PROVIDED" color="-16744448" borderSize="1" semanticType="bodyRig" shape="Annotator.RigObject" rigIndex="3" source="rig_10_4_2017_10_42_35PM.xml" sourceScheme="bodyScheme.xml" />
     <object id="o2" name="Shell" filename="C:\Users\CWC-BH2\AnnotatorWorkspace\SlideNext\Session2\rgb_10_4_2017_10_42_35PM.avi" objectType="3D" generate="TRACKED" color="-16777216" borderSize="1" semanticType="" shape="Annotator.GlyphBoxObject">
       <markers>
@@ -68270,6 +68270,16 @@
             <code>1 ,1 ,1 ,1 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,0 ,0 ,0 ,1 ,1 ,0 ,0 ,0 ,1 ,1 </code>
           </face>
         </marker>
+      </markers3d>
+    </object>
+    <object id="o5" name="table" filename="rgb_10_4_2017_10_42_35PM.avi" objectType="3D" generate="MANUAL" color="-65536" borderSize="1" semanticType="" shape="Annotator.PolygonObject">
+      <markers>
+        <marker type="LOCATION" frame="0">371.5325,779.3766,890.1821,589.8702,1441.247,791.8442,1097.143,993.8183</marker>
+        <marker type="LOCATION" frame="1263">371.5325,779.3766,907.6365,727.013,1161.974,844.2078,1097.143,993.8183</marker>
+      </markers>
+      <markers3d>
+        <marker frame="0">-0.8036661,-0.2920511,1.349,-0.1963653,-0.07551228,1.961,0.5372894,-0.2989212,1.326,0.06842934,-0.4159057,0.9950001</marker>
+        <marker frame="1263">-0.8042617,-0.2922676,1.35,-0.1370874,-0.2489085,1.494,0.1764222,-0.3440376,1.24,0.06856688,-0.4167417,0.997</marker>
       </markers3d>
     </object>
   </objects>
