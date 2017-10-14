@@ -5,13 +5,16 @@
 		<sequenceRoot>BodyDataSequence</sequenceRoot>
 		<frameRoot>Body_Data</frameRoot>
 		<rigPointsPath>Skeleton_ImgPlane_Joint_Locations/Pts</rigPointsPath>
-    <rigPoint3DsPath>Skeleton_Joint_Locations_Orig/Pts</rigPoint3DsPath>
+        <rigPoint3DsPath>Skeleton_Joint_Locations_Orig/Pts</rigPoint3DsPath>
 		<frameNoPath> 
 			Timestamp/@frame <!-- Get frame number -->
 		</frameNoPath>
-    <frameTimePath> 
+        <frameTimePath> 
 			Timestamp/@time  <!-- Get time capture the rig -->
 		</frameTimePath>
+		<timeFromBeginPath> 
+			Timestamp/@timeFromBegin  <!-- Get time capture the rig -->
+		</timeFromBeginPath>
 		<rigNoPath>Subject/@id</rigNoPath>   
 		<rigPointFormat type = "flat" separated="," /> // All rig points are laid out as either comma separated or space separated values
         <rigPoints>  
