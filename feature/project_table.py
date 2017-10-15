@@ -42,6 +42,12 @@ def estimate_plane ( points ):
 
 	return p
 
+'''
+
+'''
+def get_projected_point (p, plane):
+	t = (np.dot(p, plane[:3]) + plane[3])/norm(plane[:3])
+	return p - plane[:3] * t
 
 '''
 Infer the position of top markers on the 2D surface of the table
@@ -90,14 +96,14 @@ def cube_2d_inference( block_side_markers, table_markers, block_size = 0.18):
 		block_markers_centroid - v1 - v2, block_markers_centroid - v1 + v2 ]
 
 
-	def get_projected_point (p, plane):
-		t = (np.dot(p, plane[:3]) + plane[3])/norm(plane[:3])
-		return p - plane[:3] * t
+	
 
 	rectangle_projected = [ get_projected_point(x, plane) for x in rectangle]
 
 	# An estimation of Cube2D
 	top_side_markers = Cube2D()
+
+
 
 	return top_side_markers
 
