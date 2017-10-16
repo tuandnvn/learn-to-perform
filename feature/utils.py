@@ -1,3 +1,5 @@
+import numpy as np
+
 class Transform3D (object):
 	'''
 	position: 3D position [x,y] (meter)

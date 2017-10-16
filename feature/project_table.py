@@ -15,8 +15,8 @@ import math
 from scipy.linalg import norm
 from scipy.optimize import leastsq
 
-from util import Geometry3D
-from ..simulator.util import Cube2D, Transform2D
+from utils import Geometry3D
+from simulator.utils import Cube2D, Transform2D
 
 '''
 Parameters
@@ -68,10 +68,28 @@ Returns
 ----------
 bottom_side_markers: a Cube2D that estimate locations of rectangle_projected on the 2d coordination
 '''
-def estimate_cube_2d ( rectangle_projected, first_point, second_point ):
-    plane = estimate_plane(rectangle_projected)
+def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.18 ):
+    plane = estimate_plane(np.array(rectangle_projected))
+
+    vector_ox = second_point - first_point
+    # Normalize into (1,0,0)
+    vector_ox = vector_ox / norm(vector_ox)
+
+    vector_oy = np.cross(plane[:3], vector_ox)
+
+    xs = [np.dot(p - first_point, vector_ox) for p in rectangle_projected]
+    ys = [np.dot(p - first_point, vector_oy) for p in rectangle_projected]
+
+    # (4x2)
+    points = np.reshape(np.array([xs, ys]),(4,2))
+
+    position = np.mean([points])
+    # Rotation here just assume an angle < 90
+    rotation = np.arccos( np.abs(np.dot(position[1] - position[0], vector_ox)))
+    scale = block_size
+
     # An estimation of Cube2D
-    bottom_side_markers = Cube2D(transform = Transform2D([0,0], 0, 1))
+    bottom_side_markers = Cube2D(transform = Transform2D(position, rotation, scale))
 
     return bottom_side_markers
 

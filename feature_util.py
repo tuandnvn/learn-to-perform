@@ -9,6 +9,7 @@ delineated by the table surface
 '''
 import numpy as np
 from utils import SESSION_OBJECTS
+from project_table import project_markers, estimate_cube_2d
 
 # Count the number of finite element in an array
 def count_finite( numpy_array ):
@@ -20,7 +21,7 @@ Params: session_data: check the return value of read_utils.load_one_param_file
 
 Return: object_data: Dictionary
 	object_data[object_name] = interpolated and 2-d data projected onto the table
-	object_data[object_name][frameNo] = interpolated data from 3d
+	object_data[object_name][frameNo] = Cube-2D (a wrapper of a transform)
 '''
 def project_to2d ( session_data ):
 	object_data = {}
