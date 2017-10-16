@@ -69,7 +69,7 @@ Returns
 bottom_side_markers: a Cube2D that estimate locations of rectangle_projected on the 2d coordination
 '''
 def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.18 ):
-    plane = estimate_plane(np.array(rectangle_projected))
+    plane = estimate_plane(np.array(rectangle_projected).T)
 
     vector_ox = second_point - first_point
     # Normalize into (1,0,0)
@@ -80,18 +80,30 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_siz
     xs = [np.dot(p - first_point, vector_ox) for p in rectangle_projected]
     ys = [np.dot(p - first_point, vector_oy) for p in rectangle_projected]
 
-    # (4x2)
-    points = np.reshape(np.array([xs, ys]),(4,2))
-
-    position = np.mean([points])
+    # (2x4)
+    points = np.array([xs, ys])
+    position = np.mean(points, axis = 1)
+    
+    
     # Rotation here just assume an angle < 90
-    rotation = np.arccos( np.abs(np.dot(position[1] - position[0], vector_ox)))
+    side = points[:,1] - points[:,0]
+    side /= norm(side)
+    
+    dot = np.dot(side, [1,0])
+    det = np.linalg.det([[1,0], side])
+    rotation = math.atan2(det, dot)
+    
+    # We want a value between 0 and pi/2
+    if rotation > np.pi / 2:
+        rotation -= np.pi / 2
+    elif rotation < 0:
+        rotation += np.pi / 2
     scale = block_size
 
     # An estimation of Cube2D
-    bottom_side_markers = Cube2D(transform = Transform2D(position, rotation, scale))
+    cube2d = Cube2D(transform = Transform2D(position, rotation, scale))
 
-    return bottom_side_markers
+    return cube2d
 
 '''
 Parameters
