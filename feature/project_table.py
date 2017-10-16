@@ -15,13 +15,28 @@ import math
 from scipy.linalg import norm
 from scipy.optimize import leastsq
 
-from utils import Geometry3D
+from .utils import Geometry3D
 from simulator.utils import Cube2D, Transform2D
+
+# exact plane
+def find_plane( points ):
+    v1 = points[2] - points[0]
+    v2 = points[1] - points[0]
+    cp = np.cross(v1, v2)
+    
+    a, b, c = cp
+    # This evaluates a * x3 + b * y3 + c * z3 + d = 0
+    d = -np.dot(cp, points[2])
+    
+    sol = np.array([a,b,c,d])
+    p = sol / norm(sol[:3])
+
+    return p
 
 '''
 Parameters
 ----------
-points: np array of size (3, n)
+points: np array of size (n, 3)
 
 Returns
 ----------
@@ -30,20 +45,27 @@ plane: np array of size 4: (a, b, c, d) where norm([a,b,c]) == 1
 def estimate_plane ( points ):
     # Remove any point if value is not-finite:
     filtered_points = [p for p in points if np.all(np.isfinite(p))]
+    print ('filtered_points')
+    print (filtered_points)
     if len(filtered_points) <= 2:
         raise Exception("You need at least 3 non-finite points to find a plane")
-
+    elif len(filtered_points) == 3:
+        return find_plane(filtered_points)
+    
+    filtered_points = np.array(filtered_points)
+    
     # Inital guess of the plane
+    # Let's the last value to be 1
+    # ax + by + cz + 1 = 0
     p0 = [1, 1, 1, 0]
 
     # distance from a point X to a plane p
     def distance(p,X):
         plane_xyz = p[0:3]
-        distance = (plane_xyz*X.T).sum(axis=1) + p[3]
+        distance = (plane_xyz*X).sum(axis=1) + p[3]
         return distance / np.linalg.norm(plane_xyz)
 
-    sol = leastsq(distance, p0, args=(points,))[0]
-
+    sol = leastsq(distance, p0, args=(filtered_points,))[0]
     p = sol / norm(sol[:3])
 
     return p
@@ -69,7 +91,7 @@ Returns
 bottom_side_markers: a Cube2D that estimate locations of rectangle_projected on the 2d coordination
 '''
 def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.18 ):
-    plane = estimate_plane(np.array(rectangle_projected).T)
+    plane = estimate_plane(np.array(rectangle_projected))
 
     vector_ox = second_point - first_point
     # Normalize into (1,0,0)
@@ -163,7 +185,7 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
     # Using scipy optimize to estimate the plane of the table
 
     # plane estimation of the table
-    plane = estimate_plane(table_markers.T)
+    plane = estimate_plane(table_markers)
 
     recover = False
     if np.sum( np.isfinite( block_markers ))  == 9:
@@ -173,7 +195,7 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
 
     # plane estimation of the block surface
     try:
-        block_markers_plane = estimate_plane(block_markers_reshape.T)
+        block_markers_plane = estimate_plane(block_markers_reshape)
     except:
         return []
 
