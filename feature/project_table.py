@@ -76,6 +76,39 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point ):
     return bottom_side_markers
 
 '''
+Parameters
+----------
+block_markers: np.array of size 4 x 3
+
+Returns
+----------
+block_markers: np.array of size 4 x 3
+'''
+def recover_missing ( block_markers ):
+    missing_index = -1
+    for i in range(4):
+        if not np.isfinite(block_markers[i][0]):
+            missing_index = i
+            break
+    other_indices = [ i for i in range(4) if i != missing_index ]
+
+    # Distances between any other corners
+    distances = []
+    for i in other_indices:
+        for j in other_indices:
+            if i < j:
+                distances.append((i,j,norm(block_markers[i] - block_markers[j])))
+
+    distances = sorted(distances, key = lambda v : v[2], reverse = True)
+
+    i = distances[0][0]
+    j = distances[0][1]
+
+    opposite = [x for x in range(4) if x not in [i,j,missing_index]][0]
+
+    block_markers[missing_index] = block_markers[i] + block_markers[j] - block_markers[opposite]
+
+'''
 Infer the position of bottom markers on the 2D surface of the table
 given the position of top/side markers.
 Firstly, we check to see if the given marker should be considered top
@@ -102,6 +135,10 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
     # plane estimation of the table
     plane = estimate_plane(table_markers.T)
 
+    recover = False
+    if np.sum( np.isfinite( block_markers ))  == 9:
+        recover = True
+
     block_markers_reshape = np.reshape(block_markers, (4,3))
 
     # plane estimation of the block surface
@@ -109,6 +146,9 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
         block_markers_plane = estimate_plane(block_markers_reshape.T)
     except:
         return []
+
+    if recover:
+        block_markers_reshape = recover_missing(block_markers_reshape) 
 
     # Cosin between two norm vectors
     # If the marker is on the side, this value would be closer to 0, say < 0.5
