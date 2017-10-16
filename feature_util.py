@@ -43,7 +43,7 @@ def project_to2d ( session_data ):
         if object_name == 'table':
             polygon = []
             for frameNo in session_data[SESSION_OBJECTS][object_name]:
-                frame_polygon = session_data[SESSION_OBJECTS][object_name][frameNo]
+                frame_polygon = session_data[SESSION_OBJECTS][object_name][int(frameNo)]
 
             polygon.append(frame_polygon)
 
@@ -60,7 +60,7 @@ def project_to2d ( session_data ):
         if object_name != 'table':
             object_data[object_name] = {}
             for frameNo in session_data[SESSION_OBJECTS][object_name]:
-                frame_data = session_data[SESSION_OBJECTS][object_name][frameNo]
+                frame_data = session_data[SESSION_OBJECTS][object_name][int(frameNo)]
 
                 # Sort firstly by number of non-finite corners
                 # Sort secondly by size of marker (larger marker means better resolution)
@@ -75,6 +75,6 @@ def project_to2d ( session_data ):
 
                 rectangle_projected = project_markers ( frame_data[best_face_index], table_markers )
 
-                object_data[object_name][frameNo] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
+                object_data[object_name][int(frameNo)] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
 
     return object_data

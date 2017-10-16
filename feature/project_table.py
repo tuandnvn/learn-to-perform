@@ -45,8 +45,8 @@ plane: np array of size 4: (a, b, c, d) where norm([a,b,c]) == 1
 def estimate_plane ( points ):
     # Remove any point if value is not-finite:
     filtered_points = [p for p in points if np.all(np.isfinite(p))]
-    print ('filtered_points')
-    print (filtered_points)
+    #print ('filtered_points')
+    #print (filtered_points)
     if len(filtered_points) <= 2:
         raise Exception("You need at least 3 non-finite points to find a plane")
     elif len(filtered_points) == 3:
@@ -120,7 +120,7 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_siz
         rotation -= np.pi / 2
     elif rotation < 0:
         rotation += np.pi / 2
-    scale = block_size
+    scale = block_size / 2
 
     # An estimation of Cube2D
     cube2d = Cube2D(transform = Transform2D(position, rotation, scale))
@@ -200,7 +200,7 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
         return []
 
     if recover:
-        block_markers_reshape = recover_missing(block_markers_reshape) 
+        recover_missing(block_markers_reshape) 
 
     # Cosin between two norm vectors
     # If the marker is on the side, this value would be closer to 0, say < 0.5
