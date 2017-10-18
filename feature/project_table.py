@@ -246,7 +246,3 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
 
     return rectangle_projected
 
-
-    
-
-    
