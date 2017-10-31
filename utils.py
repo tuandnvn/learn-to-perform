@@ -17,6 +17,7 @@ FIRST_EXPERIMENT_CLASSES = ['SlideAround', 'SlideAway', 'SlideNext', 'SlidePast'
 SESSION_NAME = "session_name"
 SESSION_OBJECTS = "session_objects"
 SESSION_EVENTS = "session_events"
+SESSION_LEN = "session_length"
 
 START = "start"
 END = "end"

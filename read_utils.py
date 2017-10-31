@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 # from qsrlib_io.world_trace import Object_State, World_Trace
 
 from utils import DATA_DIR, FIRST_EXPERIMENT_CLASSES,\
-    SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, GLYPH_BOX, NORMAL, \
+    SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, GLYPH_BOX, NORMAL, \
     START, END, LABEL
 from marker_util import glyphs, from_1d_array_to_face_index
 import xml.etree.ElementTree as ET
@@ -63,6 +63,7 @@ def load_one_param_file( file_path ):
     session_name = doc.attrib['name']
 
     session_data = {}
+    session_data[SESSION_LEN] = int(doc.attrib['length'])
     session_data[SESSION_NAME] = session_name
     session_data[SESSION_OBJECTS] = {}
     session_data[SESSION_EVENTS] = []
@@ -138,6 +139,7 @@ def load_one_param_file( file_path ):
         session_data[SESSION_EVENTS].append(e)
 
     return session_data
+
 
 
 def read_project_data( data_dir, classes ):

@@ -8,6 +8,7 @@ Projecting a segment of data into two dimensional plane
 delineated by the table surface
 '''
 import numpy as np
+import bisect
 from utils import SESSION_OBJECTS
 from feature.project_table import project_markers, estimate_cube_2d
 
@@ -87,13 +88,32 @@ Interpolate data for missing frames
 
 ===========
 Params: 
-object_data
+object_data: chain of features, one feature vector for each frame (interpolated frames) for one object
 
-Return:
-interpolated_object_data: chain of features, one feature vector for each frame (interpolated frames)
+
 '''
-def interpolate_object_data( object_data ):
+def interpolate_object_data( session_len, one_object_data ):
+    sorted_keys = sorted(one_object_data.keys())
+    for frame in range(session_len):
+        if frame not in one_object_data:
+            # missing frame
+            frame_position = bisect.bisect_left(sorted_keys, frame)
 
+            if frame_position == 0:
+                # missing at the beginning
+                one_object_data[frame] = one_object_data[sorted_keys[0]]
+            elif frame_position == len(sorted_keys):
+                # missing at the end
+                one_object_data[frame] = one_object_data[sorted_keys[-1]]
+            else:
+                pre_key = sorted_keys[frame_position - 1]
+                nex_key = sorted_keys[frame_position]
+                pre = one_object_data[pre_key]
+                nex = one_object_data[nex_key]
+
+                p = (frame - pre_key)/(nex_key - pre_key)
+                q = (nex_key - frame)/(nex_key - pre_key)
+                one_object_data[frame] = Cube2D( transform = nex * p + pre * q)
 
 def turn_response_to_features(keys, qsrlib_response_message):
     feature_chain = []

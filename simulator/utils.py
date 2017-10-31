@@ -18,6 +18,13 @@ class Transform2D (object):
 	def clone(self):
 		return Transform2D(np.copy(self.position), self.rotation, self.scale)
 
+	def __add__(self, another_transform):
+		return Transform2D( self.position + another_transform.position, self.rotation + another_transform.rotation,
+		        self.scale + another_transform.scale )
+
+	def __mul__(self, scalar):
+		return Transform2D( self.position * scalar, self.rotation * scalar, self.scale * scalar )
+
 class Geometry2D (object):
 	'''
 	markers: a set of points on the geometry object that allow tracking
