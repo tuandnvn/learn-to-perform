@@ -9,7 +9,7 @@ delineated by the table surface
 '''
 import numpy as np
 import bisect
-from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE
+from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION
 from feature.project_table import project_markers, estimate_cube_2d
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
@@ -125,13 +125,13 @@ Get the features from
 Params: 
 qsrlib: check the return value of read_utils.load_one_param_file
 object_data: See the return type of project_to2d
-object_1: Name of the first object
-object_2: Name of the second object
+object_1_name: Name of the first object
+object_2_name: Name of the second object
 
 Return:
 feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
 '''
-def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2, session_len ):
+def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, session_len ):
     '''
     feature_selection between two objects
     # of features = 13
@@ -148,9 +148,12 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2, session_len
     2 features
     quantized difference of rotations btw two frames of two objects
     '''
-    o1 = [Object_State(name="o1", timestamp=i, x=object_1.position[0], y=object_1.position[1]) 
+    object_1 = object_data[object_1_name]
+    object_2 = object_data[object_2_name]
+
+    o1 = [Object_State(name="o1", timestamp=i, x=object_1[i].position[0], y=object_1[i].position[1]) 
             for i in range(session_len)]
-    o2 = [Object_State(name="o2", timestamp=i, x=object_2.position[0], y=object_2.position[1]) 
+    o2 = [Object_State(name="o2", timestamp=i, x=object_2[i].position[0], y=object_2[i].position[1]) 
             for i in range(session_len)]
 
     world = World_Trace()
@@ -171,8 +174,25 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2, session_len
     try:
         # pretty_print_world_qsr_trace(['cardir', 'mos', 'argd', 'qtccs'], qsrlib_response_message)
         qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
-        qsr_feature = turn_response_to_features([('o1', 'o2')], qsrlib_response_message, diff_feature)
 
+        # (#frame, 8)
+        qsr_feature = turn_response_to_features([('o1', 'o2')], qsrlib_response_message, all_feature, diff_feature)
+
+        # rotation features
+        quantized_r_1 = np.array([object_1[i].rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+        quantized_r_2 = np.array([object_2[i].rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+        quantized_diff = quantized_r_1[i] - quantized_r_2[i]
+        diff_quantized_r_1 = np.pad(np.ediff1d(quantized_r_1), (1,0), 'constant', constant_values = (0,))
+        diff_quantized_r_2 = np.pad(np.ediff1d(quantized_r_2), (1,0), 'constant', constant_values = (0,))
+
+        # column forms
+        quantized_r_1.shape = (session_len, 1)
+        quantized_r_2.shape = (session_len, 1)
+        quantized_diff.shape = (session_len, 1)
+        diff_quantized_r_1.shape = (session_len, 1)
+        diff_quantized_r_2.shape = (session_len, 1)
+
+        return np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
 
     except ValueError, e:
         print e
@@ -180,8 +200,10 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2, session_len
         return []
 
 '''
+diff_feature: number of features at the beginning that need to create difference between two frames
+all_feature: total number of features
 '''
-def turn_response_to_features(keys, qsrlib_response_message, diff_feature, all_feature):
+def turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     feature_chain = []
     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
         features = []
@@ -215,16 +237,27 @@ def turn_response_to_features(keys, qsrlib_response_message, diff_feature, all_f
         return feature_chain
 
     # The first frame doesn't has qtcc relations
-    feature_chain[0] += [0, 0, 0, 0]
-    
-    diff_feature_chain = [ [feature_chain[t + 1][i] - feature_chain[t][i] 
-                            for i in xrange(len(feature_chain[0]) - 7) ] + \
-                          [feature_chain[t][i] for i in xrange(len(feature_chain[0]) - 7, len(feature_chain[0]))]
-                    for t in xrange(len(feature_chain) - 1)]
-    
-    diff_feature_chain = [[0 for i in xrange(len(feature_chain[0]))]] +  diff_feature_chain
+    feature_chain[0] += [0 for i in range(all_feature - diff_feature)]
 
-    # Concatenate features
-    # feature_chain = [feature_chain[i] + diff_feature_chain[i] for i in xrange(len(feature_chain))]
+    feature_chain = np.array(feature_chain)
+    # number of features
+    f_number = feature_chain.shape[1]
+
+    # Feature that need to calculate diff
+    # (#frame, diff_feature)
+    need_diff_chain = feature_chain[:, :diff_feature]
+
+    # Get the diff
+    # (#frame - 1, diff_feature)
+    diff_chain = np.diff(need_diff_chain, n=1, axis = 0)
+
+    # (#frame, diff_feature)
+    padded_diff_chain = np.pad(diff_chain, [(1,0), (0,0)], 'constant', constant_values = (0,))
+
+    
+    
+    # Add for the first frame
+    # (#frame, 2 * diff_feature + other_feature)
+    diff_feature_chain = np.concatenate ( [need_diff_chain, padded_diff_chain, feature_chain[:, diff_feature:]], axis = 1 )
 
     return diff_feature_chain

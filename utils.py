@@ -3,6 +3,7 @@ Created on Oct 1, 2017
 
 @author: Tuan
 '''
+import numpy as np
 import os
 
 
@@ -27,4 +28,6 @@ GLYPH_BOX = "Annotator.GlyphBoxObject"
 NORMAL = "Annotator.PolygonObject"
 
 # 18 cm?
-BLOCK_SIZE = 0.18 
+BLOCK_SIZE = 0.18
+# just 10 degree
+ROTATION_QUANTIZATION = np.pi / 18
