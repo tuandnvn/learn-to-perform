@@ -9,7 +9,7 @@ delineated by the table surface
 '''
 import numpy as np
 import bisect
-from utils import SESSION_OBJECTS
+from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE
 from feature.project_table import project_markers, estimate_cube_2d
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
@@ -81,6 +81,7 @@ def project_to2d ( session_data ):
 
                 object_data[object_name][int(frameNo)] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
 
+            interpolate_object_data(session_data[SESSION_LEN])
     return object_data
 
 '''
@@ -92,7 +93,7 @@ object_data: chain of features, one feature vector for each frame (interpolated 
 
 
 '''
-def interpolate_object_data( session_len, one_object_data ):
+def interpolate_object_data( one_object_data, session_len ):
     sorted_keys = sorted(one_object_data.keys())
     for frame in range(session_len):
         if frame not in one_object_data:
@@ -115,7 +116,72 @@ def interpolate_object_data( session_len, one_object_data ):
                 q = (nex_key - frame)/(nex_key - pre_key)
                 one_object_data[frame] = Cube2D( transform = nex * p + pre * q)
 
-def turn_response_to_features(keys, qsrlib_response_message):
+'''
+Get the features from 
+- one object as the one mainly under movement (object slot)
+- one object that is relatively static (theme slot)
+
+===========
+Params: 
+qsrlib: check the return value of read_utils.load_one_param_file
+object_data: See the return type of project_to2d
+object_1: Name of the first object
+object_2: Name of the second object
+
+Return:
+feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
+'''
+def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2, session_len ):
+    '''
+    feature_selection between two objects
+    # of features = 13
+    
+    8 features here
+    (o1.position, o2.position) - cardir, cardir_diff, argd, argd_diff, qtccs 4 features
+
+    -- other features
+    
+    2 features
+    quantized rotation of two objects
+    1 feature
+    quantized rotation difference between two objects
+    2 features
+    quantized difference of rotations btw two frames of two objects
+    '''
+    o1 = [Object_State(name="o1", timestamp=i, x=object_1.position[0], y=object_1.position[1]) 
+            for i in range(session_len)]
+    o2 = [Object_State(name="o2", timestamp=i, x=object_2.position[0], y=object_2.position[1]) 
+            for i in range(session_len)]
+
+    world = World_Trace()
+    world.add_object_state_series(o1)
+    world.add_object_state_series(o2)
+
+    qsrlib_request_message = QSRlib_Request_Message(which_qsr=['cardir', 'argd', 'qtccs'], input_data=world, 
+                    dynamic_args = {'cardir': {'qsrs_for': [('o1', 'o2')]},
+                                    'argd': {'qsrs_for': [('o1', 'o2')], 
+                                            'qsr_relations_and_values' : dict(("" + str(i), i * BLOCK_SIZE / 2) for i in xrange(20)) },
+                                    'qtccs': {'qsrs_for': [('o1', 'o2')], 
+                                              'quantisation_factor': 0.001, 'angle_quantisation_factor' : np.pi / 5,
+                                              'validate': False, 'no_collapse': True
+                                   }})
+
+    # Number of features that you calculate the difference between two consecutive frames
+    diff_feature = 2
+    try:
+        # pretty_print_world_qsr_trace(['cardir', 'mos', 'argd', 'qtccs'], qsrlib_response_message)
+        qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
+        qsr_feature = turn_response_to_features([('o1', 'o2')], qsrlib_response_message, diff_feature)
+
+
+    except ValueError, e:
+        print e
+        print 'Problem in data of length ' + str(len_data)
+        return []
+
+'''
+'''
+def turn_response_to_features(keys, qsrlib_response_message, diff_feature, all_feature):
     feature_chain = []
     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
         features = []
@@ -148,8 +214,8 @@ def turn_response_to_features(keys, qsrlib_response_message):
     if len(feature_chain) == 0:
         return feature_chain
 
-    # The first frame doesn't has mos and qtcc relations
-    feature_chain[0] += [0, 0, 0, 0, 0, 0, 0]
+    # The first frame doesn't has qtcc relations
+    feature_chain[0] += [0, 0, 0, 0]
     
     diff_feature_chain = [ [feature_chain[t + 1][i] - feature_chain[t][i] 
                             for i in xrange(len(feature_chain[0]) - 7) ] + \
@@ -162,23 +228,3 @@ def turn_response_to_features(keys, qsrlib_response_message):
     # feature_chain = [feature_chain[i] + diff_feature_chain[i] for i in xrange(len(feature_chain))]
 
     return diff_feature_chain
-
-'''
-Get the features from 
-- one object as the one mainly under movement (object slot)
-- one object that is relatively static (theme slot)
-
-===========
-Params: 
-qsrlib: check the return value of read_utils.load_one_param_file
-object_data: See the return type of project_to2d
-object_1: Name of the first object
-object_2: Name of the second object
-
-Return:
-feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
-'''
-def qsr_feature_extractor ( qsrlib, object_data, object_1, object_2 ):
-    '''
-    feature_selection between object_data
-    '''

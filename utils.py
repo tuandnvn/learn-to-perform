@@ -25,3 +25,6 @@ LABEL = "label"
 
 GLYPH_BOX = "Annotator.GlyphBoxObject"
 NORMAL = "Annotator.PolygonObject"
+
+# 18 cm?
+BLOCK_SIZE = 0.18 
