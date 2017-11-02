@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, division
+
 from abc import ABCMeta, abstractmethod
 from qsrlib_qsrs.qsr_abstractclass import QSR_Abstractclass
 from qsrlib_io.world_qsr_trace import *
 
 
-class QSR_Monadic_Abstractclass(QSR_Abstractclass):
+class QSR_Monadic_Abstractclass(QSR_Abstractclass, metaclass=ABCMeta):
     """Abstract class of monadic QSRs, i.e. QSRs that are computed over a single object."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(self):
         """Constructor."""
@@ -57,13 +55,11 @@ class QSR_Monadic_Abstractclass(QSR_Abstractclass):
         :return: `bbox1`, `bbox2`
         :rtype: two lists of floats
         """
-        raise (data1.return_bounding_box_2d(), data2.return_bounding_box_2d())
+        raise data1.return_bounding_box_2d()
 
 
-class QSR_Monadic_2t_Abstractclass(QSR_Monadic_Abstractclass):
+class QSR_Monadic_2t_Abstractclass(QSR_Monadic_Abstractclass, metaclass=ABCMeta):
     """Special case abstract class of monadic QSRs. Works with monadic QSRs that require data over two timestamps."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(self):
         """Constructor."""
@@ -104,14 +100,14 @@ class QSR_Monadic_2t_Abstractclass(QSR_Monadic_Abstractclass):
         for t, tp in zip(timestamps[1:], timestamps):
             world_state_now = world_trace.trace[t]
             world_state_previous = world_trace.trace[tp]
-            qsrs_for = self._process_qsrs_for([world_state_previous.objects.keys(), world_state_now.objects.keys()],
+            qsrs_for = self._process_qsrs_for([list(world_state_previous.objects.keys()), list(world_state_now.objects.keys())],
                                               req_params["dynamic_args"])
             for object_name in qsrs_for:
                 try:
                     data1, data2 = self._dtype_map[self._dtype](world_state_now.objects[object_name],
                                                                 world_state_previous.objects[object_name])
                 except KeyError:
-                    raise KeyError("%s is not a valid value, should be one of %s" % (self._dtype, self._dtype_map.keys()))
+                    raise KeyError("%s is not a valid value, should be one of %s" % (self._dtype, list(self._dtype_map.keys())))
                 ret.add_qsr(QSR(timestamp=t, between=object_name,
                                 qsr=self._format_qsr(self._compute_qsr(data1, data2, qsr_params, **kwargs))),
                             t)

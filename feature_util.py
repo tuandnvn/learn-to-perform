@@ -9,11 +9,12 @@ delineated by the table surface
 '''
 import numpy as np
 import bisect
-from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION
-from feature.project_table import project_markers, estimate_cube_2d
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace
+
+from feature.project_table import project_markers, estimate_cube_2d
+from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION
 
 # Count the number of finite element in an array
 def count_finite( numpy_array ):
@@ -194,9 +195,9 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
 
         return np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
 
-    except ValueError, e:
-        print e
-        print 'Problem in data of length ' + str(len_data)
+    except ValueError as e:
+        print (e)
+        print ('Problem in data of length ' + str(len_data))
         return []
 
 '''

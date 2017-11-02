@@ -1,46 +1,46 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function, division
+
 from abc import ABCMeta, abstractmethod
 from qsrlib_qsrs.qsr_abstractclass import QSR_Abstractclass
+from qsrlib_utils.combinations_and_permutations import *
 from qsrlib_io.world_qsr_trace import *
 
-
-class QSR_Monadic_Abstractclass(QSR_Abstractclass):
-    """Abstract class of monadic QSRs, i.e. QSRs that are computed over a single object."""
-
-    __metaclass__ = ABCMeta
+class QSR_Dyadic_Abstractclass(QSR_Abstractclass, metaclass=ABCMeta):
+    """Abstract class of dyadic QSRs, i.e. QSRs that are computed over two objects."""
 
     def __init__(self):
         """Constructor."""
-        super(QSR_Monadic_Abstractclass, self).__init__()
+        super(QSR_Dyadic_Abstractclass, self).__init__()
 
     def _init_qsrs_for_default(self, objects_names_of_world_state):
         """Default list of entities for which QSRs are to be computed for.
 
         :param objects_names_of_world_state: Objects names at a world state.
-        :type objects_names_of_world_state: list
-        :return: The object names in the world state, i.e. return the argument as passed.
-        :rtype: list of str
+        :type objects_names_of_world_state: list of str
+        :return: The permutations, i.e. all possible pairs including mirrors, of the list of names passed in the
+        arguments. E.g. for `objects_names_of_world_state = ['a', 'b']` return `[('a', 'b'), ('b', 'a')]`.
+        :rtype: list of tuples of str
         """
-        return objects_names_of_world_state
+        return possible_pairs(objects_names_of_world_state)
 
     def _validate_qsrs_for(self, qsrs_for):
-        """Validate `qsrs_for` which must be a list of strings.
+        """Validate `qsrs_for` which must be a list of tuples of two objects names.
 
         :param qsrs_for: The original `qsrs_for` that needs validation.
         :type qsrs_for: list
-        :return: A list of string objects names to make QSRs, which might be the same as the argument `qsrs_for` or a
-        subset of it with elements that passed the validation test, i.e. the elements of the list must be strings.
+        :return: List of string objects names to make QSRs, which might be the same as the argument `qsrs_for` or a
+        subset of it with elements that passed the validation test, i.e. the elements of the list must be tuples of
+        two strings.
         :rtype: list
         """
-        return [p for p in qsrs_for if isinstance(p, str)]
+        return [p for p in qsrs_for if isinstance(p, (list, tuple)) and (len(p) == 2)]
 
     def _return_points(self, data1, data2):
         """Return the arguments as they are in their point form.
 
-        :param data1: Object data at first timestamp.
+        :param data1: First object data.
         :type data1: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
-        :param data2: Object data at second timestamp.
+        :param data2: Second object data.
         :type data2: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
         :return: `data1`, `data2`
         :rtype: two :class:`Object_State <qsrlib_io.world_trace.Object_State>` objects
@@ -50,32 +50,30 @@ class QSR_Monadic_Abstractclass(QSR_Abstractclass):
     def _return_bounding_boxes_2d(self, data1, data2):
         """Return the 2D bounding boxes of the arguments.
 
-        :param data1: Object data at first timestamp.
-        :type data1: qsrlib_io.world_trace.Object_State
-        :param data2: Object data at second timestamp.
-        :type data2: qsrlib_io.world_trace.Object_State
+        :param data1: First object data.
+        :type data1: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
+        :param data2: Second object data.
+        :type data2: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
         :return: `bbox1`, `bbox2`
         :rtype: two lists of floats
         """
-        raise (data1.return_bounding_box_2d(), data2.return_bounding_box_2d())
+        return data1.return_bounding_box_2d(), data2.return_bounding_box_2d()
 
 
-class QSR_Monadic_2t_Abstractclass(QSR_Monadic_Abstractclass):
-    """Special case abstract class of monadic QSRs. Works with monadic QSRs that require data over two timestamps."""
-
-    __metaclass__ = ABCMeta
+class QSR_Dyadic_1t_Abstractclass(QSR_Dyadic_Abstractclass, metaclass=ABCMeta):
+    """Special case abstract class of dyadic QSRs. Works with dyadic QSRs that require data over one timestamp."""
 
     def __init__(self):
         """Constructor."""
-        super(QSR_Monadic_2t_Abstractclass, self).__init__()
+        super(QSR_Dyadic_1t_Abstractclass, self).__init__()
 
     @abstractmethod
     def _compute_qsr(self, data1, data2, qsr_params, **kwargs):
         """Compute QSR value.
 
-        :param data1: Object data at first timestamp.
+        :param data1: First object data.
         :type data1: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
-        :param data2: Object data at second timestamp.
+        :param data2: Second object data.
         :type data2: :class:`Object_State <qsrlib_io.world_trace.Object_State>`
         :param qsr_params: QSR specific parameters passed in `dynamic_args`.
         :type qsr_params: dict
@@ -101,18 +99,16 @@ class QSR_Monadic_2t_Abstractclass(QSR_Monadic_Abstractclass):
         :rtype: :class:`World_QSR_Trace <qsrlib_io.world_qsr_trace.World_QSR_Trace>`
         """
         ret = World_QSR_Trace(qsr_type=self._unique_id)
-        for t, tp in zip(timestamps[1:], timestamps):
-            world_state_now = world_trace.trace[t]
-            world_state_previous = world_trace.trace[tp]
-            qsrs_for = self._process_qsrs_for([world_state_previous.objects.keys(), world_state_now.objects.keys()],
-                                              req_params["dynamic_args"])
-            for object_name in qsrs_for:
+        for t in timestamps:
+            world_state = world_trace.trace[t]
+            qsrs_for = self._process_qsrs_for(list(world_state.objects.keys()), req_params["dynamic_args"])
+            for p in qsrs_for:
+                between = ",".join(p)
                 try:
-                    data1, data2 = self._dtype_map[self._dtype](world_state_now.objects[object_name],
-                                                                world_state_previous.objects[object_name])
+                    data1, data2 = self._dtype_map[self._dtype](world_state.objects[p[0]], world_state.objects[p[1]])
                 except KeyError:
-                    raise KeyError("%s is not a valid value, should be one of %s" % (self._dtype, self._dtype_map.keys()))
-                ret.add_qsr(QSR(timestamp=t, between=object_name,
+                    raise KeyError("%s is not a valid value, should be one of %s" % (self._dtype, list(self._dtype_map.keys())))
+                ret.add_qsr(QSR(timestamp=t, between=between,
                                 qsr=self._format_qsr(self._compute_qsr(data1, data2, qsr_params, **kwargs))),
                             t)
         return ret

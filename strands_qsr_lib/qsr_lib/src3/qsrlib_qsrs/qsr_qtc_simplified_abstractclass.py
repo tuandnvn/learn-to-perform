@@ -13,7 +13,7 @@ class QTCException(Exception):
     pass
 
 
-class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
+class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass, metaclass=ABCMeta):
     """QTCS abstract class.
 
     """
@@ -26,7 +26,6 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
     "quantisation_factor: the minimum distance the agents must diverge from the double cross between two timesteps to be counted as movement. Must be in the same unit as the x,y coordinates.\n"\
     "validate: True|False validates the QTC sequence to not have illegal transitions. This inserts necessary transitional steps and messes with the timesteps."
     """
-    __metaclass__ = ABCMeta
 
     __global_unique_id = "qtcs"
     """?"""
@@ -74,26 +73,26 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
             if self.qtc_type == "":
                 raise AttributeError()
             elif self.qtc_type == 'b':
-                for i in xrange(1, 4):
-                    for j in xrange(1, 4):
+                for i in range(1, 4):
+                    for j in range(1, 4):
                         ret_int.append([i-2, j-2])
                         ret_str.append(str(i-2) + "," + str(j-2))
             elif self.qtc_type is 'c':
-                for i in xrange(1, 4):
-                    for j in xrange(1, 4):
-                        for k in xrange(1, 4):
-                            for l in xrange(1, 4):
+                for i in range(1, 4):
+                    for j in range(1, 4):
+                        for k in range(1, 4):
+                            for l in range(1, 4):
                                 ret_int.append([i-2, j-2, k-2, l-2])
                                 ret_str.append(str(i-2) + "," + str(j-2) + "," + str(k-2) + "," + str(l-2))
             elif self.qtc_type is 'bc':
-                for i in xrange(1, 4):
-                    for j in xrange(1, 4):
+                for i in range(1, 4):
+                    for j in range(1, 4):
                         ret_int.append([i-2, j-2, np.NaN, np.NaN])
                         ret_str.append(str(i-2) + "," + str(j-2))
-                for i in xrange(1, 4):
-                    for j in xrange(1, 4):
-                        for k in xrange(1, 4):
-                            for l in xrange(1, 4):
+                for i in range(1, 4):
+                    for j in range(1, 4):
+                        for k in range(1, 4):
+                            for l in range(1, 4):
                                 ret_int.append([i-2, j-2, k-2, l-2])
                                 ret_str.append(str(i-2) + "," + str(j-2) + "," + str(k-2) + "," + str(l-2))
         except AttributeError:
@@ -117,7 +116,7 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
 
         legal_qtc = np.array([qtc[0,:]])
 
-        for i in xrange(1, qtc.shape[0]):
+        for i in range(1, qtc.shape[0]):
             insert = np.array(qtc[i,:].copy())
             ###################################################################
             # self transition = 0, transition form - to + and vice versa = 2
@@ -132,8 +131,8 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
             # 2,3: 0-00 <> 00-0 | 0+00 <> 00+0 | 0-00 <> 00+0 | 0+00 <> 00-0
             # 2,4: 0-00 <> 000- | 0+00 <> 000+ | 0-00 <> 000+ | 0+00 <> 000-
             # 3,4: 00-0 <> 000- | 00+0 <> 000+ | 00-0 <> 000+ | 00+0 <> 000-
-            for j1 in xrange(0, len(qtc[i,:])-1):
-                for j2 in xrange(j1+1, len(insert)):
+            for j1 in range(0, len(qtc[i,:])-1):
+                for j2 in range(j1+1, len(insert)):
                     if np.sum(np.abs(qtc[i-1,[j1,j2]])) == 1 \
                             and np.sum(np.abs(insert[[j1,j2]])) == 1:
                         if np.nanmax(np.abs(qtc[i-1,[j1,j2]] - insert[[j1,j2]])) > 0 \
@@ -461,21 +460,21 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
 
         try: # global namespace
             if req_params["dynamic_args"]["for_all_qsrs"]:
-                for k, v in req_params["dynamic_args"]["for_all_qsrs"].items():
+                for k, v in list(req_params["dynamic_args"]["for_all_qsrs"].items()):
                     qsr_params[k] = v
         except KeyError:
             pass
 
         try: # General case
             if req_params["dynamic_args"][self.__global_unique_id]:
-                for k, v in req_params["dynamic_args"][self.__global_unique_id].items():
+                for k, v in list(req_params["dynamic_args"][self.__global_unique_id].items()):
                     qsr_params[k] = v
         except KeyError:
             pass
 
         try: # Parameters for a specific variant
             if req_params["dynamic_args"][self._unique_id]:
-                for k, v in req_params["dynamic_args"][self._unique_id].items():
+                for k, v in list(req_params["dynamic_args"][self._unique_id].items()):
                     qsr_params[k] = v
         except KeyError:
             pass
@@ -509,7 +508,7 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
         for t, tp in zip(timestamps[1:], timestamps):
             world_state_now = world_trace.trace[t]
             world_state_previous = world_trace.trace[tp]
-            qsrs_for = self._process_qsrs_for([world_state_previous.objects.keys(), world_state_now.objects.keys()],
+            qsrs_for = self._process_qsrs_for([list(world_state_previous.objects.keys()), list(world_state_now.objects.keys())],
                                               req_params["dynamic_args"])
             for o1_name, o2_name in qsrs_for:
                 between = str(o1_name) + "," + str(o2_name)
@@ -537,7 +536,7 @@ class QSR_QTC_Simplified_Abstractclass(QSR_Dyadic_Abstractclass):
                 except KeyError:
                     qtc_sequence[between] = qtc
 
-        for between, qtc in qtc_sequence.items():
+        for between, qtc in list(qtc_sequence.items()):
             if not qsr_params["no_collapse"]:
                 qtc = self._collapse_similar_states(qtc)
             if qsr_params["validate"]:

@@ -6,7 +6,7 @@ Created on Oct 4, 2017
 import glob
 import os
 import numpy as np
-from nltk.stem.porter import PorterStemmer
+# from nltk.stem.porter import PorterStemmer
 
 from utils import DATA_DIR
 import xml.etree.ElementTree as ET
@@ -143,8 +143,6 @@ def load_one_param_file( file_path ):
 
 
 def read_project_data( data_dir, classes ):
-    ps = PorterStemmer() 
-    
     project_data = {}
     
     data_length = None
