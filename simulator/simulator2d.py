@@ -8,31 +8,37 @@ from numpy.linalg import norm
 import math
 from scipy.spatial import ConvexHull
 
-from utils import Transform2D, Geometry2D, Cube2D, Polygon2D, Command
+from .utils import Transform2D, Geometry2D, Cube2D, Polygon2D, Command
 
-'''
-In this code, I will create a simplified simulator that 
-can help to emulate actions of robots without physical engine
 
-This simulator should be able to calculate the path of a moving object so that
-it doesn't cross with a static object.
-
-This simulator should be able to allow users to create objects in the scene, at least
-in the form of cube blocks, and then perform a movement of object:
-'''
 
 
 class Environment (object):
 	'''
-	Parameters
-	----------
-	boundary: should be of type Polygon2D
-	speed: movement of object per frame meter/frame
+	In Environment, I will create a simplified simulator that 
+	can help to emulate actions of robots without physical engine
+
+	This simulator should be able to calculate the path of a moving object so that
+	it doesn't cross with a static object.
+
+	This simulator should be able to allow users to create objects in the scene, at least
+	in the form of cube blocks, and then perform a movement of object:
 	'''
 	def __init__(self, boundary = None, speed = 1):
+		'''
+		Parameters
+		----------
+		boundary: should be of type Polygon2D
+		speed: movement of object per frame meter/frame
+		'''
 		self.objects = []
 		self.boundary = boundary
 		self.__speed = speed
+
+		"""
+		The environment records all the actions it has taken
+		"""
+		self.action_records = []
 
 	# Movement of object per frame meter/frame
 	# Default value is 1
@@ -47,21 +53,22 @@ class Environment (object):
 		else:
 			self.__speed = s
 
-	'''
-	Check if two segments are intersected or not
-
-	Parameters
-	----------
-	make sure values are np.float32
-	p1, p2: First segment np.array [[p1x, p1y], [p2x, p2y]]
-	q1, q2: Second segment np.array [[q1x, q1y], [q2x, q2y]]
-
-	Return
-	----------
-	value: = 1 intersected, = 0 not intersected, = 2 if touching but not intersected
-	'''
+	
 	@staticmethod
 	def check_intersect(p1, p2, q1, q2 ):
+		'''
+		Check if two segments are intersected or not
+
+		Parameters
+		----------
+		make sure values are np.float32
+		p1, p2: First segment np.array [[p1x, p1y], [p2x, p2y]]
+		q1, q2: Second segment np.array [[q1x, q1y], [q2x, q2y]]
+
+		Return
+		----------
+		value: = 1 intersected, = 0 not intersected, = 2 if touching but not intersected
+		'''
 		# print ('---CHECK---')
 		[p1x, p1y] = np.cast['f'](p1)
 		[p2x, p2y] = np.cast['f'](p2)
@@ -154,20 +161,21 @@ class Environment (object):
 
 			return 0
 
-	'''
-	A very simple checking to see if p is included in o
-
-	Parameters
-	----------
-	p: A point [x,y]
-	o: Should be a Polygon2D object
-
-	Return
-	----------
-	value: = True if p is bounded by o (or p is on o boundary), = False otherwise
-	'''
+	
 	@staticmethod
 	def is_point_bounded( p, o ):
+		'''
+		A very simple checking to see if p is included in o
+
+		Parameters
+		----------
+		p: A point [x,y]
+		o: Should be a Polygon2D object
+
+		Return
+		----------
+		value: = True if p is bounded by o (or p is on o boundary), = False otherwise
+		'''
 		ms = o.get_markers()
 		for i in range(1, len(ms)):
 			# three indices on a row
@@ -195,43 +203,45 @@ class Environment (object):
 		return True
 
 
-	'''
-	A very simple checking to see if o1 is included in o2
-
-	Parameters
-	----------
-	o1: A geometric object
-	o2: Should be a Polygon2D object
-
-	Return
-	----------
-	value: = True if o1 is bounded by o2, = False otherwise
-	'''
+	
 	@staticmethod
 	def is_bounded( o1, o2 ):
+		'''
+		A very simple checking to see if o1 is included in o2
+
+		Parameters
+		----------
+		o1: A geometric object
+		o2: Should be a Polygon2D object
+
+		Return
+		----------
+		value: = True if o1 is bounded by o2, = False otherwise
+		'''
 		for marker in o1.get_markers():
 			if not Environment.is_point_bounded(marker, o2):
 				return False
 		return True
 
 
-	'''
-	A very simple checking condition is to check if every segments
-	made from markers of two objects cut each other.
-
-	It's just an estimation, works for objects of similar size, but
-	doesn't work if an object is significantly smaller than the other
-
-	Parameters
-	----------
-	o1, o2: Two geometric objects
-
-	Return
-	----------
-	value: = True overlapped, = False not overlapped (but could be touching)
-	'''
+	
 	@staticmethod
 	def is_overlap( o1, o2 ):
+		'''
+		A very simple checking condition is to check if every segments
+		made from markers of two objects cut each other.
+
+		It's just an estimation, works for objects of similar size, but
+		doesn't work if an object is significantly smaller than the other
+
+		Parameters
+		----------
+		o1, o2: Two geometric objects
+
+		Return
+		----------
+		value: = True overlapped, = False not overlapped (but could be touching)
+		'''
 		m1 = o1.get_markers() 
 		m2 = o2.get_markers()
 
@@ -255,24 +265,25 @@ class Environment (object):
 
 		return False
 
-	'''
-	A simple check for overlapping constraint
 	
-	Just need to check if the argument object o 
-	overlaps with other objects already in the environment
-	but doesn't check overlapping conditions of objects already
-	in environment. 
-
-	Parameters
-	----------
-	o: A geometric object
-	exclude_indices: indices of object in self.objects that should not be checked for overlapping
-
-	Return
-	----------
-	value: = True consistent, = False not consistent
-	'''
 	def is_overlap_consistency(self, o, exclude_indices = []):
+		'''
+		A simple check for overlapping constraint
+		
+		Just need to check if the argument object o 
+		overlaps with other objects already in the environment
+		but doesn't check overlapping conditions of objects already
+		in environment. 
+
+		Parameters
+		----------
+		o: A geometric object
+		exclude_indices: indices of object in self.objects that should not be checked for overlapping
+
+		Return
+		----------
+		value: = True consistent, = False not consistent
+		'''
 		for i in range(len(self.objects)):
 			if not i in exclude_indices:
 				other = self.objects[i]
@@ -281,37 +292,39 @@ class Environment (object):
 
 		return True
 
-	'''
-	Add more object into the environment
-
-	Parameters
-	----------
-	o: A geometric object
-
-	Return
-	----------
-	value: = True can add object, = False couldn't add object
-	'''
+	
 	def add_object(self, o):
+		'''
+		Add more object into the environment
+
+		Parameters
+		----------
+		o: A geometric object
+
+		Return
+		----------
+		value: = True can add object, = False couldn't add object
+		'''
 		if (self.boundary == None or Environment.is_bounded(o, self.boundary)) and\
 		self.is_overlap_consistency(o):
 			self.objects.append(o)
 			return True
 		return False
 
-	'''
-	Get convex hull of an object
-
-	Parameters
-	----------
-	points: n points, np.array of size (n, 2)
-
-	Return
-	----------
-	o: convex hull, a Polygon2D
-	'''
+	
 	@staticmethod
 	def get_convex_hull( points ):
+		'''
+		Get convex hull of an object
+
+		Parameters
+		----------
+		points: n points, np.array of size (n, 2)
+
+		Return
+		----------
+		o: convex hull, a Polygon2D
+		'''
 		# My own implementation
 		# if len(points) < 1:
 		# 	return
@@ -352,29 +365,22 @@ class Environment (object):
 		convex_hull = ConvexHull(points)
 		return Polygon2D(markers = points[convex_hull.vertices])
 
+	def act(self, obj_index, command):
+		'''
+		Act on one object with just one command
 
-	'''
-	Act on one object with a list of commands
+		Parameters
+		----------
+		obj_index: To get an object from the set of objects in the environments
 
-	Parameters
-	----------
-	obj_index: To get an object from the set of objects in the environments
-
-	Returns
-	----------
-	command_index: index of the last command that has been successfully executed
-	captures: = markers positions at different frames extrapolated by speed per frame
-	with the first frame being at the position where the action starts.
-	'''
-	def act(self, obj_index, commands):
+		Returns
+		----------
+		success: whether the command is succesfully executed or not
+		'''
 		if 0 <= obj_index < len(self.objects):
 			obj = self.objects[obj_index]
 		else:
 			raise ValueError('Object index %d is not in the range' % obj_index)
-
-
-		captures = []
-		captures.append(obj.get_markers())
 
 		# frame need to be subtracted from previous segment of movement
 		# should < self.speed
@@ -440,6 +446,16 @@ class Environment (object):
 
 		print ('Final %s' % obj)
 		return (command_index, captures)
+
+
+	def capture(self, n_frames):
+		"""
+		Capture the last n_frames,
+		if there is not enough, using padding with the first frame 
+		"""
+		self.captures = []
+		self.captures.append(obj.get_markers())
+
 
 
 	'''
