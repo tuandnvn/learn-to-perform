@@ -33,16 +33,18 @@ def find_plane( points ):
 
     return p
 
-'''
-Parameters
-----------
-points: np array of size (n, 3)
 
-Returns
-----------
-plane: np array of size 4: (a, b, c, d) where norm([a,b,c]) == 1
-'''
+
 def estimate_plane ( points ):
+    """
+    Parameters
+    ----------
+    points: np array of size (n, 3)
+
+    Returns
+    ----------
+    plane: np array of size 4: (a, b, c, d) where norm([a,b,c]) == 1
+    """
     # Remove any point if value is not-finite:
     filtered_points = [p for p in points if np.all(np.isfinite(p))]
     #print ('filtered_points')
@@ -77,20 +79,22 @@ def get_projected_point (p, plane):
     t = (np.dot(p, plane[:3]) + plane[3])/norm(plane[:3])
     return p - plane[:3] * t
 
-'''
-To estimate the transform from the projected coordination
 
-Parameters
-----------
-rectangle_projected: [ np.array size 3 ] 3-d points lying on the surface of projection
-first_point: size 2 -> projected onto the plane as the origin point
-second_point: size 2 -> the vector from first_point to second_point is the same as Ox
-
-Returns
-----------
-bottom_side_markers: a Cube2D that estimate locations of rectangle_projected on the 2d coordination
-'''
 def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.18 ):
+    """
+    To estimate the transform from the projected coordination
+
+    Parameters
+    ----------
+    rectangle_projected: [ np.array size 3 ] 3-d points lying on the surface of projection
+    first_point: size 2 -> projected onto the plane as the origin point
+    second_point: size 2 -> the vector from first_point to second_point is the same as Ox
+
+    Returns
+    ----------
+    bottom_side_markers: a Cube2D that estimate locations of rectangle_projected on the 2d coordination
+    """
+
     plane = estimate_plane(np.array(rectangle_projected))
 
     vector_ox = second_point - first_point
@@ -127,16 +131,17 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_siz
 
     return cube2d
 
-'''
-Parameters
-----------
-block_markers: np.array of size 4 x 3
 
-Returns
-----------
-block_markers: np.array of size 4 x 3
-'''
 def recover_missing ( block_markers ):
+    '''
+    Parameters
+    ----------
+    block_markers: np.array of size 4 x 3
+
+    Returns
+    ----------
+    block_markers: np.array of size 4 x 3
+    '''
     missing_index = -1
     for i in range(4):
         if not np.isfinite(block_markers[i][0]):
@@ -160,27 +165,28 @@ def recover_missing ( block_markers ):
 
     block_markers[missing_index] = block_markers[i] + block_markers[j] - block_markers[opposite]
 
-'''
-Infer the position of bottom markers on the 2D surface of the table
-given the position of top/side markers.
-Firstly, we check to see if the given marker should be considered top
-or side marker by checking the angle between two planes.
 
-I also need to estimate for the case when there are a missing corner (three corner lefts)
-- The case when there are three corner left is quite simple (just need to infer its position from the other three)
-We don't consider the case where there is only < 3 corner left because it makes it too hard
-
-Parameters
-----------
-block_markers: np.array of size 12 ( 4 x 3D markers )
-table_markers: np.array of size (n,3)
-block_size: unit (typically it is 0.18 meter)
-
-Returns
-----------
-rectangle_projected: projected 3d points on the surface
-'''
 def project_markers( block_markers, table_markers, block_size = 0.18):
+    """
+    Infer the position of bottom markers on the 2D surface of the table
+    given the position of top/side markers.
+    Firstly, we check to see if the given marker should be considered top
+    or side marker by checking the angle between two planes.
+
+    I also need to estimate for the case when there are a missing corner (three corner lefts)
+    - The case when there are three corner left is quite simple (just need to infer its position from the other three)
+    We don't consider the case where there is only < 3 corner left because it makes it too hard
+
+    Parameters
+    ----------
+    block_markers: np.array of size 12 ( 4 x 3D markers )
+    table_markers: np.array of size (n,3)
+    block_size: unit (typically it is 0.18 meter)
+
+    Returns
+    ----------
+    rectangle_projected: projected 3d points on the surface
+    """
     # Calculate the plane from the table surface
     # Using scipy optimize to estimate the plane of the table
 
