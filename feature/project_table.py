@@ -238,7 +238,7 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
 
         rectangle_projected = [ get_projected_point(x, plane) for x in rectangle]
     else:  # top marker
-        marker_projected = [ get_projected_point(x, plane) for x in block_markers]
+        marker_projected = [ get_projected_point(x, plane) for x in block_markers_reshape]
 
         block_markers_centroid = np.mean(marker_projected, axis = 0)
 
@@ -248,7 +248,6 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
         qs = [c * math.sqrt(0.5) * block_size / norm(c)  for c in cs] 
 
         rectangle_projected = [q + block_markers_centroid for q in qs]
-
 
     return rectangle_projected
 
