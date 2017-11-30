@@ -33,22 +33,15 @@ def area_dimension( numpy_array ):
     y = s[:,1]
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
-'''
-===========
-Params: session_data: check the return value of read_utils.load_one_param_file
 
-Return: object_data: Dictionary
-    object_data[object_name] = interpolated and 2-d data projected onto the table
-    object_data[object_name][frameNo] = Cube-2D (a wrapper of a transform)
-'''
-def project_to2d ( session_data ):
+def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
     object_data = {}
 
     for object_name in session_data[SESSION_OBJECTS]:
         if object_name == 'table':
             polygon = []
             for frameNo in session_data[SESSION_OBJECTS][object_name]:
-                frame_polygon = session_data[SESSION_OBJECTS][object_name][int(frameNo)]
+                frame_polygon = session_data[SESSION_OBJECTS][object_name][frameNo]
 
             polygon.append(frame_polygon)
 
@@ -62,10 +55,13 @@ def project_to2d ( session_data ):
             second_point = table_markers[1]
     
     for object_name in session_data[SESSION_OBJECTS]:
+        print ('============ ' + object_name)
         if object_name != 'table':
             object_data[object_name] = {}
             for frameNo in session_data[SESSION_OBJECTS][object_name]:
-                frame_data = session_data[SESSION_OBJECTS][object_name][int(frameNo)]
+                if int(frameNo) < from_frame or int(frameNo) > to_frame:
+                    continue
+                frame_data = session_data[SESSION_OBJECTS][object_name][frameNo]
 
                 # Sort firstly by number of non-finite corners
                 # Sort secondly by size of marker (larger marker means better resolution)
@@ -77,24 +73,36 @@ def project_to2d ( session_data ):
 
                 # Pick out the face_index with the most number of non-infinite values
                 best_face_index = q[0][1]
-
+                #print ('----------- ' + frameNo)
+                #print (repr(frame_data[best_face_index]))
                 rectangle_projected = project_markers ( frame_data[best_face_index], table_markers )
+                #print (repr(rectangle_projected))
+                
+                try:
+                    object_data[object_name][int(frameNo)] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
+                 #   print (object_data[object_name][int(frameNo)])
+                except:
+                    continue
 
-                object_data[object_name][int(frameNo)] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
-
-            interpolate_object_data(session_data[SESSION_LEN])
     return object_data
 
-'''
-Interpolate data for missing frames
 
-===========
-Params: 
-object_data: chain of features, one feature vector for each frame (interpolated frames) for one object
+def interpolate_multi_object_data( session_len, object_data ):
+    data = {}
+    for object_name in session_data:
+        data[object_name] = _interpolate_object_data( object_data, session_data[object_name])
+    return data
 
 
-'''
-def interpolate_object_data( one_object_data, session_len ):
+def _interpolate_object_data( session_len, one_object_data ):
+    '''
+    Interpolate data for missing frames
+
+    ===========
+    Params: 
+    object_data: chain of features, one feature vector for each frame (interpolated frames) for one object
+    '''
+    new_one_object_data = {}
     sorted_keys = sorted(one_object_data.keys())
     for frame in range(session_len):
         if frame not in one_object_data:
@@ -103,37 +111,57 @@ def interpolate_object_data( one_object_data, session_len ):
 
             if frame_position == 0:
                 # missing at the beginning
-                one_object_data[frame] = one_object_data[sorted_keys[0]]
+                new_one_object_data[frame] = one_object_data[sorted_keys[0]]
             elif frame_position == len(sorted_keys):
                 # missing at the end
-                one_object_data[frame] = one_object_data[sorted_keys[-1]]
+                new_one_object_data[frame] = one_object_data[sorted_keys[-1]]
             else:
                 pre_key = sorted_keys[frame_position - 1]
                 nex_key = sorted_keys[frame_position]
-                pre = one_object_data[pre_key]
-                nex = one_object_data[nex_key]
-
+                pre = one_object_data[pre_key].transform
+                nex = one_object_data[nex_key].transform
+                
                 p = (frame - pre_key)/(nex_key - pre_key)
                 q = (nex_key - frame)/(nex_key - pre_key)
-                one_object_data[frame] = Cube2D( transform = nex * p + pre * q)
+                transfrom = Transform2D ( nex.position * p + pre.position * q , 
+                                         nex.rotation * p + pre.rotation * q, 
+                                         nex.scale * p + pre.scale * q)
+                new_one_object_data[frame] = Cube2D( transfrom )
+        else:
+            new_one_object_data[frame] = one_object_data[frame]
+    return new_one_object_data
 
-'''
-Get the features from 
-- one object as the one mainly under movement (object slot)
-- one object that is relatively static (theme slot)
+cdid = dict( (u, i) for (i, u) in enumerate( ['n', 'nw', 'w', 'sw', 's', 'se', 'e', 'ne', 'eq'] ))
+mosd = dict( (u, i) for (i, u) in enumerate( ['s', 'm'] ))
+qtcc_relations = dict( (u, i) for (i, u) in enumerate( ['-', '0', '+'] ))
 
-===========
-Params: 
-qsrlib: check the return value of read_utils.load_one_param_file
-object_data: See the return type of project_to2d
-object_1_name: Name of the first object
-object_2_name: Name of the second object
+def cardir_index ( cardir ):
+    return cdid [cardir]
 
-Return:
-feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
-'''
+def mos_index ( mos ):
+    return mosd [mos]
+
+def qtcc_index ( qtcc_relation ):
+    return qtcc_relations [qtcc_relation] - 1
+
+
 def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, session_len ):
     '''
+    Get the features from 
+    - one object as the one mainly under movement (object slot)
+    - one object that is relatively static (theme slot)
+
+    Params: 
+    qsrlib: check the return value of read_utils.load_one_param_file
+    object_data: See the return type of project_to2d
+    object_1_name: Name of the first object
+    object_2_name: Name of the second object
+    session_len: Length of session (int)
+
+    Return:
+    feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
+    
+    ============================================================
     feature_selection between two objects
     # of features = 13
     
@@ -152,9 +180,9 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
     object_1 = object_data[object_1_name]
     object_2 = object_data[object_2_name]
 
-    o1 = [Object_State(name="o1", timestamp=i, x=object_1[i].position[0], y=object_1[i].position[1]) 
+    o1 = [Object_State(name="o1", timestamp=i, x=object_1[i].transform.position[0][0], y=object_1[i].transform.position[0][1]) 
             for i in range(session_len)]
-    o2 = [Object_State(name="o2", timestamp=i, x=object_2[i].position[0], y=object_2[i].position[1]) 
+    o2 = [Object_State(name="o2", timestamp=i, x=object_2[i].transform.position[0][0], y=object_2[i].transform.position[0][1]) 
             for i in range(session_len)]
 
     world = World_Trace()
@@ -164,7 +192,7 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
     qsrlib_request_message = QSRlib_Request_Message(which_qsr=['cardir', 'argd', 'qtccs'], input_data=world, 
                     dynamic_args = {'cardir': {'qsrs_for': [('o1', 'o2')]},
                                     'argd': {'qsrs_for': [('o1', 'o2')], 
-                                            'qsr_relations_and_values' : dict(("" + str(i), i * BLOCK_SIZE / 2) for i in xrange(20)) },
+                                            'qsr_relations_and_values' : dict(("" + str(i), i * BLOCK_SIZE / 2) for i in range(20)) },
                                     'qtccs': {'qsrs_for': [('o1', 'o2')], 
                                               'quantisation_factor': 0.001, 'angle_quantisation_factor' : np.pi / 5,
                                               'validate': False, 'no_collapse': True
@@ -177,12 +205,12 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
         qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
         # (#frame, 8)
-        qsr_feature = turn_response_to_features([('o1', 'o2')], qsrlib_response_message, all_feature, diff_feature)
+        qsr_feature = _turn_response_to_features([('o1,o2')], qsrlib_response_message, diff_feature)
 
         # rotation features
-        quantized_r_1 = np.array([object_1[i].rotation // ROTATION_QUANTIZATION for i in range(session_len)])
-        quantized_r_2 = np.array([object_2[i].rotation // ROTATION_QUANTIZATION for i in range(session_len)])
-        quantized_diff = quantized_r_1[i] - quantized_r_2[i]
+        quantized_r_1 = np.array([object_1[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+        quantized_r_2 = np.array([object_2[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+        quantized_diff = quantized_r_1 - quantized_r_2
         diff_quantized_r_1 = np.pad(np.ediff1d(quantized_r_1), (1,0), 'constant', constant_values = (0,))
         diff_quantized_r_2 = np.pad(np.ediff1d(quantized_r_2), (1,0), 'constant', constant_values = (0,))
 
@@ -200,11 +228,12 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
         print ('Problem in data of length ' + str(len_data))
         return []
 
-'''
-diff_feature: number of features at the beginning that need to create difference between two frames
-all_feature: total number of features
-'''
-def turn_response_to_features(keys, qsrlib_response_message, diff_feature):
+
+def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
+    """
+    diff_feature: number of features at the beginning that need to create difference between two frames
+    all_feature: total number of features
+    """
     feature_chain = []
     for t in qsrlib_response_message.qsrs.get_sorted_timestamps():
         features = []
@@ -212,16 +241,13 @@ def turn_response_to_features(keys, qsrlib_response_message, diff_feature):
         for k in keys:
             if k in qsrlib_response_message.qsrs.trace[t].qsrs:
                 v = qsrlib_response_message.qsrs.trace[t].qsrs[k]
-
+                
                 if 'cardir' in v.qsr:
                     f = v.qsr['cardir']
                     features.append(cardir_index(f))
                 if 'argd' in v.qsr:
                     f = int( v.qsr['argd'] )
                     features.append(f)
-                if 'mos' in v.qsr:
-                    f = v.qsr['mos'] 
-                    features.append(mos_index(f))
         # Just to separate qtccs at the end of feature vectors
         
         for k in keys:
@@ -238,9 +264,11 @@ def turn_response_to_features(keys, qsrlib_response_message, diff_feature):
         return feature_chain
 
     # The first frame doesn't has qtcc relations
-    feature_chain[0] += [0 for i in range(all_feature - diff_feature)]
+    feature_chain[0] += [0 for i in range(4)]
 
     feature_chain = np.array(feature_chain)
+    
+    print (feature_chain.shape)
     # number of features
     f_number = feature_chain.shape[1]
 
@@ -260,5 +288,6 @@ def turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     # Add for the first frame
     # (#frame, 2 * diff_feature + other_feature)
     diff_feature_chain = np.concatenate ( [need_diff_chain, padded_diff_chain, feature_chain[:, diff_feature:]], axis = 1 )
-
+    
+    print ('shape of diff_feature_chain %s' % str(diff_feature_chain.shape))
     return diff_feature_chain
