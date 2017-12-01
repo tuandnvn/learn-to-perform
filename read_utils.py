@@ -132,9 +132,9 @@ def load_one_param_file( file_path ):
             if o_location != -1:
                 found_objects_in_text.append( (o_location, obj_name) )
 
-        sorted(found_objects_in_text, key = lambda l : l[0])
+        sorted_objects = sorted(found_objects_in_text, key = lambda l : l[0])
 
-        e[LABEL] = [o[1] for o in found_objects_in_text]
+        e[LABEL] = [o[1] for o in sorted_objects]
 
         session_data[SESSION_EVENTS].append(e)
 

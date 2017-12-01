@@ -87,10 +87,13 @@ def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
     return object_data
 
 
-def interpolate_multi_object_data( session_len, object_data ):
+def interpolate_multi_object_data( session_len, object_data, object_names = [] ):
+    """
+    
+    """
     data = {}
-    for object_name in session_data:
-        data[object_name] = _interpolate_object_data( object_data, session_data[object_name])
+    for object_name in object_names:
+        data[object_name] = _interpolate_object_data( session_len, object_data[object_name])
     return data
 
 
