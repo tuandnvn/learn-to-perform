@@ -152,7 +152,7 @@ def qsr_feature_extractor ( qsrlib, object_data, object_1_name, object_2_name, s
     '''
     Get the features from 
     - one object as the one mainly under movement (object slot)
-    - one object that is relatively static (theme slot)
+    - one object that is relatively static (locative slot)
 
     Params: 
     qsrlib: check the return value of read_utils.load_one_param_file
