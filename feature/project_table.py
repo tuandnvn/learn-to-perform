@@ -132,7 +132,7 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_siz
     return cube2d
 
 
-def recover_missing ( block_markers ):
+def _recover_missing ( block_markers ):
     '''
     Parameters
     ----------
@@ -206,7 +206,7 @@ def project_markers( block_markers, table_markers, block_size = 0.18):
         return []
 
     if recover:
-        recover_missing(block_markers_reshape) 
+        _recover_missing(block_markers_reshape) 
 
     # Cosin between two norm vectors
     # If the marker is on the side, this value would be closer to 0, say < 0.5

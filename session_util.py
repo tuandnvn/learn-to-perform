@@ -23,9 +23,11 @@ generate_util : generate training and testing data
     \/
 learning_module
 '''
-
+import bisect
 import numpy as np
 from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_OBJ_2D
+from feature.project_table import estimate_cube_2d, project_markers
+from simulator.utils import Cube2D, Transform2D
 
 # Count the number of finite element in an array
 def count_finite( numpy_array ):
@@ -33,13 +35,13 @@ def count_finite( numpy_array ):
 
 
 def area_dimension( numpy_array ):
-	'''
-	Area of polygons
-	===========
-	Params: numpy_array of size ( 3 x n )
+    '''
+    Area of polygons
+    ===========
+    Params: numpy_array of size ( 3 x n )
 
-	Return: object_data: Dictionary
-	'''
+    Return: object_data: Dictionary
+    '''
     s = np.reshape(numpy_array, (len(numpy_array)//3,3))
     x = s[:,0]
     y = s[:,1]
@@ -47,11 +49,11 @@ def area_dimension( numpy_array ):
 
 
 def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
-	"""
-	This method project the data of session_data into 2d Cube
-	and insert a new object into session_data
-	which is session_data[SESSION_OBJ_2D]
-	"""
+    """
+    This method project the data of session_data into 2d Cube
+    and insert a new object into session_data
+    which is session_data[SESSION_OBJ_2D]
+    """
     object_data = {}
 
     for object_name in session_data[SESSION_OBJECTS]:
@@ -126,7 +128,7 @@ def _interpolate_object_data( session_len, one_object_data ):
     Params: 
     object_data: chain of features, one feature vector for each frame (interpolated frames) for one object
     '''
-    new_one_object_data = {}
+    new_one_object_data = []
     sorted_keys = sorted(one_object_data.keys())
     for frame in range(session_len):
         if frame not in one_object_data:
@@ -135,10 +137,10 @@ def _interpolate_object_data( session_len, one_object_data ):
 
             if frame_position == 0:
                 # missing at the beginning
-                new_one_object_data[frame] = one_object_data[sorted_keys[0]]
+                new_one_object_data.append(one_object_data[sorted_keys[0]])
             elif frame_position == len(sorted_keys):
                 # missing at the end
-                new_one_object_data[frame] = one_object_data[sorted_keys[-1]]
+                new_one_object_data.append(one_object_data[sorted_keys[-1]])
             else:
                 pre_key = sorted_keys[frame_position - 1]
                 nex_key = sorted_keys[frame_position]
@@ -150,22 +152,22 @@ def _interpolate_object_data( session_len, one_object_data ):
                 transfrom = Transform2D ( nex.position * p + pre.position * q , 
                                          nex.rotation * p + pre.rotation * q, 
                                          nex.scale * p + pre.scale * q)
-                new_one_object_data[frame] = Cube2D( transfrom )
+                new_one_object_data.append(Cube2D( transfrom ))
         else:
-            new_one_object_data[frame] = one_object_data[frame]
+            new_one_object_data.append(one_object_data[frame])
     return new_one_object_data
 
 def calculate_distance( one_object_data, down_sample, start, end ):
-	"""
-	Distance one object has travelled from start frame to end frame
-	 (only sampling at (frame - start) % down_sample == 0)
-	
-	===========
+    """
+    Distance one object has travelled from start frame to end frame
+     (only sampling at (frame - start) % down_sample == 0)
+    
+    ===========
     Params: 
     one_object_data: list of Cube2D
-	down_sample: int
+    down_sample: int
 
-	"""
+    """
     prev_loc = None
     sum_d = 0
     
@@ -180,11 +182,11 @@ def calculate_distance( one_object_data, down_sample, start, end ):
     return sum_d
 
 def calculate_distance_btw( first_object_data, second_object_data, down_sample, start, end ):
-	"""
-	Average distance between two objects from start frame to end frame
-	down_sample (only sampling at (frame - start) % down_sample == 0)
+    """
+    Average distance between two objects from start frame to end frame
+    down_sample (only sampling at (frame - start) % down_sample == 0)
 
-	"""
+    """
     d_s = []
     
     for i in range(start, end, down_sample):

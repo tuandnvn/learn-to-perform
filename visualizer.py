@@ -1,9 +1,20 @@
+import numpy as np
 import pylab as pl
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import collections as mc
+from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_OBJ_2D, START, END
 
-def plot (object_data, from_frame, to_frame):
+colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1), 
+          (0.5, 0.5, 0, 1), (0,0.5, 0.5,1), (0.5, 0, 0.5,1),
+         (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
+         (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
+
+def plot (session, from_frame, to_frame, show = True):
+    """
+
+    """
+    object_data = session[SESSION_OBJ_2D]
     fig, ax = plt.subplots()
     ax.set_xticks(np.arange(-2, 2, 0.1))
     ax.set_yticks(np.arange(-2, 2, 0.1))
@@ -11,6 +22,7 @@ def plot (object_data, from_frame, to_frame):
     ax.set_ylim([-2, 2])
     fig.set_size_inches(20, 12)
     
+    color_counter = 0
     for object_name in object_data:
         data = object_data[object_name]
         
@@ -20,17 +32,23 @@ def plot (object_data, from_frame, to_frame):
                 # data[frameNo].transform.scale = data[frameNo].transform.scale / 2
                 shape = data[frameNo].get_markers()
                 
-                lc = mc.PolyCollection([shape], edgecolors=[colors[object_name]], 
-                                       facecolors=[colors[object_name]], linewidths=[2])
+                lc = mc.PolyCollection([shape], edgecolors=[colors[color_counter]], 
+                                       facecolors=[colors[color_counter]], linewidths=[2])
                 ax.add_collection(lc)
 
-
+        color_counter += 1
     ax.autoscale()
     ax.margins(0.1)
 
-    plt.show()
+    if show:
+        plt.show()
 
-def animate (object_data, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6, max_y = 1, name = "event.mp4"):
+def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6, max_y = 1, 
+                name = "event.mp4", show = True, colors = colors):
+    """
+    
+    """
+    object_data = session[SESSION_OBJ_2D]
     fig, ax = plt.subplots()
     ax.set_xticks(np.arange(min_x, max_x, 0.1))
     ax.set_yticks(np.arange(min_y, max_y, 0.1))
@@ -40,21 +58,12 @@ def animate (object_data, from_frame, to_frame, min_x = -.6, max_x = 1, min_y = 
 
     ax.autoscale()
     ax.margins(0.1)
-    
-#     # initialization function: plot the background of each frame
-#     def init():
-#         ax.clear()
-#         ax.set_xticks(np.arange(-2, 2, 0.1))
-#         ax.set_yticks(np.arange(-2, 2, 0.1))
-#         ax.set_xlim([-2, 2])
-#         ax.set_ylim([-2, 2])
-#         return ax,
 
     # animation function.  This is called sequentially
     def anim(i):
         lc = mc.PolyCollection([object_data[object_name][i + from_frame].get_markers() for object_name in object_data], 
-                               edgecolors=[colors[object_name] for object_name in object_data], 
-                               facecolors=[colors[object_name] for object_name in object_data], linewidths=[2,2])
+                               edgecolors=[colors[j] for j in range(len(object_data))], 
+                               facecolors=[colors[j] for j in range(len(object_data))], linewidths=[2,2])
         ax.clear()
         ax.set_xticks(np.arange(min_x, max_x, 0.1))
         ax.set_yticks(np.arange(min_y, max_y, 0.1))
@@ -74,4 +83,19 @@ def animate (object_data, from_frame, to_frame, min_x = -.6, max_x = 1, min_y = 
     # http://matplotlib.sourceforge.net/api/animation_api.html
     anim.save(name, fps=30, extra_args=['-vcodec', 'libx264'])
     
-    plt.show()
+    if show:
+        plt.show()
+
+def animate_event(session, event_index ):
+    """
+    Visualize an event in the session, given the event_index
+    """
+    if event_index < 0 or event_index >= len(session[SESSION_EVENTS]):
+        return
+
+    event = session[SESSION_EVENTS][event_index]
+
+    start = event[START]
+    end = event[END]
+
+    animate(session, start, end)
