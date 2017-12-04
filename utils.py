@@ -19,6 +19,8 @@ SESSION_NAME = "session_name"
 SESSION_OBJECTS = "session_objects"
 SESSION_EVENTS = "session_events"
 SESSION_LEN = "session_length"
+SESSION_FEAT = "session_feature"
+SESSION_OBJ_2D = "session_obj_2d"
 
 START = "start"
 END = "end"
