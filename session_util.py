@@ -199,7 +199,7 @@ def calculate_distance_btw( first_object_data, second_object_data, down_sample, 
         
     return np.average(d_s)
 
-def get_down_sample_quotient(project_data, num_steps = 20):
+def get_down_sample_quotient(project, num_steps = 20):
     # First pass to calculate downsampling value
     # Problem if we use the original frame number is that it would make very different kind
     # of learning models
@@ -212,8 +212,8 @@ def get_down_sample_quotient(project_data, num_steps = 20):
     # We will only keep frames % down_sample_quotient == 0
     
     lens = []
-    for session_data in project_data:
-        for event in session_data[SESSION_EVENTS]:
+    for session in project:
+        for event in session[SESSION_EVENTS]:
             # {'start': 4, 'label': ['Stella Artois', 'Shell'], 'end': 168}
             lens.append(event[END] - event[START])
     
@@ -221,19 +221,19 @@ def get_down_sample_quotient(project_data, num_steps = 20):
     
     return down_sample_quotient
 
-def get_action_speed(project_data, down_sample_quotient):
+def get_action_speed(project, down_sample_quotient):
     total_travelling_dist = 0
     lens = []
     # Second pass
     # We also calculate average speed per downsampled frame
-    for session_data in project_data:
-        for event in session_data[SESSION_EVENTS]:
+    for session in project:
+        for event in session[SESSION_EVENTS]:
             end = event[END]
             start = event[START]
             lens.append(event[END] - event[START])
             
             d_s = []
-            for object_name in session_data[SESSION_OBJ_2D]:
+            for object_name in session[SESSION_OBJ_2D]:
                 d = calculate_distance(session_data[SESSION_OBJ_2D][object_name],
                                   down_sample_quotient, start, end)
                 
@@ -249,14 +249,14 @@ def get_action_speed(project_data, down_sample_quotient):
     
     return speed
 
-def down_sample(project_data, down_sample_quotient):
+def down_sample(project, down_sample_quotient):
     # In downsampling, we have to downsample the frames 
     # in session_data[SESSION_OBJECTS], downsample the start and end 
     # of each event in session_data[SESSION_EVENTS]
     
     new_project_data = []
     
-    for session_data in project_data:
+    for session_data in project:
         new_session_data = {}
         
         new_session_data[SESSION_OBJ_2D] = {}

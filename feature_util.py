@@ -110,6 +110,7 @@ def get_location_objects_most_active(object_data, object_names, session_len):
             d_2_s.append((name, d))
         
         object_2_name = d_2_s[0][0]
+        #print ('start = %d ; object_1_name = %s ; object_2_name = %s'%(start, object_1_name, object_2_name))
 
         object_1 += object_data[object_1_name][start:end]
         object_2 += object_data[object_2_name][start:end]  

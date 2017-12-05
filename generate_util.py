@@ -24,7 +24,9 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     training_data = []
     testing_data = []
 
-    
+
+
+
 def linear_progress_lbl_generator(session_data):
     """
     Parameters:
@@ -91,13 +93,13 @@ def turn_to_intermediate_data(project_data, data_point_size, num_steps, hop_step
     
     # At any time, 
     interpolated_data = np.zeros([samples * num_steps, data_point_size], dtype=np.float32)
-    interpolated_lbls = np.zeros([samples * num_steps], dtype=np.int32)
+    interpolated_lbls = np.zeros([samples * num_steps], dtype=np.float32)
     
     sample_counter = 0
-    for session_data in data:
+    for session_data in project_data:
         feature_data = session_data[SESSION_FEAT]
                
-        correct_no_samples = ( len(session_data_vals) - num_steps ) // hop_step + 1
+        correct_no_samples = ( len(feature_data) - num_steps ) // hop_step + 1
     
         lbls = linear_progress_lbl_generator(session_data)
         
