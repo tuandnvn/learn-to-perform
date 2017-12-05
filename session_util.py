@@ -25,7 +25,8 @@ learning_module
 '''
 import bisect
 import numpy as np
-from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_OBJ_2D
+from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_OBJ_2D,\
+    START, END, LABEL
 from feature.project_table import estimate_cube_2d, project_markers
 from simulator.utils import Cube2D, Transform2D
 
@@ -149,10 +150,10 @@ def _interpolate_object_data( session_len, one_object_data ):
                 
                 p = (frame - pre_key)/(nex_key - pre_key)
                 q = (nex_key - frame)/(nex_key - pre_key)
-                transfrom = Transform2D ( nex.position * p + pre.position * q , 
+                transform = Transform2D ( nex.position * p + pre.position * q , 
                                          nex.rotation * p + pre.rotation * q, 
                                          nex.scale * p + pre.scale * q)
-                new_one_object_data.append(Cube2D( transfrom ))
+                new_one_object_data.append(Cube2D( transform ))
         else:
             new_one_object_data.append(one_object_data[frame])
     return new_one_object_data
@@ -172,10 +173,10 @@ def calculate_distance( one_object_data, down_sample, start, end ):
     sum_d = 0
     
     for i in range(start, end, down_sample):
-        cur_loc = one_object_data[i].transfrom.position
+        cur_loc = one_object_data[i].transform.position
         
-        if prev_loc != None:
-            d = numpy.linalg.norm(cur_loc-prev_loc)
+        if isinstance(prev_loc, np.ndarray):
+            d = np.linalg.norm(cur_loc-prev_loc)
             sum_d += d
         prev_loc = cur_loc
         
@@ -190,15 +191,15 @@ def calculate_distance_btw( first_object_data, second_object_data, down_sample, 
     d_s = []
     
     for i in range(start, end, down_sample):
-        first_loc = first_object_data[i].transfrom.position
-        second_loc = second_object_data[i].transfrom.position
+        first_loc = first_object_data[i].transform.position
+        second_loc = second_object_data[i].transform.position
         
-        d = numpy.linalg.norm(second_loc-first_loc)
+        d = np.linalg.norm(second_loc-first_loc)
         d_s.append(d)
         
     return np.average(d_s)
 
-def get_down_sample_quotient(project_data):
+def get_down_sample_quotient(project_data, num_steps = 20):
     # First pass to calculate downsampling value
     # Problem if we use the original frame number is that it would make very different kind
     # of learning models
@@ -222,16 +223,18 @@ def get_down_sample_quotient(project_data):
 
 def get_action_speed(project_data, down_sample_quotient):
     total_travelling_dist = 0
+    lens = []
     # Second pass
     # We also calculate average speed per downsampled frame
     for session_data in project_data:
         for event in session_data[SESSION_EVENTS]:
             end = event[END]
             start = event[START]
+            lens.append(event[END] - event[START])
             
             d_s = []
-            for object_name in session_data[SESSION_OBJECTS]:
-                d = calculate_distance(session_data[SESSION_OBJECTS][object_name],
+            for object_name in session_data[SESSION_OBJ_2D]:
+                d = calculate_distance(session_data[SESSION_OBJ_2D][object_name],
                                   down_sample_quotient, start, end)
                 
                 d_s.append(d)
@@ -256,8 +259,11 @@ def down_sample(project_data, down_sample_quotient):
     for session_data in project_data:
         new_session_data = {}
         
+        new_session_data[SESSION_OBJ_2D] = {}
+
         # downsample session_data[SESSION_OBJ_2D]
-        new_session_data[SESSION_OBJ_2D] = session_data[SESSION_OBJ_2D][::down_sample_quotient]
+        for object_name in session_data[SESSION_OBJ_2D]:
+            new_session_data[SESSION_OBJ_2D][object_name] = session_data[SESSION_OBJ_2D][object_name][::down_sample_quotient]
         
         # downsample session_data[SESSION_EVENTS]
         new_session_data[SESSION_EVENTS] = []
@@ -265,6 +271,7 @@ def down_sample(project_data, down_sample_quotient):
             end = event[END] // down_sample_quotient
             start = event[START] // down_sample_quotient
             
+            new_event = {}
             new_event[LABEL] = event[LABEL]
             new_event[START] = start
             new_event[END] = end
@@ -272,7 +279,7 @@ def down_sample(project_data, down_sample_quotient):
             new_session_data[SESSION_EVENTS].append(new_event)
         
         # downsample session_data[SESSION_LEN]
-        new_session_data[SESSION_LEN] = np.ceil(session_data[SESSION_LEN] / down_sample_quotient)
+        new_session_data[SESSION_LEN] = np.ceil(session_data[SESSION_LEN] // down_sample_quotient)
         
         new_session_data[SESSION_NAME] = session_data[SESSION_NAME]
         

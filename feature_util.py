@@ -12,12 +12,12 @@ Also handling QSR features
 import numpy as np
 import bisect
 
-from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
-from qsrlib_io.world_trace import Object_State, World_Trace
-
 from feature.project_table import project_markers, estimate_cube_2d
 from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION, SESSION_OBJ_2D, SESSION_FEAT
 from session_util import calculate_distance, calculate_distance_btw
+
+from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
+from qsrlib_io.world_trace import Object_State, World_Trace
 
 
 cdid = dict( (u, i) for (i, u) in enumerate( ['n', 'nw', 'w', 'sw', 's', 'se', 'e', 'ne', 'eq'] ))
@@ -54,7 +54,8 @@ def get_location_objects_default(object_data, object_names, session_len):
     o2: list of qsrlib_io.world_trace.Object_State of the second (static) object
     """
     
-    assertTrue(len(object_names) >= 2)
+    if len(object_names) < 2:
+        raise Exception ("len(object_names)  < 2")
 
 
     object_1_name = object_names[0]
@@ -63,12 +64,7 @@ def get_location_objects_default(object_data, object_names, session_len):
     object_1 = object_data[object_1_name]
     object_2 = object_data[object_2_name]
 
-    o1 = [Object_State(name="o1", timestamp=i, x=object_1[i].transform.position[0][0], y=object_1[i].transform.position[0][1]) 
-            for i in range(session_len)]
-    o2 = [Object_State(name="o2", timestamp=i, x=object_2[i].transform.position[0][0], y=object_2[i].transform.position[0][1]) 
-            for i in range(session_len)]
-
-    return (o1, o2)
+    return (object_1, object_2)
 
 def get_location_objects_most_active(object_data, object_names, session_len):
     """
@@ -76,17 +72,20 @@ def get_location_objects_most_active(object_data, object_names, session_len):
 
     But we calculate the movement of each object for a short period of time
     to pick which one is the moving object (more salient object)
-    """
-    assertTrue(len(object_names) >= 2)
 
-    o1 = []
-    o2 = []
+
+    """
+    if len(object_names) < 2:
+        raise Exception ("len(object_names)  < 2")
 
     step  = 5
 
-    for start in range(0:session_len:step):
+    object_1 = []
+    object_2 = []
+
+    for start in range(0,int(session_len),step):
         d_s = []
-        end = min(session_len, start + step)
+        end = int(min(session_len, start + step))
 
         # We just calculate distance has been travelled by each object
         for object_name in object_names:
@@ -112,15 +111,10 @@ def get_location_objects_most_active(object_data, object_names, session_len):
         
         object_2_name = d_2_s[0][0]
 
-        object_1 = object_data[object_1_name]
-        object_2 = object_data[object_2_name]
+        object_1 += object_data[object_1_name][start:end]
+        object_2 += object_data[object_2_name][start:end]  
 
-        o1 += [Object_State(name="o1", timestamp=i, x=object_1[i].transform.position[0][0], y=object_1[i].transform.position[0][1]) 
-            for i in range(start, end)]
-        o2 += [Object_State(name="o2", timestamp=i, x=object_2[i].transform.position[0][0], y=object_2[i].transform.position[0][1]) 
-            for i in range(start, end)]
-
-    return (o1, o2)        
+    return (object_1, object_2)        
 
 def qsr_feature_extractor ( session, get_location_objects = get_location_objects_default):
     '''
@@ -146,7 +140,7 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
     # of features = 13
     
     8 features here
-    (o1.position, o2.position) - cardir, cardir_diff, argd, argd_diff, qtccs 4 features
+    (o1.position, o2.position) - cardir, argd, cardir_diff, argd_diff, qtccs 4 features
 
     -- other features
     
@@ -162,7 +156,12 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
     session_len = session[SESSION_LEN]
     object_names = object_data.keys()
 
-    o1, o2 = get_location_objects(object_data, object_names, session_len)
+    object_1, object_2 = get_location_objects(object_data, object_names, session_len)
+
+    o1 = [Object_State(name="o1", timestamp=i, x=object_1[i].transform.position[0][0], y=object_1[i].transform.position[0][1]) 
+            for i in range(0, session_len)]
+    o2 = [Object_State(name="o2", timestamp=i, x=object_2[i].transform.position[0][0], y=object_2[i].transform.position[0][1]) 
+            for i in range(0, session_len)]
 
     world = World_Trace()
     world.add_object_state_series(o1)

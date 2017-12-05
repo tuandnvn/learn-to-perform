@@ -86,7 +86,8 @@ def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6
     if show:
         plt.show()
 
-def animate_event(session, event_index ):
+def animate_event(session, event_index, min_x = -.6, max_x = 1, min_y =  -.6, max_y = 1, 
+                name = "event.mp4", show = True, colors = colors ):
     """
     Visualize an event in the session, given the event_index
     """
@@ -98,4 +99,4 @@ def animate_event(session, event_index ):
     start = event[START]
     end = event[END]
 
-    animate(session, start, end)
+    animate(session, start, end, min_x, max_x, min_y, max_y, name, show, colors)
