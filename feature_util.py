@@ -117,7 +117,7 @@ def get_location_objects_most_active(object_data, object_names, session_len):
 
     return (object_1, object_2)        
 
-def qsr_feature_extractor ( session, get_location_objects = get_location_objects_default):
+def qsr_feature_extractor ( session, get_location_objects = get_location_objects_default, qsrlib = None):
     '''
     Get the features from 
     - one object as the one mainly under movement (object slot)
@@ -152,7 +152,8 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
     2 features
     quantized difference of rotations btw two frames of two objects
     '''
-    qsrlib = QSRlib()
+    if qsrlib == None:
+        qsrlib = QSRlib()
     object_data = session[SESSION_OBJ_2D]
     session_len = session[SESSION_LEN]
     object_names = object_data.keys()
