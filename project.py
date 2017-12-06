@@ -16,6 +16,9 @@ class Project(object):
 		self.sessions = []
 		self.config = config
 
+	def __iter__(self):
+		return iter(self.sessions)
+
 	def load_data(self):
 		for session_name in self.session_names:
 			session = load_one_param_file(os.path.join( DATA_DIR, self.name, session_name, 'files.param'))
@@ -23,10 +26,6 @@ class Project(object):
 
 	def preprocess(self):
 		session_util.project_to2d(session, from_frame = 0, to_frame = session[SESSION_LEN])
-
-	def __iter__(self):
-		return iter(self.sessions)
-
 
 	def standardize(self):
 		session_util.interpolate_multi_object_data(session, object_names = session[SESSION_OBJ_2D].keys())

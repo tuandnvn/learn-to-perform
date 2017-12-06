@@ -10,9 +10,6 @@ from scipy.spatial import ConvexHull
 
 from .utils import Transform2D, Geometry2D, Cube2D, Polygon2D, Command
 
-
-
-
 class Environment (object):
 	'''
 	In Environment, I will create a simplified simulator that 
@@ -382,80 +379,38 @@ class Environment (object):
 		else:
 			raise ValueError('Object index %d is not in the range' % obj_index)
 
-		# frame need to be subtracted from previous segment of movement
-		# should < self.speed
-		left_over_distance = 0.0
-
 		# Project the movement of the object according to each command
 		# Make sure there is clearance of the path between beginning and end points
-		for command_index in range(len(commands)):
-			print ('Before %s' % obj)
-			command = commands[command_index]
-			# check clearance by creating a path object
-			# a simple assumption is that the path is made from the object at its
-			# original rotation 
-			# however we would extrapolate object rotation along the path
-			original_transform = obj.transform.clone()
+		# check clearance by creating a path object
+		# a simple assumption is that the path is made from the object at its
+		# original rotation 
+		# however we would extrapolate object rotation along the path
+		new_obj = obj.clone()
 
-			markers_before = obj.get_markers()
-			obj.transform.position = command.position
-			# Only change position to check path
-			markers_after = obj.get_markers()
+		markers_before = new_obj.get_markers()
+		new_obj.transform.position = command.position
+		# Only change position to check path
+		markers_after = new_obj.get_markers()
 
-			# Create path as the flow of the object from original position to new position without rotating
-			path = Environment.get_convex_hull ( np.concatenate([markers_before, markers_after]))
+		# Create path as the flow of the object from original position to new position without rotating
+		path = Environment.get_convex_hull ( np.concatenate([markers_before, markers_after]))
 
-			# Now change the rotation as well
-			obj.transform.rotation = command.rotation
+		# Now change the rotation as well
+		new_obj.transform.rotation = command.rotation
 
-			# Check to see if the path is inside the playfield
-			# and path doesn't overlap with other objects
-			# and final position doesn't overlap with other objects
-			if (self.boundary == None or Environment.is_bounded(path, self.boundary)) and\
-				self.is_overlap_consistency(path, exclude_indices = [obj_index]) and\
-				self.is_overlap_consistency(obj, exclude_indices = [obj_index]):
-				# command satisfy
-				# add capture
-				path_distance = norm(obj.transform.position - original_transform.position)
-
-				print ('path_distance = %.2f' % path_distance)
-				pos = self.speed - left_over_distance
-				while pos < path_distance:
-					print ('pos = %.2f' % pos)
-					new_obj = obj.clone()
-
-					interpolated_position = (pos / path_distance) * original_transform.position +\
-					 	(1 - pos/path_distance) * obj.transform.position
-					interpolated_rotation = (pos / path_distance) * original_transform.rotation +\
-					 	(1 - pos/path_distance) * obj.transform.rotation
-
-					new_obj.transform.position = interpolated_position
-					new_obj.transform.rotation = interpolated_rotation
-
-					captures.append(new_obj.get_markers())
-
-					# increase step
-					pos += self.speed
-
-				left_over_distance = self.speed + path_distance - pos
-				print ('After %s' % obj)
-			else:
-				obj.transform = original_transform
-				command_index -= 1
-				break
-
-		print ('Final %s' % obj)
-		return (command_index, captures)
-
-
-	def capture(self, n_frames):
-		"""
-		Capture the last n_frames,
-		if there is not enough, using padding with the first frame 
-		"""
-		self.captures = []
-		self.captures.append(obj.get_markers())
-
+		# Check to see if the path is inside the playfield
+		# and path doesn't overlap with other objects
+		# and final position doesn't overlap with other objects
+		if (self.boundary == None or Environment.is_bounded(path, self.boundary)) and\
+			self.is_overlap_consistency(path, exclude_indices = [obj_index]) and\
+			self.is_overlap_consistency(new_obj, exclude_indices = [obj_index]):
+			# command satisfy
+			# set obj to new_obj
+			
+			self.objects[obj_index] = new_obj
+			return True
+		else:
+			return False
 
 
 	'''

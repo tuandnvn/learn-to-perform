@@ -3,9 +3,13 @@ import gym
 from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
-from simulator.utils import Cube2D, Transform2D
+from simulator.utils import Cube2D, Transform2D, Command
 
 class BlockMovementEnv(gym.Env):
+    """
+    This class encapsulate an environment and allow 
+    """
+
     reward_range = (0, 1)
     metadata = {'render.modes': ['human']}
     """
@@ -13,7 +17,7 @@ class BlockMovementEnv(gym.Env):
     def __init__(self, target, playground_x = [-1,-1, 0],
                  playground_dim = [2, 2, np.pi/2], name=None, n_objects = 2,
                 block_size = 0.15, 
-                 progress_threshold = 0.9):
+                 progress_threshold = 0.9, progress_estimator = None):
         """
         Parameters:
         - name: the name of the event action to be learned
@@ -37,12 +41,14 @@ class BlockMovementEnv(gym.Env):
         # This env is just a wrapper around an environment that 
         # I have created before
         self.e = Environment()
+        self.progress_estimator = progress_estimator
         self.target = target
         self.n_objects = n_objects
         self.playground_x = playground_x
         self.playground_dim = playground_dim
         self.name = name
         self.block_size = block_size
+        self.progress_threshold = progress_threshold
         
         # Action space is dynamically created
         # The action space would be a combination of a 
@@ -56,24 +62,81 @@ class BlockMovementEnv(gym.Env):
                                          dimension = playground_dim, 
                                          randomizer = self.np_random)
         
-        
+        # This list would store 
+        self.features = []
+
         self._reset()
         
     def _step(self, action):
+        """Run one timestep of the environment's dynamics. When end of
+        episode is reached, you are responsible for calling `reset()`
+        to reset this environment's state.
+        Accepts an action and returns a tuple (observation, reward, done, info).
+        Args:
+            action (object): an action provided by the environment
+        Returns:
+            observation (object): agent's observation of the current environment
+            reward (float) : amount of reward returned after previous action
+            done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
+            info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+        """
+
         # action is generated from the action_policy (external to the environment)
         object_index, new_location = action
         
         position = new_location[:2]
         rotation = new_location[2]
-        scale = self.s[object_index].transform.scale
+        scale = self.inner_state[object_index].transform.scale
         
-        self.s[object_index] = Cube2D(transform = Transform2D(position, rotation, scale))
-        self.lastaction = action
+        # self.inner_state is a map of index to object
+        if self.e.act(object_index, Command(position, rotation)):
+            self.lastaction = action
         
-        
+        observation = self._get_observation()
         current_progress = self.target.predict()
-        
-        return (self.s)
+
+        (observation, reward, done, info)
+
+        return (self.inner_state)
+
+    def capture(self):
+        # This is copied from simulator2d
+        # TODO: change this
+        # frame need to be subtracted from previous segment of movement
+        # should < self.speed
+        left_over_distance = 0.0
+
+        path_distance = norm(obj.transform.position - original_transform.position)
+
+        print ('path_distance = %.2f' % path_distance)
+        pos = self.speed - left_over_distance
+        while pos < path_distance:
+            print ('pos = %.2f' % pos)
+            new_obj = obj.clone()
+
+            interpolated_position = (pos / path_distance) * original_transform.position +\
+                (1 - pos/path_distance) * obj.transform.position
+            interpolated_rotation = (pos / path_distance) * original_transform.rotation +\
+                (1 - pos/path_distance) * obj.transform.rotation
+
+            new_obj.transform.position = interpolated_position
+            new_obj.transform.rotation = interpolated_rotation
+
+            captures.append(new_obj.get_markers())
+
+            # increase step
+            pos += self.speed
+
+        left_over_distance = self.speed + path_distance - pos
+        print ('After %s' % obj)
+
+    def _get_observation(self):
+        """
+        Observation is calculated from the inner state
+
+        TODO: implement this observation
+        """
+        return None
     
     def _reset(self):
         # states would be a list of location/orientation for block
@@ -100,8 +163,12 @@ class BlockMovementEnv(gym.Env):
                 retry += 1
             
         self.lastaction=None
-        self.s = self.e.objects
-        return self.s
+        self.inner_state = self.e.objects
+
+        # Set the first observation
+        observation = self._get_observation
+
+        return observation
 
     def _render(self, mode='human', close=False):
         if close:
@@ -120,7 +187,7 @@ class BlockMovementEnv(gym.Env):
         
         for i in range(self.n_objects):
             # Obj is action position and rotation of object
-            obj = self.s[i]
+            obj = self.e.objects[i]
             
             shape = obj.get_markers()
             
