@@ -18,6 +18,12 @@ class Transform2D (object):
 	def clone(self):
 		return Transform2D(np.copy(self.position), self.rotation, self.scale)
 
+	def get_feat(self):
+		"""
+		This is a combined vector of position and rotation
+		"""
+		return np.concatenate([np.reshape(self.position, [2]), [self.rotation]])
+
 	def __add__(self, another_transform):
 		return Transform2D( self.position + another_transform.position, self.rotation + another_transform.rotation,
 		        self.scale + another_transform.scale )

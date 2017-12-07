@@ -163,11 +163,14 @@ def calculate_distance( one_object_data, down_sample, start, end ):
     Distance one object has travelled from start frame to end frame
      (only sampling at (frame - start) % down_sample == 0)
     
-    ===========
     Params: 
-    one_object_data: list of Cube2D
-    down_sample: int
-
+    ===========
+        one_object_data: list of Cube2D
+        down_sample: int
+        start: inclusive
+        end: exclusive
+    Returns:
+    ===========
     """
     prev_loc = None
     sum_d = 0

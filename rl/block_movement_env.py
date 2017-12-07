@@ -4,7 +4,7 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 from simulator.utils import Cube2D, Transform2D, Command
-from ..feature_util import qsr_feature_extractor, get_location_objects_most_active
+from ..feature_util import qsr_feature_extractor, get_location_objects_most_active, get_most_active_objects_interval
 from ..utils import SESSION_LEN, SESSION_OBJ_2D, SESSION_FEAT
 
 class BlockMovementEnv(gym.Env):
@@ -103,10 +103,11 @@ class BlockMovementEnv(gym.Env):
             cur_transform = self.e.objects[object_index].transform
             self.action_storage.append( [(object_index, prev_transform, cur_transform)] )
         
-        observation = self._get_observation()
-
         # captures the last self.num_steps + 1 frames
+        # last_num_steps_frames is a SESSION
         last_num_steps_frames = self.capture_last(self.num_steps + 1)
+
+        observation = self._get_observation(last_num_steps_frames)
 
         # Extract features from the last frames
         # inputs: np.array (self.num_steps, n_input)
@@ -205,17 +206,32 @@ class BlockMovementEnv(gym.Env):
 
         return session
 
-    def _get_observation(self):
+    def _get_observation(self, session):
         """
-        Observation is calculated from the last positions of most salient objects
+        Observation is calculated from the last positions (last two frames) of most salient objects
 
-        TODO: implement this observation
         """
-        return None
+        object_data = session[SESSION_OBJ_2D]
+        object_1_name, object_2_name = get_most_active_objects_interval(object_data, object_data.keys(), 0, session[SESSION_LEN])
+
+        features = []
+
+        for name in [object_1_name, object_2_name]:
+            for frame in [-2, -1]:
+                features.append(object_data[name][frame].get_feat())
+
+        return np.concatenate( features )
 
     def _get_features(self, session):
         """
         Features are calculated from session
+
+        Args:
+        -----
+            session: Session type (dictionary of SESSION keys)
+
+        Returns:
+        --------
         """
         qsr_feature_extractor( session, get_location_objects = get_location_objects_most_active )
 

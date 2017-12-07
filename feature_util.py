@@ -87,35 +87,45 @@ def get_location_objects_most_active(object_data, object_names, session_len):
         d_s = []
         end = int(min(session_len, start + step))
 
-        # We just calculate distance has been travelled by each object
-        for object_name in object_names:
-            one_object_data = object_data[object_name]
-
-            
-            # Calculate travelling distance of this object for 5 frames
-            d = calculate_distance( one_object_data, 1, start, end)
-
-            d_s.append((object_name, d))
-
-
-        # Sort the objects by longest travelled distance, longest first
-        d_s = sorted(d_s, key = lambda v:v[1], reverse = True)
-
-        object_1_name = d_s[0][0]
-
-        # For the second object, it should be the closest object to the moving object
-        d_2_s = []
-        for name, _ in d_s[1:]:
-            d = calculate_distance_btw(object_data[object_1_name], object_data[name], 1, start, end)
-            d_2_s.append((name, d))
-        
-        object_2_name = d_2_s[0][0]
+        object_1_name, object_2_name = get_most_active_objects_interval(object_data, object_names, start, end)
         #print ('start = %d ; object_1_name = %s ; object_2_name = %s'%(start, object_1_name, object_2_name))
 
         object_1 += object_data[object_1_name][start:end]
         object_2 += object_data[object_2_name][start:end]  
 
-    return (object_1, object_2)        
+    return (object_1, object_2)
+
+def get_most_active_objects_interval(object_data, object_names, start, end):
+    """
+    Get names of the two most salient objects between start and end
+    """
+
+    # We just calculate distance has been travelled by each object
+    for object_name in object_names:
+        one_object_data = object_data[object_name]
+
+        
+        # Calculate travelling distance of this object for 5 frames
+        d = calculate_distance( one_object_data, 1, start, end)
+
+        d_s.append((object_name, d))
+
+
+    # Sort the objects by longest travelled distance, longest first
+    d_s = sorted(d_s, key = lambda v:v[1], reverse = True)
+
+    object_1_name = d_s[0][0]
+
+    # For the second object, it should be the closest object to the moving object
+    d_2_s = []
+    for name, _ in d_s[1:]:
+        d = calculate_distance_btw(object_data[object_1_name], object_data[name], 1, start, end)
+        d_2_s.append((name, d))
+    
+    object_2_name = d_2_s[0][0]
+
+    return (object_1_name, object_2_name)
+
 
 def qsr_feature_extractor ( session, get_location_objects = get_location_objects_default, qsrlib = None):
     '''
