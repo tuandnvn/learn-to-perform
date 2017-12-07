@@ -60,7 +60,11 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
                     
     return (training_data, training_lbl, testing_data, testing_lbl)
                     
-    
+def gothrough(data, lbl):
+    for i in range(np.shape(data)[0]):
+        x = data[i]
+        y = lbl[i]
+        yield (x, y)
 
 def linear_progress_lbl_generator(session_data):
     """

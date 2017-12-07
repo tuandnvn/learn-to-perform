@@ -13,6 +13,7 @@ class EventProgressEstimator(object):
         # This is an option, if self.s2s = True -> Use all progress values
         # otherwise just use the last progress value
         self.s2s = config.s2s 
+        self.learning_rate = learning_rate = config.learning_rate
         
         with tf.variable_scope(name):
             "Declare all placeholders"
@@ -114,7 +115,6 @@ class EventProgressEstimator(object):
         else:
             assert len(outputs.shape) == 1
             assert outputs[0] == batch_size
-            
         
     def update(self, inputs, outputs, sess=None):
         """
@@ -160,3 +160,15 @@ class EventProgressEstimator(object):
             predicted = sess.run(self.output,
                     {self._input_data: inputs})
             return predicted
+        
+if __name__ == "__main__":
+    tf.reset_default_graph()
+
+    p = Project.load("slidearound.proj")
+    
+    epe = EventProgressEstimator()
+    
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+    
+        
