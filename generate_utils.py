@@ -34,9 +34,10 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     train_percentage = config.train_percentage
     test_percentage = config.test_percentage
     
-    random_indices = np.random.shuffle(np.arange(samples))
+    random_indices = np.arange(samples)
+    np.random.shuffle(random_indices)
     
-    split = train_percentage * samples
+    split = int(train_percentage * samples)
     
     training_data = rearranged_data[random_indices[:split]]
     training_lbl = rearranged_lbls[random_indices[:split]]
@@ -52,9 +53,9 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     training_lbl = training_lbl[:train_epoch_size * train_batch_size].\
                     reshape((train_epoch_size, train_batch_size, num_steps))
     
-    testing_data = training_data[:test_epoch_size * test_batch_size].\
+    testing_data = testing_data[:test_epoch_size * test_batch_size].\
                     reshape((test_epoch_size, test_batch_size, num_steps, n_input))
-    testing_lbl = training_lbl[:test_epoch_size * test_batch_size].\
+    testing_lbl = testing_lbl[:test_epoch_size * test_batch_size].\
                     reshape((test_epoch_size, test_batch_size, num_steps))
                     
     return (training_data, training_lbl, testing_data, testing_lbl)
@@ -77,16 +78,14 @@ def linear_progress_lbl_generator(session_data):
     # Just in case they are not sorted
     sorted_events = sorted( session_data[SESSION_EVENTS], key = lambda event: event[START] )
     
-    lbls = []
-    last_p = 0
+    lbls = np.zeros(session_data[SESSION_LEN])
+    
     for event in sorted_events:
         prev_p = event[START]
         next_p = event[END]
         
-        lbls += [0] * (prev_p - last_p)
-        lbls += list(np.arange(0.0, 1.0 + 1.0 / (next_p - prev_p), 1.0 / (next_p - prev_p)))
-    
-        last_p = next_p + 1
+        lbls[prev_p:next_p+1] = np.arange(next_p - prev_p + 1) / (next_p - prev_p)
+        
     return np.array(lbls)
 
 def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
@@ -123,7 +122,7 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
         
         samples += correct_no_samples
         
-    print('Total number of samples' + str(samples))
+    print('Total number of samples ' + str(samples))
     
     # At any time, 
     interpolated_data = np.zeros([samples * num_steps, n_input], dtype=np.float32)
@@ -136,6 +135,7 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
         correct_no_samples = ( len(feature_data) - num_steps ) // hop_step + 1
     
         lbls = linear_progress_lbl_generator(session_data)
+        print (lbls.shape)
         
         for i in range(correct_no_samples):
             for j in range(num_steps):

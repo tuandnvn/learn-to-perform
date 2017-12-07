@@ -4,21 +4,58 @@ import pickle
 import session_utils
 import generate_utils
 import read_utils
+import feature_utils
 from utils import DATA_DIR, SESSION_LEN, SESSION_OBJ_2D
 from progress_learner import EventProgressEstimator
 from config import Config
 
+class ProjectData(object):
+    """
+    This class handle the most time consuming part of loading and cleaning the data
+    """
+    def __init__(self, name, session_names):
+        self.session_names = session_names
+        self.name = name
+        self.sessions = []
+        
+    def load_data(self):
+        for session_name in self.session_names:
+            session = read_utils.load_one_param_file(os.path.join( DATA_DIR, self.name, session_name, 'files.param'))
+            print ("Session " + session_name + " is loaded.")
+            self.sessions.append(session)
+
+    def preprocess(self):
+        for session in self.sessions:
+            session_utils.project_to2d(session, from_frame = 0, to_frame = session[SESSION_LEN])
+            
+        for session in self.sessions:
+            session_utils.interpolate_multi_object_data(session, object_names = session[SESSION_OBJ_2D].keys())
+    
+    def save(self, file_path):
+        with open(file_path, 'wb') as f:
+            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
+        print('----Done saving project data---')
+
+    @staticmethod
+    def load(file_path):
+        with open(file_path, 'rb') as f: 
+            return pickle.load(f)
+        print('----Done loading project data---') 
+        
 class Project(object):
     """
     Just a simple object to store session and other statistics
     for one action type.
 
     This class encapsulates the data logic
+    
+    project_data: Project_Data
     """
-    def __init__(self, name, session_names, config = Config()):
-        self.session_names = session_names
-        self.name = name
-        self.sessions = []
+    def __init__(self, project_data, config = Config()):
+        self.session_names = project_data.session_names
+        self.name = project_data.name
+        self.sessions = project_data.sessions
         self.config = config
 
     def __iter__(self):
@@ -30,20 +67,8 @@ class Project(object):
     def __setitem__(self, key, value):
         self.sessions[key] = value
 
-    def load_data(self):
-        for session_name in self.session_names:
-            session = read_utils.load_one_param_file(os.path.join( DATA_DIR, self.name, session_name, 'files.param'))
-            print ("Session " + session_name + " is loaded.")
-            self.sessions.append(session)
-
-    def preprocess(self):
-        for session in self.sessions:
-            session_utils.project_to2d(session, from_frame = 0, to_frame = session[SESSION_LEN])
-
     def standardize(self):
-        for session in self.sessions:
-            session_utils.interpolate_multi_object_data(session, object_names = session[SESSION_OBJ_2D].keys())
-
+            
         self.down_sample_quotient = session_utils.get_down_sample_quotient(self)
         print('down_sample_quotient = %d' % self.down_sample_quotient)
 
@@ -51,17 +76,20 @@ class Project(object):
         print (self.speed)
 
         self.sessions = session_utils.down_sample(self, self.down_sample_quotient)
+    
+        for session in self.sessions:
+            feature_utils.qsr_feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
 
     def generate_data(self):
         # First step is to generate data with hop_step interpolation
         # rearranged_data = (samples, num_steps, data_point_size)
         # rearranged_lbls = (samples, num_steps)
-        rearranged_data, rearranged_lbls = generate_utils.turn_to_intermediate_data(project, 
+        rearranged_data, rearranged_lbls = generate_utils.turn_to_intermediate_data(self, 
             self.config.n_input, self.config.num_steps, self.config.hop_step)
 
         # Generate training and testing data 
         self.training_data, self.training_lbl, self.testing_data, self.testing_lbl =\
-         generate_utils.generate_data(rearranged_data, rearranged_lbls, config)
+         generate_utils.generate_data(rearranged_data, rearranged_lbls, self.config)
 
     def save(self, file_path):
         with open(file_path, 'wb') as f:
@@ -77,11 +105,17 @@ class Project(object):
 
     
 if __name__ == "__main__":
-    p = Project("SlideAround", ["Session1", "Session2"])
-    print ('Load project ' + p.name)
-    p.load_data()
-    p.preprocess()
-    p.standardize()
+    """
+    This code will load the data from params files and project to 2D, which is the most time consuming part in loading
+    """
+#     p_data = ProjectData("SlideAround", ["Session1", "Session2"])
+#     print ('Load project ' + p_data.name)
+#     p_data.load_data()
+#     p_data.preprocess()
+#     p_data.save("slidearound_data.proj")
+#     
+    p_data = ProjectData.load("slidearound_data.proj")
+    p = Project(p_data)
+    p.standardize() 
+    p.generate_data()
     p.save("slidearound.proj")
-    
-    

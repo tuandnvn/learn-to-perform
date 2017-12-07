@@ -140,8 +140,6 @@ def load_one_param_file( file_path ):
 
     return session_data
 
-
-
 def read_project_data( data_dir, classes ):
     project_data = {}
     

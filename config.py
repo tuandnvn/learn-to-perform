@@ -11,6 +11,7 @@ class Config (object):
 	num_steps = 20
 	n_input = 13
 	hidden_size = 10
+	hop_step = 5
 	
 	train_batch_size = 10
 	test_batch_size = 2

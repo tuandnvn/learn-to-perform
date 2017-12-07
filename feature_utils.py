@@ -84,7 +84,6 @@ def get_location_objects_most_active(object_data, object_names, session_len):
     object_2 = []
 
     for start in range(0,int(session_len),step):
-        d_s = []
         end = int(min(session_len, start + step))
 
         object_1_name, object_2_name = get_most_active_objects_interval(object_data, object_names, start, end)
@@ -99,7 +98,7 @@ def get_most_active_objects_interval(object_data, object_names, start, end):
     """
     Get names of the two most salient objects between start and end
     """
-
+    d_s = []
     # We just calculate distance has been travelled by each object
     for object_name in object_names:
         one_object_data = object_data[object_name]
@@ -212,7 +211,7 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
         diff_quantized_r_2.shape = (session_len, 1)
 
         session[SESSION_FEAT] = np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
-
+        print ("Feature shape = " + str(session[SESSION_FEAT].shape))
     except ValueError as e:
         print (e)
         print ('Problem in data of length ' + str(len_data))
@@ -279,5 +278,4 @@ def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     # (#frame, 2 * diff_feature + other_feature)
     diff_feature_chain = np.concatenate ( [need_diff_chain, padded_diff_chain, feature_chain[:, diff_feature:]], axis = 1 )
     
-    print ('shape of diff_feature_chain %s' % str(diff_feature_chain.shape))
     return diff_feature_chain

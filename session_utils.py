@@ -9,16 +9,16 @@ This file will store methods that related to handling session data
 In general, all the methods related to processing of session_data like
 downsampling, calculating speed, etc.
 
-read_util : read data from the .param file
+read_utils : read data from the .param file
     ||
     \/
-session_util : session data standardize the data
+session_utils : session data standardize the data
     ||
     \/
-feature_util : read data from the .param file
+feature_utils : read data from the .param file
     ||
     \/
-generate_util : generate training and testing data
+generate_utils : generate training and testing data
     ||
     \/
 learning_module
@@ -282,7 +282,7 @@ def down_sample(project, down_sample_quotient):
             new_session_data[SESSION_EVENTS].append(new_event)
         
         # downsample session[SESSION_LEN]
-        new_session_data[SESSION_LEN] = np.ceil(session[SESSION_LEN] // down_sample_quotient)
+        new_session_data[SESSION_LEN] = int(np.ceil(session[SESSION_LEN] // down_sample_quotient))
         
         new_session_data[SESSION_NAME] = session[SESSION_NAME]
         
