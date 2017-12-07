@@ -4,7 +4,7 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 from simulator.utils import Cube2D, Transform2D, Command
-from ..feature_util import qsr_feature_extractor, get_location_objects_most_active, get_most_active_objects_interval
+from ..feature_utils import qsr_feature_extractor, get_location_objects_most_active, get_most_active_objects_interval
 from ..utils import SESSION_LEN, SESSION_OBJ_2D, SESSION_FEAT
 
 class BlockMovementEnv(gym.Env):

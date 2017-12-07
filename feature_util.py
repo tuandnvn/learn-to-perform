@@ -14,7 +14,7 @@ import bisect
 
 from feature.project_table import project_markers, estimate_cube_2d
 from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION, SESSION_OBJ_2D, SESSION_FEAT
-from session_util import calculate_distance, calculate_distance_btw
+from session_utils import calculate_distance, calculate_distance_btw
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace

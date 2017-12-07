@@ -1,11 +1,12 @@
 import numpy as np
 import tensorflow as tf
+from config import Config
 
 class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training, name=None, config = ProgressConfig()):
+    def __init__(self, is_training, name=None, config = Config()):
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
         self.size = size = config.hidden_size

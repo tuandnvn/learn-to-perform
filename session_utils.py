@@ -49,19 +49,19 @@ def area_dimension( numpy_array ):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
 
-def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
+def project_to2d ( session, from_frame = 0, to_frame = 10000 ):
     """
-    This method project the data of session_data into 2d Cube
-    and insert a new object into session_data
-    which is session_data[SESSION_OBJ_2D]
+    This method project the data of session into 2d Cube
+    and insert a new object into session
+    which is session[SESSION_OBJ_2D]
     """
     object_data = {}
 
-    for object_name in session_data[SESSION_OBJECTS]:
+    for object_name in session[SESSION_OBJECTS]:
         if object_name == 'table':
             polygon = []
-            for frameNo in session_data[SESSION_OBJECTS][object_name]:
-                frame_polygon = session_data[SESSION_OBJECTS][object_name][frameNo]
+            for frameNo in session[SESSION_OBJECTS][object_name]:
+                frame_polygon = session[SESSION_OBJECTS][object_name][frameNo]
 
             polygon.append(frame_polygon)
 
@@ -74,14 +74,14 @@ def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
             first_point = table_markers[0]
             second_point = table_markers[1]
     
-    for object_name in session_data[SESSION_OBJECTS]:
+    for object_name in session[SESSION_OBJECTS]:
         print ('============ ' + object_name)
         if object_name != 'table':
             object_data[object_name] = {}
-            for frameNo in session_data[SESSION_OBJECTS][object_name]:
+            for frameNo in session[SESSION_OBJECTS][object_name]:
                 if int(frameNo) < from_frame or int(frameNo) > to_frame:
                     continue
-                frame_data = session_data[SESSION_OBJECTS][object_name][frameNo]
+                frame_data = session[SESSION_OBJECTS][object_name][frameNo]
 
                 # Sort firstly by number of non-finite corners
                 # Sort secondly by size of marker (larger marker means better resolution)
@@ -104,7 +104,7 @@ def project_to2d ( session_data, from_frame = 0, to_frame = 10000 ):
                 except:
                     continue
 
-    session_data[SESSION_OBJ_2D] = object_data
+    session[SESSION_OBJ_2D] = object_data
 
 
 def interpolate_multi_object_data( session, object_names = [] ):
@@ -237,7 +237,7 @@ def get_action_speed(project, down_sample_quotient):
             
             d_s = []
             for object_name in session[SESSION_OBJ_2D]:
-                d = calculate_distance(session_data[SESSION_OBJ_2D][object_name],
+                d = calculate_distance(session[SESSION_OBJ_2D][object_name],
                                   down_sample_quotient, start, end)
                 
                 d_s.append(d)
@@ -254,23 +254,23 @@ def get_action_speed(project, down_sample_quotient):
 
 def down_sample(project, down_sample_quotient):
     # In downsampling, we have to downsample the frames 
-    # in session_data[SESSION_OBJECTS], downsample the start and end 
-    # of each event in session_data[SESSION_EVENTS]
+    # in session[SESSION_OBJECTS], downsample the start and end 
+    # of each event in session[SESSION_EVENTS]
     
     new_project_data = []
     
-    for session_data in project:
+    for session in project:
         new_session_data = {}
         
         new_session_data[SESSION_OBJ_2D] = {}
 
-        # downsample session_data[SESSION_OBJ_2D]
-        for object_name in session_data[SESSION_OBJ_2D]:
-            new_session_data[SESSION_OBJ_2D][object_name] = session_data[SESSION_OBJ_2D][object_name][::down_sample_quotient]
+        # downsample session[SESSION_OBJ_2D]
+        for object_name in session[SESSION_OBJ_2D]:
+            new_session_data[SESSION_OBJ_2D][object_name] = session[SESSION_OBJ_2D][object_name][::down_sample_quotient]
         
-        # downsample session_data[SESSION_EVENTS]
+        # downsample session[SESSION_EVENTS]
         new_session_data[SESSION_EVENTS] = []
-        for event in session_data[SESSION_EVENTS]:
+        for event in session[SESSION_EVENTS]:
             end = event[END] // down_sample_quotient
             start = event[START] // down_sample_quotient
             
@@ -281,10 +281,10 @@ def down_sample(project, down_sample_quotient):
             
             new_session_data[SESSION_EVENTS].append(new_event)
         
-        # downsample session_data[SESSION_LEN]
-        new_session_data[SESSION_LEN] = np.ceil(session_data[SESSION_LEN] // down_sample_quotient)
+        # downsample session[SESSION_LEN]
+        new_session_data[SESSION_LEN] = np.ceil(session[SESSION_LEN] // down_sample_quotient)
         
-        new_session_data[SESSION_NAME] = session_data[SESSION_NAME]
+        new_session_data[SESSION_NAME] = session[SESSION_NAME]
         
         # Add back to project data
         new_project_data.append(new_session_data)

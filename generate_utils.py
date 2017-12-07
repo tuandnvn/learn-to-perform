@@ -7,7 +7,7 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     
     Parameters:
     -----------
-    rearranged_data:  num_steps, data_point_size)
+    rearranged_data:  num_steps, n_input)
     
     config has values to create training and testing data
     
@@ -15,17 +15,51 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     
     Return:
     -------
-    training_data: (train_epoch_size, train_batch_size, num_steps, data_point_size)
+    training_data: (train_epoch_size, train_batch_size, num_steps, n_input)
     training_lbl:  (train_epoch_size, train_batch_size, num_steps)
                    
-    testing_data:  (test_epoch_size, test_batch_size, num_steps, data_point_size)
+    testing_data:  (test_epoch_size, test_batch_size, num_steps, n_input)
     testing_lbl:   (test_epoch_size, test_batch_size, num_steps)
     """
+    samples = rearranged_data.shape[0]
+    num_steps = rearranged_data.shape[1]
+    n_input = rearranged_data.shape[2]
+    
     training_data = []
     testing_data = []
 
-
-
+    train_batch_size = config.train_batch_size
+    test_batch_size = config.test_batch_size
+    
+    train_percentage = config.train_percentage
+    test_percentage = config.test_percentage
+    
+    random_indices = np.random.shuffle(np.arange(samples))
+    
+    split = train_percentage * samples
+    
+    training_data = rearranged_data[random_indices[:split]]
+    training_lbl = rearranged_lbls[random_indices[:split]]
+    
+    testing_data = rearranged_data[random_indices[split:]]
+    testing_lbl = rearranged_lbls[random_indices[split:]]
+    
+    train_epoch_size = int(split // train_batch_size)
+    test_epoch_size = int(test_percentage * samples // test_batch_size)
+    
+    training_data = training_data[:train_epoch_size * train_batch_size].\
+                    reshape((train_epoch_size, train_batch_size, num_steps, n_input))
+    training_lbl = training_lbl[:train_epoch_size * train_batch_size].\
+                    reshape((train_epoch_size, train_batch_size, num_steps))
+    
+    testing_data = training_data[:test_epoch_size * test_batch_size].\
+                    reshape((test_epoch_size, test_batch_size, num_steps, n_input))
+    testing_lbl = training_lbl[:test_epoch_size * test_batch_size].\
+                    reshape((test_epoch_size, test_batch_size, num_steps))
+                    
+    return (training_data, training_lbl, testing_data, testing_lbl)
+                    
+    
 
 def linear_progress_lbl_generator(session_data):
     """
@@ -55,7 +89,7 @@ def linear_progress_lbl_generator(session_data):
         last_p = next_p + 1
     return np.array(lbls)
 
-def turn_to_intermediate_data(project_data, data_point_size, num_steps, hop_step):
+def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
     """
     A function to generate a pair of batch-data (x, y)
     
@@ -73,13 +107,13 @@ def turn_to_intermediate_data(project_data, data_point_size, num_steps, hop_step
         - downsample them to an appropriate speed
         - get feature by running qsr_feature_extractor with the help of get_location_objects_most_active
     
-    - data_point_size: Vector feature size
+    - n_input: Vector feature size
     - num_steps: A fix number of steps for each sample
     - hop_step: A fix number of frame offset btw two events
     
     Return:
     -------
-    rearranged_data: (# samples, num_steps, data_point_size)
+    rearranged_data: (# samples, num_steps, n_input)
     rearranged_lbls: (# samples, num_steps)
     """
     samples = 0   # Number of samples of interpolating
@@ -92,7 +126,7 @@ def turn_to_intermediate_data(project_data, data_point_size, num_steps, hop_step
     print('Total number of samples' + str(samples))
     
     # At any time, 
-    interpolated_data = np.zeros([samples * num_steps, data_point_size], dtype=np.float32)
+    interpolated_data = np.zeros([samples * num_steps, n_input], dtype=np.float32)
     interpolated_lbls = np.zeros([samples * num_steps], dtype=np.float32)
     
     sample_counter = 0
@@ -113,7 +147,7 @@ def turn_to_intermediate_data(project_data, data_point_size, num_steps, hop_step
         sample_counter += correct_no_samples
     
     # Divide the first dimension from samples * num_steps -> (samples, num_steps)
-    rearranged_data = interpolated_data.reshape((samples, num_steps, data_point_size))
+    rearranged_data = interpolated_data.reshape((samples, num_steps, n_input))
     
     rearranged_lbls = interpolated_lbls.reshape((samples, num_steps))
     
