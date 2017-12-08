@@ -119,13 +119,13 @@ class EventProgressEstimator(object):
                 if self.s2s:
                     # Need to reshape to 2 dimensions
                     output = tf.reshape(output, [-1, size])
-                    output = output @ weight + bias
+                    output = tf.matmul(output, weight) + bias
                     # ( batch_size, num_steps )  
                     output = tf.reshape(output, [-1, num_steps])
                 else:
                     #( batch_size, 1)
                     # @ is the same as matmul
-                    output = output @ weight + bias
+                    output = tf.matmul(output, weight) + bias
                     
             # Remove all 1 dimension
             # ( batch_size, num_steps ) or (batch_size)
