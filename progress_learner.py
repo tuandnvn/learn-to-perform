@@ -1,19 +1,27 @@
 import numpy as np
 import tensorflow as tf
+try:
+    from tensorflow.nn.rnn_cell import BasicLSTMCell, DropoutWrapper, MultiRNNCell
+except:
+    from tensorflow.contrib.rnn import BasicLSTMCell, DropoutWrapper, MultiRNNCell
+import time
+
 from config import Config
+from project import Project
+from generate_utils import gothrough
 
 class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
     def __init__(self, is_training, name=None, config = Config()):
+        self.config = config
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
         self.size = size = config.hidden_size
         # This is an option, if self.s2s = True -> Use all progress values
         # otherwise just use the last progress value
         self.s2s = config.s2s 
-        self.learning_rate = learning_rate = config.learning_rate
         
         with tf.variable_scope(name):
             "Declare all placeholders"
@@ -34,6 +42,10 @@ class EventProgressEstimator(object):
                 self._targets = tf.placeholder(tf.float32, [None, num_steps])
             else:
                 self._targets = tf.placeholder(tf.float32, [None])
+                
+            
+            if is_training:
+                self.lr = tf.Variable(0.0, trainable=False)
             
             lstm_cell = BasicLSTMCell(size, forget_bias = 1.0, state_is_tuple=True)
             
@@ -61,13 +73,29 @@ class EventProgressEstimator(object):
                 
             inputs = tf.reshape(inputs, (-1, num_steps, size)) # (batch_size, num_steps, size)
             
+            print ("self.inputs.shape = %s " % str(inputs.shape))
+            
+            
+                         
             # (output, state)
-            # output is of size:  ( batch_size, num_steps, size ) or (( batch_size, size ))
+            # output is of size:  ( batch_size, num_steps, size )
             # state is of size:   ( batch_size, cell.state_size ) (last state only)
             with tf.variable_scope("lstm"):
                 output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32)
             
-            output = output_and_state[0]
+            if self.s2s:
+                # ( batch_size, num_steps, size )
+                output = output_and_state[0]
+            else:
+                # ( num_steps, batch_size, size )
+                output = tf.transpose(output_and_state[0], [1, 0, 2])
+                
+                # ( batch_size, size )
+                output = tf.gather(output, int(output.get_shape()[0]) - 1)
+                
+            
+            print ("output.shape = %s after LSTM" % str(output.shape))
+            
             # we will pass the hidden state to next run of lstm
             self._final_state = output_and_state[1]
             
@@ -91,13 +119,18 @@ class EventProgressEstimator(object):
             # ( batch_size, num_steps ) or (batch_size)
             self.output = tf.squeeze(output)
             
+            print ("self.output.shape = %s after linear" % str(self.output.shape))
+            
+            print ("self._targets.shape = %s " % str(self._targets.shape))
+            
             # Loss = mean squared error of target and predictions
-            self.loss = tf.losses.mean_squared_error(self._targets, output)
+            self.loss = tf.losses.mean_squared_error(self._targets, self.output)
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            if is_training:
+                self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
-            self.train_op = self.optimizer.minimize(
-                self.loss, global_step=tf.contrib.framework.get_global_step())
+                self.train_op = self.optimizer.minimize(
+                    self.loss, global_step=tf.contrib.framework.get_global_step())
     
     def checkInputs(self, inputs):
         assert isinstance(inputs, np.ndarray)
@@ -110,11 +143,11 @@ class EventProgressEstimator(object):
         assert isinstance(outputs, np.ndarray)
         if self.s2s:
             assert len(outputs.shape) == 2
-            assert outputs[0] == batch_size
-            assert outputs[1] == self.num_steps
+            assert outputs.shape[0] == batch_size
+            assert outputs.shape[1] == self.num_steps
         else:
             assert len(outputs.shape) == 1
-            assert outputs[0] == batch_size
+            assert outputs.shape[0] == batch_size
         
     def update(self, inputs, outputs, sess=None):
         """
@@ -146,13 +179,13 @@ class EventProgressEstimator(object):
         """
         self.checkInputs(inputs)
         
-        if outputs != None:
+        if not outputs is None:
             batch_size = inputs.shape[0]
             self.checkOutputs(outputs, batch_size)
         
         sess = sess or tf.get_default_session()
         
-        if outputs != None:
+        if not outputs is None:
             predicted, loss = sess.run([self.output, self.loss],
                     {self._input_data: inputs, self._targets: outputs})
             return (predicted, loss)
@@ -161,14 +194,64 @@ class EventProgressEstimator(object):
                     {self._input_data: inputs})
             return predicted
         
-if __name__ == "__main__":
-    tf.reset_default_graph()
+    def assign_lr(self, lr_value, sess=None):
+        sess = sess or tf.get_default_session()
+        
+        sess.run(tf.assign(self.lr, lr_value))
 
+def run_epoch(m, data, lbl, verbose=False, training = True):
+    costs = 0
+    cost_iters = 0
+    
+    for step, (x, y) in enumerate( gothrough(data, lbl) ):
+        y_prime = y
+        if not m.config.s2s:
+            # Just use the last label
+            y_prime = y[:,-1]
+        
+        if training:
+            cost = m.update(x, y_prime)
+        else:
+            predicted, cost = m.predict(x, y_prime)
+            
+            if verbose:
+                print ('Predicted = ' +str(predicted))
+                print ('Labels = ' +str(y_prime))
+        
+        costs += cost
+        cost_iters += 1
+        
+    print("costs %.3f, cost_iters %d, cost %.3f" % 
+          (costs, cost_iters, costs / cost_iters))
+    
+if __name__ == "__main__":
     p = Project.load("slidearound.proj")
     
-    epe = EventProgressEstimator()
+    config = Config()
     
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-    
+    with tf.Graph().as_default(), tf.Session() as session:
+        with tf.variable_scope("model") as scope:
+            print('-------- Setup m model ---------')
+            m = EventProgressEstimator(is_training=True, name = p.name, config = config)
         
+        with tf.variable_scope("model", reuse = True) as scope:    
+            print('-------- Setup mtest model ---------')
+            mtest = EventProgressEstimator(is_training=False, name = p.name, config = config)
+        
+        session.run(tf.global_variables_initializer())
+        
+        """
+        Training first
+        """
+        for i in range(config.max_max_epoch):
+            print('-------------------------------')
+            start_time = time.time()
+            lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
+            m.assign_lr(config.learning_rate * lr_decay)
+
+            print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
+                
+            run_epoch(m, p.training_data, p.training_lbl, training = True)
+                
+        "Testing"
+        run_epoch(mtest, p.testing_data, p.testing_lbl, training = False, verbose= True)

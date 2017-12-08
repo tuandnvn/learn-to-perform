@@ -25,3 +25,8 @@ class Config (object):
 	keep_prob = 0.8
 	hidden_size = 100
 	num_layers = 1
+	
+	max_epoch = 10
+	max_max_epoch = 50
+	lr_decay = 0.90
+	learning_rate = 0.2

@@ -6,7 +6,6 @@ import generate_utils
 import read_utils
 import feature_utils
 from utils import DATA_DIR, SESSION_LEN, SESSION_OBJ_2D
-from progress_learner import EventProgressEstimator
 from config import Config
 
 class ProjectData(object):
@@ -114,8 +113,14 @@ if __name__ == "__main__":
 #     p_data.preprocess()
 #     p_data.save("slidearound_data.proj")
 #     
-    p_data = ProjectData.load("slidearound_data.proj")
-    p = Project(p_data)
-    p.standardize() 
-    p.generate_data()
-    p.save("slidearound.proj")
+#     p_data = ProjectData.load("slidearound_data.proj")
+#     p = Project(p_data)
+#     p.standardize() 
+#     p.generate_data()
+#     p.save("slidearound.proj")
+
+    p = Project.load("slidearound.proj")
+    print (p.training_data.shape)
+    print (p.training_lbl.shape)
+    print (p.testing_data.shape)
+    print (p.testing_lbl.shape)
