@@ -120,7 +120,8 @@ if __name__ == "__main__":
 #     p.save("slidearound.proj")
 
     p = Project.load("slidearound.proj")
-    print (p.training_data.shape)
-    print (p.training_lbl.shape)
-    print (p.testing_data.shape)
-    print (p.testing_lbl.shape)
+    print (p.training_data[0][0])
+    print (p.training_lbl[0][0])
+    
+    print (p.training_data[0][1])
+    print (p.training_lbl[0][1])

@@ -1,10 +1,12 @@
+import time
 import numpy as np
 import tensorflow as tf
 try:
     from tensorflow.nn.rnn_cell import BasicLSTMCell, DropoutWrapper, MultiRNNCell
 except:
     from tensorflow.contrib.rnn import BasicLSTMCell, DropoutWrapper, MultiRNNCell
-import time
+
+import stateful_lstm
 
 from config import Config
 from project import Project
@@ -54,6 +56,13 @@ class EventProgressEstimator(object):
                 
             multi_lstm_cell = MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
             
+            # multi_lstm_cell.state_size = config.num_layers * 2 * size
+            # ( batch_size x cell.state_size )
+            if is_training:
+                self.initial_state = multi_lstm_cell.zero_state(config.train_batch_size, tf.float32)
+            else:
+                self.initial_state = multi_lstm_cell.zero_state(config.test_batch_size, tf.float32)
+                
             # Initial states of the cells
             # cell.state_size = config.num_layers * 2 * size
             # Size = ( batch_size x cell.state_size )
@@ -81,7 +90,10 @@ class EventProgressEstimator(object):
             # output is of size:  ( batch_size, num_steps, size )
             # state is of size:   ( batch_size, cell.state_size ) (last state only)
             with tf.variable_scope("lstm"):
-                output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32)
+                output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32,
+                                                     initial_state = self.initial_state)
+            
+            self.final_state = output_and_state[1]
             
             if self.s2s:
                 # ( batch_size, num_steps, size )
@@ -149,7 +161,7 @@ class EventProgressEstimator(object):
             assert len(outputs.shape) == 1
             assert outputs.shape[0] == batch_size
         
-    def update(self, inputs, outputs, sess=None):
+    def update(self, inputs, outputs, initial_state = None, sess=None):
         """
         inputs: np.array (batch_size, num_steps, n_input)
         outputs: np.array (batch_size, num_steps) or (batch_size)
@@ -164,10 +176,16 @@ class EventProgressEstimator(object):
         self.checkOutputs(outputs, batch_size)
         
         sess = sess or tf.get_default_session()
-        _, loss = sess.run([self.train_op, self.loss], 
-                           {self._input_data: inputs, self._targets: outputs})
         
-        return loss
+        feed_dict = {self._input_data: inputs, self._targets: outputs}
+        
+        if not initial_state is None:
+            feed_dict[self.initial_state] = initial_state
+        
+        _, loss, state = sess.run([self.train_op, self.loss, self.final_state], 
+                           feed_dict)
+        
+        return loss, state
     
     def predict(self, inputs, outputs = None, sess=None):
         """
@@ -198,8 +216,18 @@ class EventProgressEstimator(object):
         sess = sess or tf.get_default_session()
         
         sess.run(tf.assign(self.lr, lr_value))
+        
+    def get_state(self, sess=None):
+        """
+        This basically gives the state of the cell
+        """
+        sess = sess or tf.get_default_session()
+
+# LSTM cell states        
+state = None
 
 def run_epoch(m, data, lbl, verbose=False, training = True):
+    global state
     costs = 0
     cost_iters = 0
     
@@ -210,7 +238,7 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
             y_prime = y[:,-1]
         
         if training:
-            cost = m.update(x, y_prime)
+            cost, state = m.update(x, y_prime, initial_state = state)
         else:
             predicted, cost = m.predict(x, y_prime)
             
@@ -251,7 +279,7 @@ if __name__ == "__main__":
 
             print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
                 
-            run_epoch(m, p.training_data, p.training_lbl, training = True)
-                
+            run_epoch(m, p.training_data, p.training_lbl, state, training = True)
+        
         "Testing"
         run_epoch(mtest, p.testing_data, p.testing_lbl, training = False, verbose= True)
