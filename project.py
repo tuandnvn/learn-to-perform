@@ -66,7 +66,10 @@ class Project(object):
     def __setitem__(self, key, value):
         self.sessions[key] = value
 
-    def standardize(self):
+    def standardize(self, feature_extractor):
+        """
+        feature_extractor is a function that take in a session and add session[SESSION_FEAT] 
+        """
             
         self.down_sample_quotient = session_utils.get_down_sample_quotient(self)
         print('down_sample_quotient = %d' % self.down_sample_quotient)
@@ -77,14 +80,14 @@ class Project(object):
         self.sessions = session_utils.down_sample(self, self.down_sample_quotient)
     
         for session in self.sessions:
-            feature_utils.qsr_feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
+            self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
 
     def generate_data(self):
         # First step is to generate data with hop_step interpolation
         # rearranged_data = (samples, num_steps, data_point_size)
         # rearranged_lbls = (samples, num_steps)
         rearranged_data, rearranged_lbls = generate_utils.turn_to_intermediate_data(self, 
-            self.config.n_input, self.config.num_steps, self.config.hop_step)
+            self.feature_size, self.config.num_steps, self.config.hop_step)
 
         # Generate training and testing data 
         self.training_data, self.training_lbl, self.testing_data, self.testing_lbl =\
@@ -107,21 +110,35 @@ if __name__ == "__main__":
     """
     This code will load the data from params files and project to 2D, which is the most time consuming part in loading
     """
-#     p_data = ProjectData("SlideAround", ["Session1", "Session2"])
-#     print ('Load project ' + p_data.name)
-#     p_data.load_data()
-#     p_data.preprocess()
-#     p_data.save("slidearound_data.proj")
-#     
-#     p_data = ProjectData.load("slidearound_data.proj")
-#     p = Project(p_data)
-#     p.standardize() 
-#     p.generate_data()
-#     p.save("slidearound.proj")
+    # p_data = ProjectData("SlideAround", ["Session1", "Session2"])
+    # print ('Load project ' + p_data.name)
+    # p_data.load_data()
+    # p_data.preprocess()
+    # p_data.save("slidearound_data_raw.proj")
+     
+    # p_data = ProjectData.load("slidearound_data_raw.proj")
+    # p = Project(p_data)
+    # p.standardize(feature_utils.marker_feature_extractor) 
+    # p.generate_data()
+    # p.save("slidearound_raw.proj")
 
-    p = Project.load("slidearound.proj")
+    p = Project.load("slidearound_raw.proj")
     print (p.training_data[0][0])
     print (p.training_lbl[0][0])
     
     print (p.training_data[0][1])
     print (p.training_lbl[0][1])
+
+    print (p.training_data.shape)
+    print (p.training_lbl.shape)
+    
+    print (p.testing_data.shape)
+    print (p.testing_lbl.shape)
+
+    # p_data = ProjectData.load("slidearound_data_raw.proj")
+
+    # for key in p_data.sessions[0][SESSION_OBJ_2D]:
+    #     print ('-------------------------------------------------------- ' +  key )
+    #     for frame in range(p_data.sessions[0][SESSION_LEN]):
+    #         print (p_data.sessions[0][SESSION_OBJ_2D][key][frame])
+

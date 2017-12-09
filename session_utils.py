@@ -100,7 +100,7 @@ def project_to2d ( session, from_frame = 0, to_frame = 10000 ):
                 
                 try:
                     object_data[object_name][int(frameNo)] = estimate_cube_2d ( rectangle_projected, first_point, second_point )
-                 #   print (object_data[object_name][int(frameNo)])
+                    #print (str(frameNo) + ' ' +  str(object_data[object_name][int(frameNo)]))
                 except:
                     continue
 
@@ -148,8 +148,8 @@ def _interpolate_object_data( session_len, one_object_data ):
                 pre = one_object_data[pre_key].transform
                 nex = one_object_data[nex_key].transform
                 
-                p = (frame - pre_key)/(nex_key - pre_key)
-                q = (nex_key - frame)/(nex_key - pre_key)
+                p = float(frame - pre_key)/(nex_key - pre_key)
+                q = float(nex_key - frame)/(nex_key - pre_key)
                 transform = Transform2D ( nex.position * p + pre.position * q , 
                                          nex.rotation * p + pre.rotation * q, 
                                          nex.scale * p + pre.scale * q)

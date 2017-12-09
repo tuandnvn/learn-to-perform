@@ -8,7 +8,7 @@ except:
 
 import stateful_lstm
 
-from config import Config
+from config import Config, Raw_Config
 from project import Project
 from generate_utils import gothrough
 
@@ -16,7 +16,7 @@ class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training, name=None, config = Config()):
+    def __init__(self, is_training, name=None, config = Raw_Config()):
         self.config = config
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
@@ -253,9 +253,10 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
           (costs, cost_iters, costs / cost_iters))
     
 if __name__ == "__main__":
-    p = Project.load("slidearound.proj")
+    p = Project.load("slidearound_raw.proj")
     
-    config = Config()
+    config = Raw_Config()
+    
     
     with tf.Graph().as_default(), tf.Session() as session:
         with tf.variable_scope("model") as scope:

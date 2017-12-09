@@ -88,7 +88,7 @@ def linear_progress_lbl_generator(session_data):
         prev_p = event[START]
         next_p = event[END]
         
-        lbls[prev_p:next_p+1] = np.arange(next_p - prev_p + 1) / (next_p - prev_p)
+        lbls[prev_p:next_p+1] = np.arange(next_p - prev_p + 1, dtype=np.float32) / (next_p - prev_p)
         
     return np.array(lbls)
 

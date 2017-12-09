@@ -120,12 +120,88 @@ def get_most_active_objects_interval(object_data, object_names, start, end):
     for name, _ in d_s[1:]:
         d = calculate_distance_btw(object_data[object_1_name], object_data[name], 1, start, end)
         d_2_s.append((name, d))
+
+
+    d_2_s = sorted(d_2_s, key = lambda v:v[1], reverse = True)
     
     object_2_name = d_2_s[0][0]
 
     return (object_1_name, object_2_name)
 
+def marker_feature_extractor ( session, get_location_objects = get_location_objects_default, qsrlib = None):
+    """
+    Get the features from 
+    - one object as the one mainly under movement (object slot)
+    - one object that is relatively static (locative slot)
 
+    Params:
+    ========
+    object_data: See the return type of project_to2d
+    object_names: names of objects that need to find features
+    session_len: Length of session (int)
+    get_location_objects: a function (object_data, object_names) -> (o1, o2)
+
+    Return:
+    ========
+    Number of features 
+    Add session[SESSION_FEAT] = feature_chain: chain of feature, one feature vector for each frame (interpolated frames)
+    
+    ============================================================
+    feature_selection between two objects
+    markers of thematic objects (8)
+    markers of locative objects (8)
+    marker_differences of thematic objects (8)
+    marker_differences of locative objects (8)
+    marker_differences of thematic and locative objects (8) (thematic - locative)
+    """
+    object_data = session[SESSION_OBJ_2D]
+    session_len = session[SESSION_LEN]
+    object_names = object_data.keys()
+
+    object_1, object_2 = get_location_objects(object_data, object_names, session_len)
+
+    object_1_markers = []
+    object_2_markers = []
+
+    for frame in range(session_len):
+        object_1_markers.append(object_1[frame].get_markers().flatten())
+        object_2_markers.append(object_2[frame].get_markers().flatten())
+
+    # frame * 8
+    object_1_markers = np.stack(object_1_markers)
+
+    # frame * 8
+    object_1_markers_diff = get_diff(object_1_markers)
+
+    # frame * 8
+    object_2_markers = np.stack(object_2_markers)
+
+    # frame * 8
+    object_2_markers_diff = get_diff(object_2_markers)
+
+    # diff_between_two_objects
+    # frame * 8
+    diff = object_1_markers - object_2_markers
+
+    session[SESSION_FEAT] = np.concatenate([object_1_markers, object_1_markers_diff, 
+        object_2_markers, object_2_markers_diff, diff], axis=1)
+
+    print ("Feature shape = " + str(session[SESSION_FEAT].shape))
+
+    return  session[SESSION_FEAT].shape[1]
+
+def get_diff( np_array ) :
+    """
+    Param:
+    -------
+    2-dimension np_array of size (a,b)
+
+    Return:
+    -------
+    2-dimension np_array of size (a,b)
+    """
+    return np.concatenate([np_array[1:] - np_array[:-1], np.zeros((1,np_array.shape[1]))]) 
+    
 def qsr_feature_extractor ( session, get_location_objects = get_location_objects_default, qsrlib = None):
     '''
     Get the features from 
@@ -216,6 +292,7 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
         print (e)
         print ('Problem in data of length ' + str(len_data))
         return []
+
 
 
 def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
