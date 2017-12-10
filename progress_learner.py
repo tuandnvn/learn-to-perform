@@ -127,9 +127,9 @@ class EventProgressEstimator(object):
                     # @ is the same as matmul
                     output = tf.matmul(output, weight) + bias
                     
-            # Remove all 1 dimension
+            # Remove all 1 dimension and squash the function down to [0..1]
             # ( batch_size, num_steps ) or (batch_size)
-            self.output = tf.squeeze(output)
+            self.output = tf.sigmoid(tf.squeeze(output))
             
             print ("self.output.shape = %s after linear" % str(self.output.shape))
             
@@ -139,10 +139,17 @@ class EventProgressEstimator(object):
             self.loss = tf.losses.mean_squared_error(self._targets, self.output)
             
             if is_training:
-                self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
-            
-                self.train_op = self.optimizer.minimize(
-                    self.loss, global_step=tf.contrib.framework.get_global_step())
+                # optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+                
+                # self.train_op = optimizer.minimize(self.loss)
+
+                optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
+                tvars = tf.trainable_variables()
+                self.train_op = []
+                    
+                grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
+                                                  self.config.max_grad_norm)
+                self.train_op = optimizer.apply_gradients(zip(grads, tvars))
     
     def checkInputs(self, inputs):
         assert isinstance(inputs, np.ndarray)
@@ -253,9 +260,9 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
           (costs, cost_iters, costs / cost_iters))
     
 if __name__ == "__main__":
-    p = Project.load("slidearound_raw.proj")
+    p = Project.load("slidearound_p2.proj")
     
-    config = Raw_Config()
+    config = Config()
     
     
     with tf.Graph().as_default(), tf.Session() as session:
