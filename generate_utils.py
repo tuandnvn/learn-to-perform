@@ -92,7 +92,42 @@ def linear_progress_lbl_generator(session_data):
         
     return np.array(lbls)
 
-def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
+def linear_progress_lbl_generator_retreat(session_data, retreat_phase = 4):
+    """
+    Adding a retreat phase that allows smooth decrease of progress value
+    For example: if retreat_phase = 4, the value of event progress would reduce from 1 
+    to 0 through 1, 0.75, 0.5, 0.25, 0
+
+    Parameters:
+    -----------
+    session_data: 
+    each session is a dictionary
+    dict_keys(['session_events', 'session_name', 'session_objects', 'session_length'])
+    
+    Return:
+    -------
+    labels: [float] progress for each frame, from 0 to 1 based on session_events
+    """
+    sorted_events = sorted( session_data[SESSION_EVENTS], key = lambda event: event[START] )
+    
+    lbls = np.zeros(session_data[SESSION_LEN])
+    
+    for event in sorted_events:
+        prev_p = event[START]
+        next_p = event[END]
+        
+        lbls[prev_p:next_p+1] = np.arange(next_p - prev_p + 1, dtype=np.float32) / (next_p - prev_p)
+
+        # Sometimes next_p + retreat_phase + 1 is more than the length of session
+        q = len(lbls[next_p+1:next_p+retreat_phase+1])
+
+        lbls[next_p+1:next_p+retreat_phase+1] = np.arange(retreat_phase - 1, -1, -1, dtype=np.float32)[:q] / retreat_phase
+        
+    return np.array(lbls)
+
+
+def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step, 
+        linear_progress_lbl_func = linear_progress_lbl_generator):
     """
     A function to generate a pair of batch-data (x, y)
     
@@ -113,6 +148,8 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
     - n_input: Vector feature size
     - num_steps: A fix number of steps for each sample
     - hop_step: A fix number of frame offset btw two events
+    - linear_progress_lbl_func: a function that when you give it a session, it gives 
+    you a lbls list of length the same as the session
     
     Return:
     -------
@@ -138,7 +175,7 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step):
                
         correct_no_samples = ( len(feature_data) - num_steps ) // hop_step + 1
     
-        lbls = linear_progress_lbl_generator(session_data)
+        lbls = linear_progress_lbl_func(session_data)
         print (lbls.shape)
         
         for i in range(correct_no_samples):

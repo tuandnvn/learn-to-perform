@@ -288,12 +288,11 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
 
         session[SESSION_FEAT] = np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
         print ("Feature shape = " + str(session[SESSION_FEAT].shape))
+        return  session[SESSION_FEAT].shape[1]
     except ValueError as e:
         print (e)
         print ('Problem in data of length ' + str(len_data))
-        return []
-
-
+        return 0
 
 def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     """

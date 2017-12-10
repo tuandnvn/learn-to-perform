@@ -140,16 +140,17 @@ class EventProgressEstimator(object):
             
             if is_training:
                 # optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+                optimizer = tf.train.AdagradOptimizer(learning_rate=self.lr)
                 
-                # self.train_op = optimizer.minimize(self.loss)
+                self.train_op = optimizer.minimize(self.loss)
 
-                optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
-                tvars = tf.trainable_variables()
-                self.train_op = []
+                # optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
+                # tvars = tf.trainable_variables()
+                # self.train_op = []
                     
-                grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
-                                                  self.config.max_grad_norm)
-                self.train_op = optimizer.apply_gradients(zip(grads, tvars))
+                # grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
+                #                                   self.config.max_grad_norm)
+                # self.train_op = optimizer.apply_gradients(zip(grads, tvars))
     
     def checkInputs(self, inputs):
         assert isinstance(inputs, np.ndarray)

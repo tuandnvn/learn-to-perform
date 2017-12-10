@@ -82,12 +82,14 @@ class Project(object):
         for session in self.sessions:
             self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
 
-    def generate_data(self):
+    def generate_data(self, linear_progress_lbl_func = 
+           generate_utils.linear_progress_lbl_generator):
         # First step is to generate data with hop_step interpolation
         # rearranged_data = (samples, num_steps, data_point_size)
         # rearranged_lbls = (samples, num_steps)
         rearranged_data, rearranged_lbls = generate_utils.turn_to_intermediate_data(self, 
-            self.feature_size, self.config.num_steps, self.config.hop_step)
+            self.feature_size, self.config.num_steps, self.config.hop_step, 
+            linear_progress_lbl_func = linear_progress_lbl_func)
 
         # Generate training and testing data 
         self.training_data, self.training_lbl, self.testing_data, self.testing_lbl =\
@@ -114,26 +116,30 @@ if __name__ == "__main__":
     # print ('Load project ' + p_data.name)
     # p_data.load_data()
     # p_data.preprocess()
-    # p_data.save("slidearound_data_raw.proj")
+    # p_data.save("slidearound_p2.proj")
      
-    # p_data = ProjectData.load("slidearound_data_raw.proj")
-    # p = Project(p_data)
-    # p.standardize(feature_utils.marker_feature_extractor) 
+    p_data = ProjectData.load("slidearound_p2.proj")
+    p = Project(p_data)
+    p.standardize(feature_utils.qsr_feature_extractor) 
     # p.generate_data()
     # p.save("slidearound_raw.proj")
 
-    p = Project.load("slidearound_raw.proj")
+    # p = Project.load("slidearound_p2.proj")
+    p.generate_data(linear_progress_lbl_func = 
+           generate_utils.linear_progress_lbl_generator_retreat)
+    p.save("slidearound_p2.proj")
+
     print (p.training_data[0][0])
     print (p.training_lbl[0][0])
     
     print (p.training_data[0][1])
     print (p.training_lbl[0][1])
 
-    print (p.training_data.shape)
-    print (p.training_lbl.shape)
+    # print (p.training_data.shape)
+    # print (p.training_lbl.shape)
     
-    print (p.testing_data.shape)
-    print (p.testing_lbl.shape)
+    # print (p.testing_data.shape)
+    # print (p.testing_lbl.shape)
 
     # p_data = ProjectData.load("slidearound_data_raw.proj")
 
