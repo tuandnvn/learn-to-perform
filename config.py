@@ -23,8 +23,8 @@ class Config (object):
 	s2s = False
 	# Typical value for LSTM
 	keep_prob = 0.6
-	hidden_size = 100
-	num_layers = 2
+	hidden_size = 300
+	num_layers = 1
 	max_epoch = 10
 	max_max_epoch = 50
 	lr_decay = 0.97
