@@ -11,13 +11,13 @@ class Config (object):
 	num_steps = 20
 	n_input = 13
 	
-	hop_step = 2
+	hop_step = 1
 	
-	train_batch_size = 10
-	test_batch_size = 2
+	batch_size = 10
 	
 	train_percentage = 0.8
-	test_percentage = 0.2
+	validation_percentage = 0.1
+	test_percentage = 0.1
 	
 	# Progress learner hyper-parameters
 	s2s = False

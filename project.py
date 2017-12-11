@@ -92,7 +92,8 @@ class Project(object):
             linear_progress_lbl_func = linear_progress_lbl_func)
 
         # Generate training and testing data 
-        self.training_data, self.training_lbl, self.testing_data, self.testing_lbl =\
+        self.training_data, self.training_lbl, self.validation_data, self.validation_lbl,\
+         self.testing_data, self.testing_lbl =\
          generate_utils.generate_data(self.rearranged_data, self.rearranged_lbls, self.config)
 
     def save(self, file_path):
@@ -127,7 +128,7 @@ if __name__ == "__main__":
     # p = Project.load("slidearound_p2.proj")
     p.generate_data(linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator_retreat)
-    p.save("slidearound_p2.proj")
+    p.save("slidearound_hopstep_1.proj")
 
     # print (p.training_data[0][0])
     # print (p.training_lbl[0][0])

@@ -28,38 +28,43 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     training_data = []
     testing_data = []
 
-    train_batch_size = config.train_batch_size
-    test_batch_size = config.test_batch_size
+    batch_size = config.batch_size
     
     train_percentage = config.train_percentage
-    test_percentage = config.test_percentage
+    validation_percentage = config.validation_percentage    
     
     random_indices = np.arange(samples)
     np.random.shuffle(random_indices)
     
-    split = int(train_percentage * samples)
+    split_1 = int(train_percentage * samples)
+    split_2 = int((train_percentage + validation_percentage) * samples)
+
     
-    training_data = rearranged_data[random_indices[:split]]
-    training_lbl = rearranged_lbls[random_indices[:split]]
+    training_data = rearranged_data[random_indices[:split_1]]
+    training_lbl = rearranged_lbls[random_indices[:split_1]]
+
+    validation_data = rearranged_data[random_indices[split_1:split_2]]
+    validation_lbl = rearranged_lbls[random_indices[split_1:split_2]]
     
-    testing_data = rearranged_data[random_indices[split:]]
-    testing_lbl = rearranged_lbls[random_indices[split:]]
-    
-    train_epoch_size = int(split // train_batch_size)
-    test_epoch_size = int(test_percentage * samples // test_batch_size)
-    
-    training_data = training_data[:train_epoch_size * train_batch_size].\
-                    reshape((train_epoch_size, train_batch_size, num_steps, n_input))
-    training_lbl = training_lbl[:train_epoch_size * train_batch_size].\
-                    reshape((train_epoch_size, train_batch_size, num_steps))
-    
-    testing_data = testing_data[:test_epoch_size * test_batch_size].\
-                    reshape((test_epoch_size, test_batch_size, num_steps, n_input))
-    testing_lbl = testing_lbl[:test_epoch_size * test_batch_size].\
-                    reshape((test_epoch_size, test_batch_size, num_steps))
+    testing_data = rearranged_data[random_indices[split_2:]]
+    testing_lbl = rearranged_lbls[random_indices[split_2:]]
+
+    training_data, training_lbl = get_data_lbl(training_data, training_lbl, batch_size , num_steps, n_input )
+    validation_data, validation_lbl = get_data_lbl(validation_data, validation_lbl, batch_size , num_steps, n_input )
+    testing_data, testing_lbl = get_data_lbl(testing_data, testing_lbl, batch_size , num_steps, n_input )
                     
-    return (training_data, training_lbl, testing_data, testing_lbl)
-                    
+    return (training_data, training_lbl, validation_data, validation_lbl, testing_data, testing_lbl)
+
+def get_data_lbl( data , lbl, batch_size , num_steps, n_input ) :
+    epoch_size = int(len(data) // batch_size)
+
+    data = data[:epoch_size * batch_size].\
+                    reshape((epoch_size, batch_size, num_steps, n_input))
+    lbl = lbl[:epoch_size * batch_size].\
+                    reshape((epoch_size, batch_size, num_steps))
+
+    return (data, lbl)
+
 def gothrough(data, lbl):
     for i in range(np.shape(data)[0]):
         x = data[i]
@@ -164,7 +169,7 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step,
         samples += correct_no_samples
         
     print('Total number of samples ' + str(samples))
-    
+
     # At any time, 
     interpolated_data = np.zeros([samples * num_steps, n_input], dtype=np.float32)
     interpolated_lbls = np.zeros([samples * num_steps], dtype=np.float32)

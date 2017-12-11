@@ -59,9 +59,9 @@ class EventProgressEstimator(object):
             # multi_lstm_cell.state_size = config.num_layers * 2 * size
             # ( batch_size x cell.state_size )
             if is_training:
-                self.initial_state = multi_lstm_cell.zero_state(config.train_batch_size, tf.float32)
+                self.initial_state = multi_lstm_cell.zero_state(config.batch_size, tf.float32)
             else:
-                self.initial_state = multi_lstm_cell.zero_state(config.test_batch_size, tf.float32)
+                self.initial_state = multi_lstm_cell.zero_state(config.batch_size, tf.float32)
                 
             # Initial states of the cells
             # cell.state_size = config.num_layers * 2 * size
@@ -275,11 +275,15 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load("slidearound_p2.proj")
+    p = Project.load("slidearound_hopstep_1.proj")
     
     config = Config()
     
     np.random.seed()
+
+    print ('p.training_data.shape = ' + str(p.training_data.shape))
+    print ('p.validation_data.shape = ' + str(p.validation_data.shape))
+    print ('p.testing_data.shape = ' + str(p.testing_data.shape))
 
     with tf.Graph().as_default(), tf.Session() as session:
         with tf.variable_scope("model") as scope:
@@ -315,7 +319,7 @@ if __name__ == "__main__":
         
             "Validating"
             # [:,:,:,:8]
-            validate_loss = run_epoch(mtest, p.testing_data, p.testing_lbl, training = False)
+            validate_loss = run_epoch(mtest, p.validation_data, p.validation_lbl, training = False)
 
             train_losses.append(train_loss)
             validate_losses.append(validate_loss)
@@ -323,4 +327,5 @@ if __name__ == "__main__":
         print (repr(train_losses))
         print (repr(validate_losses))
 
+        print ('------- TEST -------')
         run_epoch(mtest, p.testing_data, p.testing_lbl, training = False, verbose = True)
