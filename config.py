@@ -11,7 +11,7 @@ class Config (object):
 	num_steps = 20
 	n_input = 13
 	
-	hop_step = 5
+	hop_step = 2
 	
 	train_batch_size = 10
 	test_batch_size = 2
@@ -22,20 +22,19 @@ class Config (object):
 	# Progress learner hyper-parameters
 	s2s = False
 	# Typical value for LSTM
-	keep_prob = 0.5
-	hidden_size = 400
-	num_layers = 1
-	
+	keep_prob = 0.6
+	hidden_size = 100
+	num_layers = 2
 	max_epoch = 10
-	max_max_epoch = 200
-	lr_decay = 0.965
-	learning_rate = 0.1
+	max_max_epoch = 50
+	lr_decay = 0.97
+	learning_rate = 0.005
 	max_grad_norm = 5
-
-	optimizer = 'sgd'
+	epoch_shuffle = False
+	optimizer = 'adam'
 
 	# Whether we shuffle training data in each epoch
-	epoch_shuffle = True
+	epoch_shuffle = False
 
 
 class Raw_Config (Config):

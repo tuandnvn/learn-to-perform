@@ -14,8 +14,6 @@ class EventProgressEstimatorKeras(object):
 
         self.model = Sequential()
 
-        
-
         # Additional layers
         for layer in range(0, config.num_layers):
             # s2s for lower layers
@@ -33,16 +31,19 @@ class EventProgressEstimatorKeras(object):
                 self.model.add(LSTM(self.size, 
                     dropout=do, return_sequences = rs))
 
-        self.model.add(Dense(1))
-        self.model.add(Activation('sigmoid'))
+        self.model.add(Dense(1, activation='sigmoid'))
 
         # Using Mean Square Error for loss
         # Using Mean Absolute Error for metrics
-        if config.optimizer == 'sgd':
-            optimizer = SGD(lr = self.config.learning_rate, decay = self.config.lr_decay)
+        # Notice that decay in keras is the part that got discounted
+        decay = 1 - self.config.lr_decay
 
-        elif config.optimizer == 'sgd':
-            optimizer = Adam(lr = self.config.learning_rate, decay = self.config.lr_decay)
+        if config.optimizer == 'sgd':
+            optimizer = SGD(lr = self.config.learning_rate, decay = decay)
+
+        elif config.optimizer == 'adam':
+            optimizer = Adam(lr = self.config.learning_rate, decay = decay)
+            # optimizer = Adam(lr = self.config.learning_rate, decay = self.config.lr_decay)
         
 
         self.model.compile(optimizer=optimizer, loss='mse', metrics = ['mae'])
@@ -98,9 +99,9 @@ if __name__ == '__main__':
     print (X.shape)
     print (y.shape)
 
-    # m = EventProgressEstimatorKeras(config = Config())
+    m = EventProgressEstimatorKeras(config = Config())
 
-    # history = m.update(X, y)
+    history = m.update(X, y)
 
-    # print(history.history['loss'])
-    # print(history.history['val_loss'])
+    print(history.history['loss'])
+    print(history.history['val_loss'])

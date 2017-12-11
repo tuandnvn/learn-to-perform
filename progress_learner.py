@@ -139,18 +139,30 @@ class EventProgressEstimator(object):
             self.loss = tf.losses.mean_squared_error(self._targets, self.output)
             
             if is_training:
-                # optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
-                optimizer = tf.train.AdagradOptimizer(learning_rate=self.lr)
+                # 
+                # optimizer = tf.train.AdagradOptimizer(learning_rate=self.lr)
                 
-                self.train_op = optimizer.minimize(self.loss)
+                # self.train_op = optimizer.minimize(self.loss)
 
-                # optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
-                # tvars = tf.trainable_variables()
-                # self.train_op = []
+                if self.config.optimizer == 'sgd':
+                    optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
+                    tvars = tf.trainable_variables()
+                    self.train_op = []
+                        
+                    grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
+                                                      self.config.max_grad_norm)
+                    self.train_op = optimizer.apply_gradients(zip(grads, tvars))
+
+                elif self.config.optimizer == 'adam':
+                    optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
                     
-                # grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, tvars),
-                #                                   self.config.max_grad_norm)
-                # self.train_op = optimizer.apply_gradients(zip(grads, tvars))
+                    self.train_op = optimizer.minimize(self.loss)
+
+                elif self.config.optimizer == 'adagrad':
+                    optimizer = tf.train.AdagradOptimizer(learning_rate=self.lr)
+                    
+                    self.train_op = optimizer.minimize(self.loss)
+                
     
     def checkInputs(self, inputs):
         assert isinstance(inputs, np.ndarray)
@@ -232,10 +244,10 @@ class EventProgressEstimator(object):
         sess = sess or tf.get_default_session()
 
 # LSTM cell states        
-state = None
+# state = None
 
 def run_epoch(m, data, lbl, verbose=False, training = True):
-    global state
+    state = None
     costs = 0
     cost_iters = 0
     
@@ -259,13 +271,16 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
         
     print("costs %.3f, cost_iters %d, cost %.3f" % 
           (costs, cost_iters, costs / cost_iters))
+
+    return costs / cost_iters
     
 if __name__ == "__main__":
     p = Project.load("slidearound_p2.proj")
     
     config = Config()
     
-    
+    np.random.seed()
+
     with tf.Graph().as_default(), tf.Session() as session:
         with tf.variable_scope("model") as scope:
             print('-------- Setup m model ---------')
@@ -280,6 +295,9 @@ if __name__ == "__main__":
         """
         Training first
         """
+        train_losses = []
+        validate_losses = []
+
         for i in range(config.max_max_epoch):
             print('-------------------------------')
             start_time = time.time()
@@ -288,9 +306,21 @@ if __name__ == "__main__":
 
             print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
             
-            random_indices = np.arange(samples)
-            np.random.shuffle(random_indices)    
-            run_epoch(m, p.training_data, p.training_lbl, state, training = True)
+            indices = np.arange(p.training_data.shape[0])
+
+            if config.epoch_shuffle:
+                np.random.shuffle(indices)
+
+            train_loss = run_epoch(m, p.training_data[indices], p.training_lbl[indices], training = True)
         
-        "Testing"
-        run_epoch(mtest, p.testing_data, p.testing_lbl, training = False, verbose= True)
+            "Validating"
+            # [:,:,:,:8]
+            validate_loss = run_epoch(mtest, p.testing_data, p.testing_lbl, training = False)
+
+            train_losses.append(train_loss)
+            validate_losses.append(validate_loss)
+
+        print (repr(train_losses))
+        print (repr(validate_losses))
+
+        run_epoch(mtest, p.testing_data, p.testing_lbl, training = False, verbose = True)

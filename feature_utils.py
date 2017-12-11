@@ -226,7 +226,7 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
     # of features = 13
     
     8 features here
-    (o1.position, o2.position) - cardir, argd, cardir_diff, argd_diff, qtccs 4 features
+    (o1.position, o2.position) - cardir, cardir_diff, argd_diff, qtccs 4 features
 
     -- other features
     
