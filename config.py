@@ -23,14 +23,20 @@ class Config (object):
 	s2s = False
 	# Typical value for LSTM
 	keep_prob = 0.5
-	hidden_size = 200
-	num_layers = 3
+	hidden_size = 400
+	num_layers = 1
 	
 	max_epoch = 10
-	max_max_epoch = 400
-	lr_decay = 0.97
+	max_max_epoch = 200
+	lr_decay = 0.965
 	learning_rate = 0.1
 	max_grad_norm = 5
+
+	optimizer = 'sgd'
+
+	# Whether we shuffle training data in each epoch
+	epoch_shuffle = True
+
 
 class Raw_Config (Config):
 	n_input = 40

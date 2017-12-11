@@ -16,7 +16,7 @@ class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training, name=None, config = Raw_Config()):
+    def __init__(self, is_training, name=None, config = Config()):
         self.config = config
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
@@ -287,7 +287,9 @@ if __name__ == "__main__":
             m.assign_lr(config.learning_rate * lr_decay)
 
             print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
-                
+            
+            random_indices = np.arange(samples)
+            np.random.shuffle(random_indices)    
             run_epoch(m, p.training_data, p.training_lbl, state, training = True)
         
         "Testing"
