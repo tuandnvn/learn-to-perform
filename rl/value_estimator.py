@@ -35,27 +35,27 @@ class PolicyEstimator():
     follows the formula
     """
     
-    def __init__(self, learning_rate=0.01, scope="policy_estimator", config):
+    def __init__(self, config, learning_rate=0.01, scope="policy_estimator"):
         """
         The code to declare your tensorflow graph comes here
         """
 
         # This state dimension would probably be 12
         # location + rotation of two most objects
-		state_dimension = config.state.dimension
+        state_dimension = config.state_dimension
 
-		# This would be 3. 2 for locations, 1 for rotation
-		action_dimension =  config.action.dimension
+        # This would be 3. 2 for locations, 1 for rotation
+        action_dimension =  config.action_dimension
 
-		# sigma_dimension is simplified to 2
-		# in a full model, this value would be 9
-		# taking in all covariances between all variables
-		# In this model, we simplify that to a diagonal matrix
-		# which means we actually generate each value independently
-		# Covariance matrix  = [ sigma_1, 0, 0 ]
-		#					   [ 0, sigma_2, 0 ]
-		# 					   [ 0, 0, sigma_3 ]
-		sigma_dimension = config.action.dimension
+        # sigma_dimension is simplified to 2
+        # in a full model, this value would be 9
+        # taking in all covariances between all variables
+        # In this model, we simplify that to a diagonal matrix
+        # which means we actually generate each value independently
+        # Covariance matrix  = [ sigma_1, 0, 0 ]
+        #                      [ 0, sigma_2, 0 ]
+        #                      [ 0, 0, sigma_3 ]
+        sigma_dimension = config.action_dimension
 
         with tf.variable_scope(scope): 
             "Declare all placeholders"
@@ -97,9 +97,9 @@ class PolicyEstimator():
                 weights_initializer=tf.zeros_initializer))
 
             # Using a mvn to predict action probability
-            mvn = tf.distributions.Normal(
-			    loc=self.mu_layer,
-			    scale=self.sigma_layer)
+            mvn = tf.contrib.distributions.Normal(
+                loc=self.mu_layer,
+                scale=self.sigma_layer)
 
             # (action_dimension)
             self.picked_action_prob = mvn.prob(self.action) 
@@ -149,10 +149,10 @@ class ValueEstimator():
     Just use a very simple linear fully connected layer between state and output
     """
     
-    def __init__(self, learning_rate=0.1, scope="value_estimator", config):
+    def __init__(self, config, learning_rate=0.1, scope="value_estimator"):
         # This state dimension would probably be 12
         # location + rotation of two most objects
-		state_dimension = config.state.dimension
+        state_dimension = config.state.dimension
 
         with tf.variable_scope(scope): 
             # No batch

@@ -1,6 +1,7 @@
 import numpy as np
 
 class Config (object):
+	# For reinforce learnign
 	playground_x = [-1,-1, 0]
 	playground_dim = [2, 2, np.pi/2]
 
@@ -11,10 +12,14 @@ class Config (object):
 	num_steps = 20
 	n_input = 13
 	
+	action_dimension = state_dimension = 3
+
+	num_episodes = 1000
+	discount_factor = 1
+
+	# Event progress learner parameters
 	hop_step = 1
-	
 	batch_size = 10
-	
 	train_percentage = 0.8
 	validation_percentage = 0.1
 	test_percentage = 0.1

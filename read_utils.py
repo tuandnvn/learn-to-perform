@@ -9,8 +9,8 @@ import os
 import numpy as np
 import sys  
 
-reload(sys)  
-sys.setdefaultencoding('utf8')
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
 # from nltk.stem.porter import PorterStemmer
 
 from utils import DATA_DIR

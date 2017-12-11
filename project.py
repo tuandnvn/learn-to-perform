@@ -105,7 +105,7 @@ class Project(object):
     @staticmethod
     def load(file_path):
         with open(file_path, 'rb') as f: 
-            return pickle.load(f)
+            return pickle.load(f, encoding='latin-1')
         print('----Done loading project---') 
 
     
