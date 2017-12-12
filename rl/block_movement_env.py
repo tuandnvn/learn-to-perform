@@ -27,8 +27,8 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-from importlib import reload
-reload (simulator2d)
+#from importlib import reload
+#reload (simulator2d)
 # reload(feature_utils)
 class BlockMovementEnv(gym.Env):
     """
