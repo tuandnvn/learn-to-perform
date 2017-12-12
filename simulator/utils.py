@@ -24,6 +24,9 @@ class Transform2D (object):
 		"""
 		return np.concatenate([np.reshape(self.position, [2]), [self.rotation]])
 
+	def __str__(self):
+		return str(self.get_feat())
+
 	def __add__(self, another_transform):
 		return Transform2D( self.position + another_transform.position, self.rotation + another_transform.rotation,
 		        self.scale + another_transform.scale )
@@ -62,6 +65,11 @@ class Geometry2D (object):
 	def clone(self):
 		return Geometry2D(transform = self.transform.clone(), markers = np.copy(self.markers))
 
+	def __str__(self):
+		return 'Geometry2D :' + ', '.join(str(th) for th in self.get_markers())
+
+	def __repr__(self):
+		return str(self)
 
 class Cube2D (Geometry2D):
 	'''
@@ -78,8 +86,14 @@ class Cube2D (Geometry2D):
 	def __init__(self, transform):
 		Geometry2D.__init__(self, transform, markers = Cube2D.markers)
 
+	def clone(self):
+		return Cube2D(transform = self.transform.clone())
+
 	def __str__(self):
-		return 'Cube :' + ', '.join(str(th) for th in self.get_markers())
+		return 'Cube : ' + str(self.transform)
+
+	def __repr__(self):
+		return str(self)
 
 class Polygon2D (Geometry2D):
 
@@ -96,6 +110,9 @@ class Polygon2D (Geometry2D):
 
 	def __str__(self):
 		return 'Polygon :' + ', '.join(str(th) for th in self.get_markers())
+
+	def __repr__(self):
+		return str(self)
 
 class Command ( object ):
 	#-------------------------------------------------------------------
