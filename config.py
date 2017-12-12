@@ -15,7 +15,7 @@ class Config (object):
 	state_dimension = 12
 	action_dimension = 3
 
-	num_episodes = 40
+	num_episodes = 1000
 	discount_factor = 1
 
 	# Event progress learner parameters

@@ -1,5 +1,6 @@
 import sys
-
+    
+import tensorflow as tf
 import numpy as np
 import collections
 import itertools
