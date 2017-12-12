@@ -82,7 +82,7 @@ class EventProgressEstimator(object):
                 
             inputs = tf.reshape(inputs, (-1, num_steps, size)) # (batch_size, num_steps, size)
             
-            print ("self.inputs.shape = %s " % str(inputs.shape))
+            print ("self.inputs.shape = %s " % str(inputs.shape) + " after linear layer")
             
             
                          

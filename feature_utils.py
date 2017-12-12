@@ -14,11 +14,10 @@ import bisect
 
 from feature.project_table import project_markers, estimate_cube_2d
 from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION, SESSION_OBJ_2D, SESSION_FEAT
-from session_utils import calculate_distance, calculate_distance_btw
+import session_utils
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
 from qsrlib_io.world_trace import Object_State, World_Trace
-
 
 cdid = dict( (u, i) for (i, u) in enumerate( ['n', 'nw', 'w', 'sw', 's', 'se', 'e', 'ne', 'eq'] ))
 mosd = dict( (u, i) for (i, u) in enumerate( ['s', 'm'] ))
@@ -104,8 +103,8 @@ def get_most_active_objects_interval(object_data, object_names, start, end):
         one_object_data = object_data[object_name]
 
         
-        # Calculate travelling distance of this object for 5 frames
-        d = calculate_distance( one_object_data, 1, start, end)
+        #  travelling distance of this object for 5 frames
+        d = session_utils.calculate_distance( one_object_data, 1, start, end)
 
         d_s.append((object_name, d))
 
@@ -118,7 +117,7 @@ def get_most_active_objects_interval(object_data, object_names, start, end):
     # For the second object, it should be the closest object to the moving object
     d_2_s = []
     for name, _ in d_s[1:]:
-        d = calculate_distance_btw(object_data[object_1_name], object_data[name], 1, start, end)
+        d = session_utils.calculate_distance_btw(object_data[object_1_name], object_data[name], 1, start, end)
         d_2_s.append((name, d))
 
 

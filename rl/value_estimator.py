@@ -70,7 +70,7 @@ class PolicyEstimator():
             self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
             
             "Placeholder for Monte Carlo action"
-            self.action = tf.placeholder(shape=[action_dimension], name="action", dtype = tf.int32)
+            self.action = tf.placeholder(shape=[action_dimension], name="action", dtype = tf.float32)
             
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
@@ -107,7 +107,7 @@ class PolicyEstimator():
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
             # so we minimize the negative log-prob function instead
-            self.loss = -tf.sum(tf.log(self.picked_action_prob)) * self.target
+            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target
             
             self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
             
@@ -149,22 +149,23 @@ class ValueEstimator():
     Just use a very simple linear fully connected layer between state and output
     """
     
-    def __init__(self, config, learning_rate=0.1, scope="value_estimator"):
+    def __init__(self, config, learning_rate=0.01, scope="value_estimator"):
         # This state dimension would probably be 12
         # location + rotation of two most objects
-        state_dimension = config.state.dimension
+        state_dimension = config.state_dimension
 
         with tf.variable_scope(scope): 
             # No batch
-            self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.int32)
+            self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
             
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
             
+            "Using a sigmoid output activation, because it predicts a value between 0 and 1"
             self.output_layer = tf.contrib.layers.fully_connected(
                 tf.expand_dims(self.state,0),
                 1,
-                activation_fn=tf.nn.relu,
+                activation_fn=tf.nn.sigmoid,
                 weights_initializer=tf.zeros_initializer)
             
             self.value = tf.squeeze(self.output_layer)

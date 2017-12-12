@@ -3,33 +3,57 @@ import gym
 from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
+import matplotlib
+from matplotlib import pyplot as plt
+import pylab as pl
+from matplotlib import collections as mc
+
+from . import uniform_env_space
+from simulator.simulator2d import Environment
 from simulator.utils import Cube2D, Transform2D, Command
-from feature_utils import qsr_feature_extractor, get_location_objects_most_active, get_most_active_objects_interval
+import feature_utils
 from utils import SESSION_LEN, SESSION_OBJ_2D, SESSION_FEAT
+
+def make_lines(shape):
+    lines = []
+    for i in range(len(shape)):
+        j = (i + 1) % len(shape)
+        lines.append( [ shape[i], shape[j] ] )
+    
+    return lines
+
+colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1), 
+          (0.5, 0.5, 0, 1), (0,0.5, 0.5,1), (0.5, 0, 0.5,1),
+         (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
+         (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
 class BlockMovementEnv(gym.Env):
     """
-    This class encapsulate an environment and allow 
+    This class encapsulate an environment, allowing checking constraints of the environment
+    
     """
 
     reward_range = (0, 1)
     metadata = {'render.modes': ['human']}
     """
     """
-    def __init__(self, config, speed, name=None, progress_estimator = None):
+    def __init__(self, config, speed, name=None, 
+        progress_estimator = None, graph_size = 8, session = None):
         """
         Parameters:
         - name: the name of the event action to be learned
         - progress_estimator: is a function that produces
         a value between 0 and 1 (event progress function)
-        
+        - config: A config object 
+        - graph_size: How big you want to render the environment
+        - session: (Optional) a tensorflow session
         
         **Note**
         progress_estimator:
         event progress function will be defined based on the event type 
-        currently learned
+        currently learned. progress_estimator would be an LSTM
         
-        progress_estimator would be an LSTM
+        
         
         
         """
@@ -46,6 +70,7 @@ class BlockMovementEnv(gym.Env):
         - progress_threshold: condition for an episode to end
         """
         self.e = Environment()
+        self.config = config
         self.progress_estimator = progress_estimator
         self.n_objects = config.n_objects
         self.playground_x = config.playground_x
@@ -54,17 +79,19 @@ class BlockMovementEnv(gym.Env):
         self.block_size = config.block_size
         self.progress_threshold = config.progress_threshold
         self.num_steps = config.num_steps
+        self.graph_size = graph_size
+        self.speed = speed
+        self.session = session
 
         # Action space is dynamically created
-        # The action space would be a combination of a 
         self.action_space = None
         # observation space is a subset of multiple object spaces
         self.observation_space = None 
         
         self._seed()
         
-        self.object_space = Uniform(p = playground_x, 
-                                         dimension = playground_dim, 
+        self.object_space = uniform_env_space.Uniform(p = self.playground_x, 
+                                         dimension = self.playground_dim, 
                                          randomizer = self.np_random)
         
         # frame need to be subtracted from previous segment of movement
@@ -99,10 +126,27 @@ class BlockMovementEnv(gym.Env):
         prev_transform = self.e.objects[object_index].transform
 
         if self.e.act(object_index, Command(position, rotation)):
+            print ('Action accepted')
             self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
-            self.action_storage.append( [(object_index, prev_transform, cur_transform)] )
+            self.action_storage.append( (object_index, prev_transform, cur_transform) )
         
+        
+        observation, progress = self.get_observation_and_progress()
+
+        if progress > self.progress_threshold:
+            # Finish action
+            done = True
+            reward = progress
+            info = {}
+        else:
+            done = False
+            reward = 0
+            info = {}
+
+        return (observation, reward, done, info)
+
+    def get_observation_and_progress(self):
         # captures the last self.num_steps + 1 frames
         # last_num_steps_frames is a SESSION
         last_num_steps_frames = self.capture_last(self.num_steps + 1)
@@ -115,21 +159,14 @@ class BlockMovementEnv(gym.Env):
         # so we just clip down a little bit
         inputs = self._get_features(last_num_steps_frames)[-self.num_steps:]
 
-        # inputs: np.array (1, self.num_steps, n_input)
-        inputs = np.expand_dims(inputs, axis = 0)
-        current_progress = self.progress_estimator.predict(inputs)
+        # inputs: np.array (config.batch_size, self.num_steps, n_input)
+        inputs = np.repeat(np.expand_dims(inputs, axis = 0), self.config.batch_size, axis = 0)
+        current_progress = self.progress_estimator.predict(inputs, sess = self.session)
 
-        if current_progress > self.progress_threshold:
-            # Finish action
-            done = True
-            reward = current_progress
-            info = {}
-        else:
-            done = False
-            reward = 0
-            info = {}
+        progress = current_progress[0]
+        print ('progress = %.2f' % progress)
 
-        return (observation, reward, done, info)
+        return (observation, progress)
 
     def capture_last(self, frames):
         """
@@ -152,9 +189,10 @@ class BlockMovementEnv(gym.Env):
         session[SESSION_LEN] = frames
         session[SESSION_OBJ_2D] = {}
 
-        for object_index in range(self.e.objects):
+        for object_index in range(len(self.e.objects)):
             session[SESSION_OBJ_2D][object_index] = []
 
+        # must < self.speed
         left_over_distance = 0
 
         captures = {}
@@ -191,7 +229,16 @@ class BlockMovementEnv(gym.Env):
                     if i != object_index:
                         captures[i].append(captures[i][-1])
 
+                pos += self.speed
                 frame_counter += 1
+
+            # We have enough frames, don't need to trace back anymore
+            if frame_counter >= frames:
+                break
+            else:
+                # pos >= path_distance
+                # recalculate left_over_distance for next action
+                left_over_distance = pos - path_distance
 
         # back to the beginning, just interpolate the last frame
         if frame_counter < frames:
@@ -209,18 +256,22 @@ class BlockMovementEnv(gym.Env):
     def _get_observation(self, session):
         """
         Observation is calculated from the last positions (last two frames) of most salient objects
-
+        
+        # just return position and rotation
         """
         object_data = session[SESSION_OBJ_2D]
-        object_1_name, object_2_name = get_most_active_objects_interval(object_data, object_data.keys(), 0, session[SESSION_LEN])
+        sess_len = session[SESSION_LEN]
+
+        object_1_name, object_2_name = feature_utils.get_most_active_objects_interval(object_data, object_data.keys(), 0, sess_len)
 
         features = []
 
         for name in [object_1_name, object_2_name]:
             for frame in [-2, -1]:
-                features.append(object_data[name][frame].get_feat())
+                object_data[name][frame].transform.position
+                features.append(object_data[name][frame].transform.get_feat())
 
-        return np.concatenate( features )
+        return np.concatenate( features ).flatten()
 
     def _get_features(self, session):
         """
@@ -232,12 +283,16 @@ class BlockMovementEnv(gym.Env):
 
         Returns:
         --------
+            session[SESSION_FEAT] : np.array (# frames, # features)
         """
-        qsr_feature_extractor( session, get_location_objects = get_location_objects_most_active )
+        feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 
         return session[SESSION_FEAT]
     
     def _reset(self):
+        self.e = Environment()
+        self.action_storage = []
+
         # states would be a list of location/orientation for block
         # sampled from the observation space
         for i in range(self.n_objects):
@@ -263,8 +318,33 @@ class BlockMovementEnv(gym.Env):
             
         self.lastaction=None
 
+        last_frames = self.capture_last(frames = 2)
+
         # Set the first observation
-        observation = self._get_observation()
+        observation = self._get_observation(last_frames)
+
+        return observation
+
+    def default(self):
+        """
+        This reset the environment to a default testing state where
+        locations of objects are predefined
+        """
+        self.e = Environment()
+        self.action_storage = []
+        scale = self.block_size / 2
+
+        o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
+        self.e.add_object(o)
+        o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
+        self.e.add_object(o)
+
+        self.lastaction=None
+
+        last_frames = self.capture_last(frames = 2)
+
+        # Set the first observation
+        observation = self._get_observation(last_frames)
 
         return observation
 
@@ -273,6 +353,7 @@ class BlockMovementEnv(gym.Env):
             return
         
         fig, ax = plt.subplots()
+        fig.set_size_inches(self.graph_size, self.graph_size)
         ax.set_xticks(np.arange(self.playground_x[0], 
                                 self.playground_x[0] + self.playground_dim[0], 0.1))
         ax.set_yticks(np.arange(self.playground_x[1], 
@@ -281,19 +362,14 @@ class BlockMovementEnv(gym.Env):
                      self.playground_x[0] + self.playground_dim[0]])
         ax.set_ylim([self.playground_x[1], 
                      self.playground_x[1] + self.playground_dim[1]])
-        fig.set_size_inches(20, 12)
         
-        for i in range(self.n_objects):
-            # Obj is action position and rotation of object
-            obj = self.e.objects[i]
-            
-            shape = obj.get_markers()
-            
-            lines = make_lines(shape)
-            lc = mc.LineCollection(lines, colors=colors[i], linewidths=2)
-            ax.add_collection(lc)
+        lc = mc.PolyCollection([self.e.objects[i].get_markers() for i in range(self.n_objects)], 
+                               edgecolors=[colors[i] for i in range(self.n_objects)], 
+                               facecolors=[colors[i] for i in range(self.n_objects)], linewidths=[2,2])
+
+        ax.add_collection(lc)
         
-        ax.autoscale()
+        # ax.autoscale()
         ax.margins(0.1)
 
         plt.show()

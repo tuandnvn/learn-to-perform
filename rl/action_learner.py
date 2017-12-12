@@ -1,5 +1,8 @@
-from .block_movement_env import BlockMovementEnv
+from . import block_movement_env as bme
 import plotting
+import numpy as np
+import collections
+import itertools
 
 class ActionLearner(object):
 	"""
@@ -44,7 +47,7 @@ class ActionLearner(object):
 		self.value_estimator = value_estimator
 
 		# This can be created on fly because it is just a simple environment
-		self.env = BlockMovementEnv(None, n_objects = self.config.n_objects, 
+		self.env = bme.BlockMovementEnv(config, project.speed, project.name, 
 				progress_estimator = self.progress_estimator)
 
 

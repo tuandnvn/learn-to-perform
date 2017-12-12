@@ -12,7 +12,8 @@ class Config (object):
 	num_steps = 20
 	n_input = 13
 	
-	action_dimension = state_dimension = 3
+	state_dimension = 12
+	action_dimension = 3
 
 	num_episodes = 1000
 	discount_factor = 1
