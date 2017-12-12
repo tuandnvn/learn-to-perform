@@ -359,7 +359,7 @@ class Environment (object):
 		# 	boundary.append(sorted_points[i])
 
 		# convex_hull = []
-		convex_hull = ConvexHull(points)
+		convex_hull = ConvexHull([t for t in points if all(~np.isnan(t))])
 		return Polygon2D(markers = points[convex_hull.vertices])
 
 	def act(self, obj_index, command):

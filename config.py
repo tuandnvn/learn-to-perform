@@ -7,7 +7,7 @@ class Config (object):
 
 	n_objects = 2 #
 	block_size = 0.15
-	progress_threshold = 0.8
+	progress_threshold = 0.6
 
 	num_steps = 20
 	n_input = 13
@@ -15,7 +15,7 @@ class Config (object):
 	state_dimension = 12
 	action_dimension = 3
 
-	num_episodes = 1000
+	num_episodes = 500
 	discount_factor = 1
 
 	# Event progress learner parameters

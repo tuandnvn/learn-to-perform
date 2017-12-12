@@ -185,7 +185,7 @@ def marker_feature_extractor ( session, get_location_objects = get_location_obje
     session[SESSION_FEAT] = np.concatenate([object_1_markers, object_1_markers_diff, 
         object_2_markers, object_2_markers_diff, diff], axis=1)
 
-    print ("Feature shape = " + str(session[SESSION_FEAT].shape))
+    # print ("Feature shape = " + str(session[SESSION_FEAT].shape))
 
     return  session[SESSION_FEAT].shape[1]
 
@@ -264,34 +264,30 @@ def qsr_feature_extractor ( session, get_location_objects = get_location_objects
 
     # Number of features that you calculate the difference between two consecutive frames
     diff_feature = 2
-    try:
-        # pretty_print_world_qsr_trace(['cardir', 'mos', 'argd', 'qtccs'], qsrlib_response_message)
-        qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
-        # (#frame, 8)
-        qsr_feature = _turn_response_to_features([('o1,o2')], qsrlib_response_message, diff_feature)
+    # pretty_print_world_qsr_trace(['cardir', 'mos', 'argd', 'qtccs'], qsrlib_response_message)
+    qsrlib_response_message = qsrlib.request_qsrs(req_msg=qsrlib_request_message)
 
-        # rotation features
-        quantized_r_1 = np.array([object_1[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
-        quantized_r_2 = np.array([object_2[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
-        quantized_diff = quantized_r_1 - quantized_r_2
-        diff_quantized_r_1 = np.pad(np.ediff1d(quantized_r_1), (1,0), 'constant', constant_values = (0,))
-        diff_quantized_r_2 = np.pad(np.ediff1d(quantized_r_2), (1,0), 'constant', constant_values = (0,))
+    # (#frame, 8)
+    qsr_feature = _turn_response_to_features([('o1,o2')], qsrlib_response_message, diff_feature)
 
-        # column forms
-        quantized_r_1.shape = (session_len, 1)
-        quantized_r_2.shape = (session_len, 1)
-        quantized_diff.shape = (session_len, 1)
-        diff_quantized_r_1.shape = (session_len, 1)
-        diff_quantized_r_2.shape = (session_len, 1)
+    # rotation features
+    quantized_r_1 = np.array([object_1[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+    quantized_r_2 = np.array([object_2[i].transform.rotation // ROTATION_QUANTIZATION for i in range(session_len)])
+    quantized_diff = quantized_r_1 - quantized_r_2
+    diff_quantized_r_1 = np.pad(np.ediff1d(quantized_r_1), (1,0), 'constant', constant_values = (0,))
+    diff_quantized_r_2 = np.pad(np.ediff1d(quantized_r_2), (1,0), 'constant', constant_values = (0,))
 
-        session[SESSION_FEAT] = np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
-        print ("Feature shape = " + str(session[SESSION_FEAT].shape))
-        return  session[SESSION_FEAT].shape[1]
-    except ValueError as e:
-        print (e)
-        print ('Problem in data of length ' + str(len_data))
-        return 0
+    # column forms
+    quantized_r_1.shape = (session_len, 1)
+    quantized_r_2.shape = (session_len, 1)
+    quantized_diff.shape = (session_len, 1)
+    diff_quantized_r_1.shape = (session_len, 1)
+    diff_quantized_r_2.shape = (session_len, 1)
+
+    session[SESSION_FEAT] = np.concatenate([qsr_feature, quantized_r_1, quantized_r_2, quantized_diff, diff_quantized_r_1, diff_quantized_r_2], axis = 1)
+    # print ("Feature shape = " + str(session[SESSION_FEAT].shape))
+    return  session[SESSION_FEAT].shape[1]
 
 def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     """
@@ -332,7 +328,7 @@ def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
 
     feature_chain = np.array(feature_chain)
     
-    print (feature_chain.shape)
+    # print (feature_chain.shape)
     # number of features
     f_number = feature_chain.shape[1]
 

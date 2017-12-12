@@ -88,13 +88,13 @@ class PolicyEstimator():
                 weights_initializer=tf.zeros_initializer))
             
             """
-            Using ReLu activation_fn so that the output would be non-negative
+            Using softplus so that the output would be > 0 but we also don't want 0
             """
             self.sigma_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
-                activation_fn=tf.nn.relu,
-                weights_initializer=tf.zeros_initializer))
+                activation_fn=tf.nn.softplus,
+                weights_initializer=tf.random_uniform_initializer(minval=1.0/(state_dimension), maxval=2.0/state_dimension)))
 
             # Using a mvn to predict action probability
             mvn = tf.contrib.distributions.Normal(

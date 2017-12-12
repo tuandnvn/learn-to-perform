@@ -9,7 +9,7 @@ import pylab as pl
 from matplotlib import collections as mc
 
 from . import uniform_env_space
-from simulator.simulator2d import Environment
+from simulator import simulator2d
 from simulator.utils import Cube2D, Transform2D, Command
 import feature_utils
 from utils import SESSION_LEN, SESSION_OBJ_2D, SESSION_FEAT
@@ -27,6 +27,9 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
+from importlib import reload
+reload (simulator2d)
+# reload(feature_utils)
 class BlockMovementEnv(gym.Env):
     """
     This class encapsulate an environment, allowing checking constraints of the environment
@@ -69,7 +72,7 @@ class BlockMovementEnv(gym.Env):
         - n_objects: number of objects to be randomized
         - progress_threshold: condition for an episode to end
         """
-        self.e = Environment()
+        self.e = simulator2d.Environment()
         self.config = config
         self.progress_estimator = progress_estimator
         self.n_objects = config.n_objects
@@ -126,23 +129,24 @@ class BlockMovementEnv(gym.Env):
         prev_transform = self.e.objects[object_index].transform
 
         if self.e.act(object_index, Command(position, rotation)):
-            print ('Action accepted')
+            # print ('Action accepted')
             self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
             self.action_storage.append( (object_index, prev_transform, cur_transform) )
         
         
         observation, progress = self.get_observation_and_progress()
+        info = {}
 
         if progress > self.progress_threshold:
             # Finish action
             done = True
-            reward = progress
-            info = {}
         else:
             done = False
-            reward = 0
-            info = {}
+        
+        reward = progress - self.progress
+
+        self.progress = progress
 
         return (observation, reward, done, info)
 
@@ -164,7 +168,7 @@ class BlockMovementEnv(gym.Env):
         current_progress = self.progress_estimator.predict(inputs, sess = self.session)
 
         progress = current_progress[0]
-        print ('progress = %.2f' % progress)
+        # print ('progress = %.2f' % progress)
 
         return (observation, progress)
 
@@ -290,8 +294,9 @@ class BlockMovementEnv(gym.Env):
         return session[SESSION_FEAT]
     
     def _reset(self):
-        self.e = Environment()
+        self.e = simulator2d.Environment()
         self.action_storage = []
+        self.progress = 0
 
         # states would be a list of location/orientation for block
         # sampled from the observation space
@@ -330,7 +335,7 @@ class BlockMovementEnv(gym.Env):
         This reset the environment to a default testing state where
         locations of objects are predefined
         """
-        self.e = Environment()
+        self.e = simulator2d.Environment()
         self.action_storage = []
         scale = self.block_size / 2
 
