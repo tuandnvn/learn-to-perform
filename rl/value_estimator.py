@@ -35,7 +35,7 @@ class PolicyEstimator():
     follows the formula
     """
     
-    def __init__(self, config, learning_rate=0.01, scope="policy_estimator"):
+    def __init__(self, config, scope="policy_estimator"):
         """
         The code to declare your tensorflow graph comes here
         """
@@ -57,6 +57,11 @@ class PolicyEstimator():
         #                      [ 0, 0, sigma_3 ]
         sigma_dimension = config.action_dimension
 
+        # short for weight_regularizer_scale
+        wrs = config.weight_regularizer_scale
+
+        self.lr = tf.Variable(0.0, trainable=False)
+        
         with tf.variable_scope(scope): 
             "Declare all placeholders"
             "Placeholder for input"
@@ -85,7 +90,8 @@ class PolicyEstimator():
                 inputs=state_expanded,
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.zeros_initializer))
+                weights_initializer=tf.zeros_initializer,
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
@@ -94,7 +100,8 @@ class PolicyEstimator():
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
                 activation_fn=tf.nn.softplus,
-                weights_initializer=tf.random_uniform_initializer(minval=1.0/(state_dimension), maxval=2.0/state_dimension)))
+                weights_initializer=tf.random_uniform_initializer(minval=1.0/state_dimension, maxval=2.0/state_dimension),
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
 
             # Using a mvn to predict action probability
             mvn = tf.contrib.distributions.Normal(
@@ -104,12 +111,15 @@ class PolicyEstimator():
             # (action_dimension)
             self.picked_action_prob = mvn.prob(self.action) 
             
+            #print (tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+            self.regularizer_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
             # so we minimize the negative log-prob function instead
-            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target
+            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target #+ self.regularizer_loss
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())
@@ -131,9 +141,14 @@ class PolicyEstimator():
         We also need to return its loss
         """
         sess = sess or tf.get_default_session()
-        _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.action: action, self.target: target})
+        _, loss, regularizer_loss = sess.run([self.train_op, self.loss, self.regularizer_loss], {self.state: state, self.action: action, self.target: target})
         
-        return loss
+        return loss, regularizer_loss
+
+    def assign_lr(self, lr_value, sess=None):
+        sess = sess or tf.get_default_session()
+        
+        sess.run(tf.assign(self.lr, lr_value))
 
 
 class ValueEstimator():
@@ -149,10 +164,12 @@ class ValueEstimator():
     Just use a very simple linear fully connected layer between state and output
     """
     
-    def __init__(self, config, learning_rate=0.01, scope="value_estimator"):
+    def __init__(self, config, scope="value_estimator"):
         # This state dimension would probably be 12
         # location + rotation of two most objects
         state_dimension = config.state_dimension
+
+        self.lr = tf.Variable(0.0, trainable=False)
 
         with tf.variable_scope(scope): 
             # No batch
@@ -172,7 +189,7 @@ class ValueEstimator():
             
             self.loss = tf.squared_difference(self.value, self.target) 
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())
@@ -190,3 +207,8 @@ class ValueEstimator():
         _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.target: target})
         
         return loss
+
+    def assign_lr(self, lr_value, sess=None):
+        sess = sess or tf.get_default_session()
+        
+        sess.run(tf.assign(self.lr, lr_value))

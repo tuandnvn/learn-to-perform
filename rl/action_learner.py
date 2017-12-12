@@ -79,6 +79,12 @@ class ActionLearner(object):
         # select object index is 0
         select_object = 0
         for i_episode in range(num_episodes):
+            policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** i_episode
+            self.policy_estimator.assign_lr( policy_rate )
+
+            value_rate = self.config.value_learning_rate * self.config.value_decay ** i_episode
+            self.value_estimator.assign_lr( value_rate )
+
             try:
                 # Reset the self.environment and pick the fisrst action
                 state = self.env.reset()
@@ -87,13 +93,19 @@ class ActionLearner(object):
                 
                 # One step in the self.environment
                 for t in itertools.count():
-                    print ('state = ' + str(state))
+                    
                     # Take a step
                     action_means, action_stds = self.policy_estimator.predict(state)
-                    print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
+                    
                     action = np.random.normal(action_means,action_stds)
-                    print ('action = ' + str(action))
+                    
                     next_state, reward, done, _ = self.env.step((select_object,action))
+
+                    # print ('state = ' + str(state))
+                    # print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
+                    # print ('action = ' + str(action))
+                    # print ('next_state = ' + str(next_state))
+                    # print ('reward = ' + str(reward))
                     
                     # Keep track of the transition
                     episode.append(Transition(
@@ -104,7 +116,7 @@ class ActionLearner(object):
                     stats.episode_lengths[i_episode] = t
                     
                     # Print out which step we're on, useful for debugging.
-                    print("Step {} @ Episode {}/{} ({})".format(
+                    print("\rStep {} @ Episode {}/{} ({})".format(
                             t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
                     #sys.stdout.flush()
 
@@ -145,14 +157,15 @@ class ActionLearner(object):
                     
                     """
                     self.value_estimator.update(state, accumulate_reward)
-                    
+
                     predicted_reward = self.value_estimator.predict(state)
                     
                     
                     # advantage
                     advantage = accumulate_reward - predicted_reward
                     
-                    self.policy_estimator.update(state, discount_factor ** t * advantage, action)
+                    _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action)
+                    #print ('regularizer_loss = %.2f' % regularizer_loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()

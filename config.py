@@ -15,7 +15,7 @@ class Config (object):
 	state_dimension = 12
 	action_dimension = 3
 
-	num_episodes = 30
+	num_episodes = 40
 	discount_factor = 1
 
 	# Event progress learner parameters
@@ -42,6 +42,12 @@ class Config (object):
 	# Whether we shuffle training data in each epoch
 	epoch_shuffle = False
 
+	# value estimator
+	weight_regularizer_scale = 0.1
+	policy_learning_rate = 0.001
+	policy_decay = 0.96
+	value_learning_rate = 0.001
+	value_decay = 0.96
 
 class Raw_Config (Config):
 	n_input = 40
