@@ -10,7 +10,7 @@ from project import Project
 from importlib import reload
 
 if __name__ == '__main__':
-    p = project.Project.load("../slidearound_hopstep_1.proj")
+    p = project.Project.load("slidearound_hopstep_1.proj")
 
     c = config.Config()
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 	        print (variable.name)
 
 	    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
-	    saver.restore(sess, '../progress.mod')
+	    saver.restore(sess, 'progress.mod')
 	    
 	    action_ln = action_learner.ActionLearner(c, p, progress_estimator, 
 	                                   policy_est, value_est)
