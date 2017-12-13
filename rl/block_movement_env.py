@@ -98,7 +98,7 @@ class BlockMovementEnv(gym.Env):
         # should < self.speed
 
         # Store all succesful actions has been made
-        # each action = (object_index, prev_transform, cur_transform)
+        # each action = (object_index, prev_transform, cur_transform, resulted_observation, resulted_progress)
         self.action_storage = []
 
         self._reset()
@@ -129,10 +129,18 @@ class BlockMovementEnv(gym.Env):
             # print ('Action accepted')
             self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
-            self.action_storage.append( (object_index, prev_transform, cur_transform) )
-        
-        
-        observation, progress = self.get_observation_and_progress()
+
+            observation, progress = self.get_observation_and_progress()
+
+            self.action_storage.append( (object_index, prev_transform, cur_transform, observation, progress) )
+        else:
+            if len(self.action_storage) > 0:
+                # Just return observation and progress of last action
+                _, _, _, observation, progress = self.action_storage[-1]
+            else:
+                # First action failed
+                observation, progress = self.get_observation_and_progress()
+
         info = {}
 
         if progress > self.progress_threshold:
@@ -142,10 +150,31 @@ class BlockMovementEnv(gym.Env):
             done = False
         
         reward = progress - self.progress
+        print ('Progress = %.2f ; reward = %.2f' % (progress, reward))
 
         self.progress = progress
 
         return (observation, reward, done, info)
+
+    def back(self):
+        """
+        Back one step
+
+        This allows multiple tries of an action at the same state
+        """
+        if len(self.action_storage) == 0:
+            """No memory"""
+            return
+
+        object_index, prev_transform, cur_transform, observation, progress = self.action_storage[-1]
+
+        position = prev_transform.position.flatten()
+        rotation = prev_transform.rotation
+
+        # Assumption is that we can always do this
+        self.e.act(object_index, Command(position, rotation))
+
+        del self.action_storage[-1]
 
     def get_observation_and_progress(self):
         # captures the last self.num_steps + 1 frames
@@ -206,7 +235,7 @@ class BlockMovementEnv(gym.Env):
         for i in range(self.n_objects):
             captures[i].append(self.e.objects[i])
 
-        for object_index, prev_transform, next_transform in self.action_storage[::-1]:
+        for object_index, prev_transform, next_transform, _, _ in self.action_storage[::-1]:
             obj = self.e.objects[object_index]
 
             path_distance = np.linalg.norm(prev_transform.position - next_transform.position)

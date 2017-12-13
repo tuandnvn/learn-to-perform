@@ -177,9 +177,6 @@ class ActionLearner(object):
 
                     predicted_reward = self.value_estimator.predict(state)
 
-
-                    
-                    
                     # advantage
                     advantage = accumulate_reward - predicted_reward
 
