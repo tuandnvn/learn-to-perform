@@ -125,14 +125,19 @@ class BlockMovementEnv(gym.Env):
 
         prev_transform = self.e.objects[object_index].transform
 
+        if len(self.action_storage) > 0:
+            last_progress = self.action_storage[-1][4]
+        else:
+            last_progress = 0
+
         if self.e.act(object_index, Command(position, rotation)):
             # print ('Action accepted')
             self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
-
+            # I need to call self.action_storage.append before get_observation_and_progress
+            self.action_storage.append( [object_index, prev_transform, cur_transform, None, None] )
             observation, progress = self.get_observation_and_progress()
-
-            self.action_storage.append( (object_index, prev_transform, cur_transform, observation, progress) )
+            self.action_storage[-1][3:] = [observation, progress]
         else:
             if len(self.action_storage) > 0:
                 # Just return observation and progress of last action
@@ -143,16 +148,15 @@ class BlockMovementEnv(gym.Env):
 
         info = {}
 
+        # Typical threshold approach
         if progress > self.progress_threshold:
             # Finish action
             done = True
         else:
             done = False
         
-        reward = progress - self.progress
-        print ('Progress = %.2f ; reward = %.2f' % (progress, reward))
-
-        self.progress = progress
+        reward = progress - last_progress
+        #print ('Progress = %.2f ; reward = %.2f' % (progress, reward))
 
         return (observation, reward, done, info)
 
@@ -164,17 +168,22 @@ class BlockMovementEnv(gym.Env):
         """
         if len(self.action_storage) == 0:
             """No memory"""
-            return
+            return False
 
-        object_index, prev_transform, cur_transform, observation, progress = self.action_storage[-1]
-
-        position = prev_transform.position.flatten()
-        rotation = prev_transform.rotation
+        object_index, prev_transform, cur_transform, _, _ = self.action_storage[-1]
 
         # Assumption is that we can always do this
-        self.e.act(object_index, Command(position, rotation))
+        self.e.act(object_index, self.command_from_transform(prev_transform) )
 
         del self.action_storage[-1]
+
+        return True
+
+    def command_from_transform(self, transform ):
+        position = transform.position.flatten()
+        rotation = transform.rotation
+
+        return Command(position, rotation)
 
     def get_observation_and_progress(self):
         # captures the last self.num_steps + 1 frames
@@ -322,7 +331,6 @@ class BlockMovementEnv(gym.Env):
     def _reset(self):
         self.e = simulator2d.Environment()
         self.action_storage = []
-        self.progress = 0
 
         # states would be a list of location/orientation for block
         # sampled from the observation space
@@ -378,6 +386,43 @@ class BlockMovementEnv(gym.Env):
         observation = self._get_observation(last_frames)
 
         return observation
+
+    def replay(self):
+        """
+        For debugging purpose, we want to replay the session (just showing all the steps has been made from the beginning and progress values)
+        """
+        action_storage_clone = self.action_storage[:]
+        while self.back():
+            continue
+
+
+        prev_graph_size = self.graph_size
+
+        # Resize to make it smaller
+        self.graph_size = self.graph_size / 2
+
+        self._render()
+        for object_index, _, next_transform, _, _ in action_storage_clone:
+            self.step((object_index, next_transform.get_feat()))
+
+            _, progress = self.get_observation_and_progress()
+
+            print ("Progress = %.2f" % progress)
+
+            _, progress = self.get_observation_and_progress()
+
+            print ("Progress = %.2f" % progress)
+
+
+            self._render()
+
+        self.graph_size = prev_graph_size
+
+    def animate(self):
+        """
+        For debugging purpose, we want to replay the session
+        """
+        pass
 
     def _render(self, mode='human', close=False):
         if close:

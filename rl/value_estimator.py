@@ -184,7 +184,7 @@ class ValueEstimator():
             self.output_layer = tf.contrib.layers.fully_connected(
                 tf.expand_dims(self.state,0),
                 1,
-                activation_fn=tf.nn.tanh,
+                activation_fn=tf.nn.sigmoid,
                 weights_initializer=tf.zeros_initializer)
             
             self.value = tf.squeeze(self.output_layer)
