@@ -12,7 +12,7 @@ import traceback
 from gym.wrappers import TimeLimit
 
 def random_action(state, policy_estimator, verbose = False):
-    action_means, action_stds = self.policy_estimator.predict(state)
+    action_means, action_stds = policy_estimator.predict(state)
                     
     action = np.random.normal(action_means,action_stds)
 
@@ -21,7 +21,7 @@ def random_action(state, policy_estimator, verbose = False):
     return action
 
 def best_n_random_action(n):
-    def best_random_action (state, policy_estimator, verbose = False)
+    def best_random_action (state, policy_estimator, verbose = False):
         action_means, action_stds = self.policy_estimator.predict(state)
                         
         action = np.random.normal(action_means,action_stds)
@@ -119,13 +119,13 @@ class ActionLearner(object):
                     
                     next_state, reward, done, _ = self.env.step((select_object,action))
 
-                    t = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
+                    transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
                     if verbose:
-                        print (t)
+                        print (transition)
 
                     # Keep track of the transition
-                    episode.append(t)
+                    episode.append(transition)
                     
                     # Update statistics
                     stats.episode_rewards[i_episode] += reward
@@ -183,8 +183,9 @@ class ActionLearner(object):
                     # advantage
                     advantage = accumulate_reward - predicted_reward
 
-                    # print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
-                     # (accumulate_reward, predicted_reward, advantage) )
+                    if verbose:
+                        print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
+                         (accumulate_reward, predicted_reward, advantage) )
                     
 
                     _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action)

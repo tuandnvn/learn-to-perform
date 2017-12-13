@@ -178,11 +178,13 @@ class ValueEstimator():
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
             
-            "Using a sigmoid output activation, because it predicts a value between 0 and 1"
+            """
+            Using a tanh output activation, because it predicts a value between -1 and 1
+            """
             self.output_layer = tf.contrib.layers.fully_connected(
                 tf.expand_dims(self.state,0),
                 1,
-                activation_fn=tf.nn.sigmoid,
+                activation_fn=tf.nn.tanh,
                 weights_initializer=tf.zeros_initializer)
             
             self.value = tf.squeeze(self.output_layer)
