@@ -11,6 +11,27 @@ import traceback
 
 from gym.wrappers import TimeLimit
 
+def random_action(state, policy_estimator, verbose = False):
+    action_means, action_stds = self.policy_estimator.predict(state)
+                    
+    action = np.random.normal(action_means,action_stds)
+
+    if verbose:
+        print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
+    return action
+
+def best_n_random_action(n):
+    def best_random_action (state, policy_estimator, verbose = False)
+        action_means, action_stds = self.policy_estimator.predict(state)
+                        
+        action = np.random.normal(action_means,action_stds)
+
+        if verbose:
+            print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
+        return action
+
+    return best_random_action
+
 class ActionLearner(object):
     """
     This class combine the learning logics of all other class
@@ -58,7 +79,7 @@ class ActionLearner(object):
                 progress_estimator = self.progress_estimator), max_episode_steps=limit_step)
 
 
-    def reinforce( self ):
+    def reinforce( self , action_policy, verbose = False):
         """
         REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
         function approximator using policy gradient.
@@ -94,23 +115,17 @@ class ActionLearner(object):
                 
                 # One step in the self.environment
                 for t in itertools.count():
-                    
-                    # Take a step
-                    action_means, action_stds = self.policy_estimator.predict(state)
-                    
-                    action = np.random.normal(action_means,action_stds)
+                    action = random_action(state, self.policy_estimator, verbose)
                     
                     next_state, reward, done, _ = self.env.step((select_object,action))
 
-                    # print ('state = ' + str(state))
-                    # print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-                    # print ('action = ' + str(action))
-                    # print ('next_state = ' + str(next_state))
-                    # print ('reward = ' + str(reward))
-                    
+                    t = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
+
+                    if verbose:
+                        print (t)
+
                     # Keep track of the transition
-                    episode.append(Transition(
-                      state=state, action=action, reward=reward, next_state=next_state, done=done))
+                    episode.append(t)
                     
                     # Update statistics
                     stats.episode_rewards[i_episode] += reward
@@ -157,14 +172,21 @@ class ActionLearner(object):
                     add a scaling factor correspond to the advantage
                     
                     """
+
                     self.value_estimator.update(state, accumulate_reward)
 
                     predicted_reward = self.value_estimator.predict(state)
+
+
                     
                     
                     # advantage
                     advantage = accumulate_reward - predicted_reward
+
+                    # print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
+                     # (accumulate_reward, predicted_reward, advantage) )
                     
+
                     _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action)
                     #print ('regularizer_loss = %.2f' % regularizer_loss)
             except Exception as e:

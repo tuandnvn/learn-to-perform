@@ -56,9 +56,6 @@ class BlockMovementEnv(gym.Env):
         event progress function will be defined based on the event type 
         currently learned. progress_estimator would be an LSTM
         
-        
-        
-        
         """
         # This env is just a wrapper around an environment that 
         # I have created before
