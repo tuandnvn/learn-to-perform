@@ -1,5 +1,6 @@
 import os
 import pickle
+import sys
 
 import session_utils
 import generate_utils
@@ -105,7 +106,10 @@ class Project(object):
     @staticmethod
     def load(file_path):
         with open(file_path, 'rb') as f: 
-            return pickle.load(f, encoding='latin-1')
+            if sys.version_info >= (3,0):
+                return pickle.load(f, encoding='latin-1')
+            else:
+                return pickle.load(f)
         print('----Done loading project---') 
 
     
