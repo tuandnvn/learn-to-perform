@@ -1,3 +1,4 @@
+import pickle
 import tensorflow as tf
 from rl import action_learner, value_estimator, block_movement_env
 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         
         stats = action_ln.reinforce(action_learner.random_action)
 
-        with open('', 'wb') as f:
-            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+        with open('session.dat', 'wb') as f:
+            pickle.dump(stats, f, pickle.HIGHEST_PROTOCOL)
 
         print('----Done saving stats data ---')
