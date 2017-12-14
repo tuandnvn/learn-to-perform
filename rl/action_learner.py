@@ -12,26 +12,26 @@ import traceback
 
 from gym.wrappers import TimeLimit
 
-def random_action(state, policy_estimator, verbose = False):
-    action_means, action_stds = policy_estimator.predict(state)
+def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
+    action_means, action_stds = policy_estimator.predict(state, sess = session)
                     
-    action = np.random.normal(action_means,action_stds)
+    actions = np.random.multivariate_normal(action_means,np.diag(action_stds), size = no_of_actions)
 
     if verbose:
         print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-    return action
+    return actions
 
-def best_n_random_action(n):
-    def best_random_action (state, policy_estimator, verbose = False):
-        action_means, action_stds = self.policy_estimator.predict(state)
+# def best_n_random_action(n):
+#     def best_random_action (state, policy_estimator, verbose = False):
+#         action_means, action_stds = self.policy_estimator.predict(state)
                         
-        action = np.random.normal(action_means,action_stds)
+#         action = np.random.normal(action_means,action_stds)
 
-        if verbose:
-            print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-        return action
+#         if verbose:
+#             print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
+#         return action
 
-    return best_random_action
+#     return best_random_action
 
 class ActionLearner(object):
     """
@@ -52,7 +52,7 @@ class ActionLearner(object):
     """
 
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, value_estimator, limit_step = 20):
+            policy_estimator, value_estimator, limit_step = 50, session = None):
         """
         Parameters:
         -----------
@@ -75,12 +75,12 @@ class ActionLearner(object):
         # This should belong to class ValueEstimator
         self.value_estimator = value_estimator
 
-        # This can be created on fly because it is just a simple environment
-        self.env = TimeLimit(bme.BlockMovementEnv(config, project.speed, project.name, 
-                progress_estimator = self.progress_estimator), max_episode_steps=limit_step)
+        self.limit_step = limit_step
+
+        self.session = session
 
 
-    def reinforce( self , action_policy, verbose = False):
+    def reinforce( self , action_policy, depth = 1, breadth = 1, verbose = False):
         """
         REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
         function approximator using policy gradient.
@@ -101,29 +101,62 @@ class ActionLearner(object):
         
         # select object index is 0
         select_object = 0
+
+        past_envs = []
+
         for i_episode in range(num_episodes):
+            if verbose:
+                print ('========================================')
+
+            self.env = TimeLimit(bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
+                progress_estimator = self.progress_estimator, session = self.session), max_episode_steps=self.limit_step)
             policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** i_episode
-            self.policy_estimator.assign_lr( policy_rate )
+            self.policy_estimator.assign_lr( policy_rate, sess= self.session )
 
             value_rate = self.config.value_learning_rate * self.config.value_decay ** i_episode
-            self.value_estimator.assign_lr( value_rate )
+            self.value_estimator.assign_lr( value_rate, sess= self.session )
 
             try:
-                # Reset the self.environment and pick the fisrst action
+                # Reset the self.environment and pick the first action
                 state = self.env.reset()
                 
                 episode = []
                 
                 # One step in the self.environment
                 for t in itertools.count():
-                    action = random_action(state, self.policy_estimator, verbose)
+                    best_action = None
+                    best_reward = -1
+
+                    actions = random_action(state, self.policy_estimator, 
+                        verbose = verbose, no_of_actions = breadth, session = self.session)
+
+                    for breadth_step in range(breadth):
+                        action = actions[breadth_step]
+                        next_state, reward, done, _ = self.env.step((select_object,action))
+
+                        self.env.env.back()
+
+                        if done:
+                            best_action = action
+                            break
+                        else:
+                            if reward > best_reward:
+                                best_reward = reward
+                                best_action = action
+
+                    if best_reward < 0:
+                        # This action is not worth taking
+                        break
+
+                    # At this point, best_action corresponds to the best reward
+                    # really do the action
+                    next_state, reward, done, _ = self.env.step((select_object,best_action))
                     
-                    next_state, reward, done, _ = self.env.step((select_object,action))
 
                     transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
                     if verbose:
-                        print (transition)
+                        print ((action, reward, done))
 
                     # Keep track of the transition
                     episode.append(transition)
@@ -133,8 +166,12 @@ class ActionLearner(object):
                     stats.episode_lengths[i_episode] = t
                     
                     # Print out which step we're on, useful for debugging.
-                    print("\rStep {} @ Episode {}/{} ({})".format(
-                            t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
+                    if verbose:
+                        print("Step {} @ Episode {}/{} ({})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode]))
+                    else:
+                        print("\rStep {} @ Episode {}/{} ({})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
                     #sys.stdout.flush()
 
                     if done:
@@ -143,6 +180,9 @@ class ActionLearner(object):
                     state = next_state
                 
                 accumulate_reward = 0
+
+                past_envs.append(self.env)
+
                 
                 # Go from backward
                 for t in range(len(episode)-1, -1, -1):
@@ -174,13 +214,10 @@ class ActionLearner(object):
                     
                     """
 
-                    self.value_estimator.update(state, accumulate_reward)
+                    self.value_estimator.update(state, accumulate_reward, sess= self.session)
 
-                    predicted_reward = self.value_estimator.predict(state)
+                    predicted_reward = self.value_estimator.predict(state, sess= self.session)
 
-
-                    
-                    
                     # advantage
                     advantage = accumulate_reward - predicted_reward
 
@@ -189,9 +226,9 @@ class ActionLearner(object):
                          (accumulate_reward, predicted_reward, advantage) )
                     
 
-                    _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action)
+                    _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
                     #print ('regularizer_loss = %.2f' % regularizer_loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()
-        return stats
+        return (past_envs, stats)
