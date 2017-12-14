@@ -3,12 +3,21 @@ Created on Oct 4, 2017
 
 @author: Tuan
 '''
+import sys
 import numpy as np
 from numpy.linalg import norm
 import math
 from scipy.spatial import ConvexHull
 
 from .utils import Transform2D, Geometry2D, Cube2D, Polygon2D, Command
+
+if sys.version_info >= (3,5):
+    isclose = math.isclose
+else:
+	def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+	    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
 
 class Environment (object):
 	'''
@@ -192,7 +201,7 @@ class Environment (object):
 			first_second_p = np.arccos(np.clip( np.dot(l1, l2)/norm(l1)/norm(l2), -1, 1))
 			third_second_p = np.arccos(np.clip( np.dot(l2, l3)/norm(l2)/norm(l3), -1, 1))
 
-			if math.isclose(first_second_third, first_second_p + third_second_p, rel_tol=1e-3, abs_tol=1e-5):
+			if isclose(first_second_third, first_second_p + third_second_p, rel_tol=1e-3, abs_tol=1e-5):
 				continue
 
 			return False
