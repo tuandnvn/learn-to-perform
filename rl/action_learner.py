@@ -17,9 +17,7 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
                     
     actions = np.random.multivariate_normal(action_means,np.diag(action_stds), size = no_of_actions)
 
-    if verbose:
-        print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-    return actions
+    return action_means, action_stds, actions
 
 # def best_n_random_action(n):
 #     def best_random_action (state, policy_estimator, verbose = False):
@@ -84,7 +82,8 @@ class ActionLearner(object):
 
         self.session = session
 
-    def policy_learn( self , action_policy, depth = 1, breadth = 1, verbose = False, choice = REINFORCE):
+    def policy_learn( self , action_policy, depth = 1, breadth = 1, 
+            verbose = False, choice = REINFORCE, default = False):
         """
         REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
         function approximator using policy gradient.
@@ -92,7 +91,11 @@ class ActionLearner(object):
 
         Params:
         =========
-        Two choices: 'REINFORCE', 'ACTOR-CRITIC'
+        action_policy: A function that takes (state, policy_estimator, no_of_actions) 
+                        and return no_of_actions of actions 
+        choice: Two choices: 'REINFORCE', 'ACTOR-CRITIC'. By default is REINFORCE
+        default: Whether we should always use a default setup for learning. = True is 
+            a debug mode. By default is False
         
         Returns:
         =========
@@ -126,7 +129,11 @@ class ActionLearner(object):
 
             try:
                 # Reset the self.environment and pick the first action
-                state = self.env.reset()
+                if default:
+                    self.env.reset()
+                    state = self.env.env.default()
+                else:
+                    state = self.env.reset()
                 
                 episode = []
                 
@@ -135,16 +142,17 @@ class ActionLearner(object):
                     best_action = None
                     best_reward = -1
 
-                    actions = random_action(state, self.policy_estimator, 
+                    action_means, action_stds, actions = random_action(state, self.policy_estimator, 
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
                     for breadth_step in range(breadth):
                         action = actions[breadth_step]
-                        next_state, reward, done, _ = self.env.step((select_object,action))
+                        next_state, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
 
                         self.env.env.back()
 
                         if done:
+                            best_reward = reward
                             best_action = action
                             break
                         else:
@@ -156,9 +164,15 @@ class ActionLearner(object):
                         # This action is not worth taking
                         break
 
+                    if verbose:
+                        print ('best reward = %.2f' % best_reward)
+
                     # At this point, best_action corresponds to the best reward
                     # really do the action
-                    next_state, reward, done, _ = self.env.step((select_object,best_action))
+                    next_state, reward, done, _ = self.env.step((select_object,best_action, action_means, action_stds))
+
+                    # if abs(reward - best_reward) > 0.01:
+                    #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
                     
                     if verbose:
                         print ((action, reward, done))
@@ -187,9 +201,9 @@ class ActionLearner(object):
                         """
                         predicted_next_state_value = self.value_estimator.predict(next_state, sess= self.session)
                         td_target = reward + discount_factor * predicted_next_state_value
-                        self.value_estimator.update(state, td_target)
+                        self.value_estimator.update(state, td_target, sess= self.session)
                         
-                        predicted_target = self.value_estimator.predict(state)
+                        predicted_target = self.value_estimator.predict(state, sess= self.session)
                         
                         """
                         Implement update right away
@@ -198,8 +212,8 @@ class ActionLearner(object):
                         advantage = td_target - predicted_target
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
-                        self.policy_estimator.update(state, advantage, action)
-
+                        loss, _ = self.policy_estimator.update(state, advantage, action, sess= self.session)
+                        #print ('loss = %.2f' % loss)
                     if done:
                         break
                         
@@ -253,8 +267,8 @@ class ActionLearner(object):
                              (accumulate_reward, predicted_reward, advantage) )
                         
 
-                        _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
-                        #print ('regularizer_loss = %.2f' % regularizer_loss)
+                        loss, _ = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
+                        print ('loss = %.2f' % loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()

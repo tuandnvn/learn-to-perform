@@ -372,7 +372,7 @@ class Environment (object):
 		convex_hull = ConvexHull([t for t in points if all(~np.isnan(t))])
 		return Polygon2D(markers = points[convex_hull.vertices])
 
-	def act(self, obj_index, command):
+	def act(self, obj_index, command, check_condition = True):
 		'''
 		Act on one object with just one command
 
@@ -411,16 +411,20 @@ class Environment (object):
 		# Check to see if the path is inside the playfield
 		# and path doesn't overlap with other objects
 		# and final position doesn't overlap with other objects
-		if (self.boundary == None or Environment.is_bounded(path, self.boundary)) and\
-			self.is_overlap_consistency(path, exclude_indices = [obj_index]) and\
-			self.is_overlap_consistency(new_obj, exclude_indices = [obj_index]):
-			# command satisfy
-			# set obj to new_obj
-			
+		if check_condition:
+			if (self.boundary == None or Environment.is_bounded(path, self.boundary)) and\
+				self.is_overlap_consistency(path, exclude_indices = [obj_index]) and\
+				self.is_overlap_consistency(new_obj, exclude_indices = [obj_index]):
+				# command satisfy
+				# set obj to new_obj
+				
+				self.objects[obj_index] = new_obj
+				return True
+			else:
+				return False
+		else:
 			self.objects[obj_index] = new_obj
 			return True
-		else:
-			return False
 
 
 

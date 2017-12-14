@@ -7,7 +7,7 @@ class Config (object):
 
 	n_objects = 2 #
 	block_size = 0.15
-	progress_threshold = 0.7
+	progress_threshold = 0.8
 
 	num_steps = 20
 	n_input = 13
@@ -49,6 +49,8 @@ class Config (object):
 	policy_decay = 0.96
 	value_learning_rate = 0.01
 	value_decay = 0.96
+
+	constraint_sigma = 0.0
 
 class Raw_Config (Config):
 	n_input = 40

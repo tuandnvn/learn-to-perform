@@ -5,6 +5,8 @@ from gym import utils
 from gym.utils import seeding
 import matplotlib
 from matplotlib import pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.mlab as mlab
 import pylab as pl
 from matplotlib import collections as mc
 
@@ -27,8 +29,8 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-# from importlib import reload
-# reload (simulator2d)
+from importlib import reload
+reload (simulator2d)
 # reload(feature_utils)
 class BlockMovementEnv(gym.Env):
     """
@@ -120,7 +122,7 @@ class BlockMovementEnv(gym.Env):
         """
 
         # action is generated from the action_policy (external to the environment)
-        object_index, new_location = action
+        object_index, new_location, action_means, action_stds = action
         
         position = new_location[:2]
         rotation = new_location[2]
@@ -134,22 +136,21 @@ class BlockMovementEnv(gym.Env):
 
         if self.e.act(object_index, Command(position, rotation)):
             # print ('Action accepted')
-            self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
             # I need to call self.action_storage.append before get_observation_and_progress
-            self.action_storage.append( [object_index, prev_transform, cur_transform, None, None, True] )
+            self.action_storage.append( [object_index, prev_transform, cur_transform, None, None, True, action_means, action_stds] )
             observation, progress = self.get_observation_and_progress()
             self.action_storage[-1][3:5] = [observation, progress]
         else:
             if len(self.action_storage) > 0:
                 # Just return observation and progress of last action
-                _, _, _, observation, progress, _ = self.action_storage[-1]
-                self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False] )
+                _, _, _, observation, progress, _, _, _ = self.action_storage[-1]
             else:
                 # First action failed
                 observation, _ = self.get_observation_and_progress()
                 progress = 0
-                self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False] )
+            
+            self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False, action_means, action_stds] )
 
         info = {}
 
@@ -175,12 +176,13 @@ class BlockMovementEnv(gym.Env):
             """No memory"""
             return False
 
-        object_index, prev_transform, cur_transform, _, _, success = self.action_storage[-1]
+        object_index, prev_transform, cur_transform, _, _, success, _, _ = self.action_storage[-1]
 
         "Only if the last action succeeded, we back up, otherwise just delete it"
         if success:
             # Assumption is that we can always do this
-            self.e.act(object_index, self.command_from_transform(prev_transform) )
+            act_back = self.e.act(object_index, 
+                self.command_from_transform(prev_transform), check_condition = False )
 
         del self.action_storage[-1]
 
@@ -251,7 +253,7 @@ class BlockMovementEnv(gym.Env):
         for i in range(self.n_objects):
             captures[i].append(self.e.objects[i])
 
-        for object_index, prev_transform, next_transform, _, _, success in self.action_storage[::-1]:
+        for object_index, prev_transform, next_transform, _, _, success, _, _ in self.action_storage[::-1]:
             if not success:
                 continue
             obj = self.e.objects[object_index]
@@ -364,7 +366,6 @@ class BlockMovementEnv(gym.Env):
                 
                 retry += 1
             
-        self.lastaction=None
 
         last_frames = self.capture_last(frames = 2)
 
@@ -386,8 +387,6 @@ class BlockMovementEnv(gym.Env):
         self.e.add_object(o)
         o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
         self.e.add_object(o)
-
-        self.lastaction=None
 
         last_frames = self.capture_last(frames = 2)
 
@@ -411,17 +410,18 @@ class BlockMovementEnv(gym.Env):
         self.graph_size = self.graph_size / 2
 
         self._render()
-        for object_index, _, next_transform, _, _, success in action_storage_clone:
+        for object_index, _, next_transform, _, _, success, action_means, action_stds in action_storage_clone:
             if not success:
                 continue
 
+            print ((action_means, action_stds))
             print (next_transform)
-            self.step((object_index, next_transform.get_feat()))
+            self.step((object_index, next_transform.get_feat(), action_means, action_stds))
 
             _, progress = self.get_observation_and_progress()
 
             print ("Progress = %.2f" % progress)
-            self._render()
+            self._render(action_means = action_means, action_stds = action_stds)
 
         self.graph_size = prev_graph_size
 
@@ -431,20 +431,22 @@ class BlockMovementEnv(gym.Env):
         """
         pass
 
-    def _render(self, mode='human', close=False):
+    def _render(self, mode='human', close=False, action_means = None, action_stds = None):
         if close:
             return
         
         fig, ax = plt.subplots()
         fig.set_size_inches(self.graph_size, self.graph_size)
-        ax.set_xticks(np.arange(self.playground_x[0], 
-                                self.playground_x[0] + self.playground_dim[0], 0.1))
-        ax.set_yticks(np.arange(self.playground_x[1], 
-                                self.playground_x[1] + self.playground_dim[1], 0.1))
-        ax.set_xlim([self.playground_x[0], 
-                     self.playground_x[0] + self.playground_dim[0]])
-        ax.set_ylim([self.playground_x[1], 
-                     self.playground_x[1] + self.playground_dim[1]])
+        x_range = np.arange(self.playground_x[0], 
+                                self.playground_x[0] + self.playground_dim[0], 0.1)
+        y_range = np.arange(self.playground_x[1], 
+                                self.playground_x[1] + self.playground_dim[1], 0.1)
+        ax.set_xticks(x_range)
+        ax.set_yticks(y_range)
+        ax.set_xlim(self.playground_x[0], 
+                                self.playground_x[0] + self.playground_dim[0])
+        ax.set_ylim(self.playground_x[1], 
+                                self.playground_x[1] + self.playground_dim[1])
         
         lc = mc.PolyCollection([self.e.objects[i].get_markers() for i in range(self.n_objects)], 
                                edgecolors=[colors[i] for i in range(self.n_objects)], 
@@ -454,6 +456,12 @@ class BlockMovementEnv(gym.Env):
         
         # ax.autoscale()
         ax.margins(0.1)
+
+        if not action_means is None  and not action_stds is None:
+            X, Y = np.meshgrid(x_range, y_range)
+            z = mlab.bivariate_normal(X, Y, action_stds[0], action_stds[1],
+                 action_means[0], action_means[1])
+            plt.contour(x_range, y_range, z, 4, alpha = 0.3)
 
         plt.show()
 

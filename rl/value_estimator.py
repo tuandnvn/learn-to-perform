@@ -91,18 +91,16 @@ class PolicyEstimator():
                 inputs=state_expanded,
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.zeros_initializer,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
+                weights_initializer=tf.zeros_initializer))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
             """
-            self.sigma_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+            self.sigma_layer = 0.5 * tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
                 activation_fn=tf.nn.sigmoid,
-                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension)),
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
+                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension))))
 
             # Using a mvn to predict action probability
             mvn = tf.contrib.distributions.Normal(
@@ -115,10 +113,12 @@ class PolicyEstimator():
             #print (tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
             self.regularizer_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
+            self.sigma_constraint = tf.norm(self.sigma_layer)
+
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
             # so we minimize the negative log-prob function instead
-            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target #+ self.regularizer_loss
+            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target + config.constraint_sigma * self.sigma_constraint
             
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
