@@ -359,7 +359,7 @@ class BlockMovementEnv(gym.Env):
                 if self.e.add_object(o):
                     break
                     
-                if retry > 3:
+                if retry > 10:
                     break
                 
                 retry += 1

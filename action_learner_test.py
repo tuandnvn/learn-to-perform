@@ -17,13 +17,12 @@ if __name__ == '__main__':
     tf.reset_default_graph()
 
     params = []
-    for policy_learning_rate in [0.001, 0.003, 0.01]:
+    for policy_learning_rate in [0.002, 0.02]:
         for policy_decay in [0.95, 0.96, 0.97]:
-            for value_learning_rate in [0.001, 0.003, 0.01]:
+            for value_learning_rate in [0.002, 0.02]:
                 for value_decay in [0.95, 0.96, 0.97]:
-                    for breadth in range(2,5):
-                        params.append((policy_learning_rate, policy_decay, 
-                            value_learning_rate, value_decay, breadth))
+                    params.append((policy_learning_rate, policy_decay, 
+                        value_learning_rate, value_decay))
 
     
     with tf.Session() as sess:
@@ -44,7 +43,7 @@ if __name__ == '__main__':
         saver.restore(sess, 'progress.mod')
         
         for param in params:
-            policy_learning_rate, policy_decay, value_learning_rate, value_decay, breadth = param
+            policy_learning_rate, policy_decay, value_learning_rate, value_decay = param
             print ('==================================================')
             print (param)
             c.policy_learning_rate = policy_learning_rate
@@ -55,9 +54,9 @@ if __name__ == '__main__':
                                            policy_est, value_est, session = sess)
             action_policy = action_learner.random_action
 
-            _, stats = action_ln.reinforce(action_policy, breadth = breadth, verbose = False)
+            _, stats = action_ln.policy_learn(action_policy, breadth = 3, verbose = False, choice = action_learner.ACTOR_CRITIC)
 
-            stat_file = os.path.join('session_data', 'session.data._%.4f_%.4f_%.4f_%.4f_%d' % param)
+            stat_file = os.path.join('session_data_actor_critic', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
             with open(stat_file, 'wb') as f:
                 pickle.dump(stats, f, pickle.HIGHEST_PROTOCOL)
 

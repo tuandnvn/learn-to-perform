@@ -33,6 +33,9 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
 
 #     return best_random_action
 
+REINFORCE = 'REINFORCE'
+ACTOR_CRITIC = 'ACTOR_CRITIC'
+
 class ActionLearner(object):
     """
     This class combine the learning logics of all other class
@@ -50,6 +53,8 @@ class ActionLearner(object):
     so that we can expose the logics of saving/loading models to the outside of the learner
     otherwise we have to 
     """
+    Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
+    
 
     def __init__(self, config, project, progress_estimator, 
             policy_estimator, value_estimator, limit_step = 50, session = None):
@@ -79,13 +84,18 @@ class ActionLearner(object):
 
         self.session = session
 
-
-    def reinforce( self , action_policy, depth = 1, breadth = 1, verbose = False):
+    def policy_learn( self , action_policy, depth = 1, breadth = 1, verbose = False, choice = REINFORCE):
         """
         REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
         function approximator using policy gradient.
+        Actor-ciritc algorithm. Similar to REINFORCE but with TD-target
+
+        Params:
+        =========
+        Two choices: 'REINFORCE', 'ACTOR-CRITIC'
         
         Returns:
+        =========
             An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
         """
 
@@ -95,9 +105,7 @@ class ActionLearner(object):
         # Keeps track of useful statistics
         stats = plotting.EpisodeStats(
             episode_lengths=np.zeros(num_episodes),
-            episode_rewards=np.zeros(num_episodes))    
-        
-        Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
+            episode_rewards=np.zeros(num_episodes))
         
         # select object index is 0
         select_object = 0
@@ -152,14 +160,13 @@ class ActionLearner(object):
                     # really do the action
                     next_state, reward, done, _ = self.env.step((select_object,best_action))
                     
-
-                    transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
-
                     if verbose:
                         print ((action, reward, done))
 
-                    # Keep track of the transition
-                    episode.append(transition)
+                    if choice == REINFORCE:
+                        transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
+                        # Keep track of the transition
+                        episode.append(transition)
                     
                     # Update statistics
                     stats.episode_rewards[i_episode] += reward
@@ -174,61 +181,82 @@ class ActionLearner(object):
                                 t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
                     #sys.stdout.flush()
 
+                    if choice == ACTOR_CRITIC:
+                        """
+                        We handle update right here
+                        """
+                        predicted_next_state_value = self.value_estimator.predict(next_state, sess= self.session)
+                        td_target = reward + discount_factor * predicted_next_state_value
+                        self.value_estimator.update(state, td_target)
+                        
+                        predicted_target = self.value_estimator.predict(state)
+                        
+                        """
+                        Implement update right away
+                        """
+                        # advantage
+                        advantage = td_target - predicted_target
+                        
+                        # To be correct this would be discount_factor ** # of steps * advantage
+                        self.policy_estimator.update(state, advantage, action)
+
                     if done:
                         break
                         
                     state = next_state
                 
-                accumulate_reward = 0
+                
 
                 past_envs.append(self.env)
 
-                
-                # Go from backward
-                for t in range(len(episode)-1, -1, -1):
-                    state, action, reward, _, _ = episode[t]
-                    # G_t
-                    accumulate_reward = accumulate_reward * discount_factor + reward
+                if choice == REINFORCE:
+                    accumulate_reward = 0
+                    # Go from backward
+                    for t in range(len(episode)-1, -1, -1):
+                        state, action, reward, _, _ = episode[t]
+                        # G_t
+                        accumulate_reward = accumulate_reward * discount_factor + reward
 
-                    
-                    """
-                    IMPORTANT:
-                    
-                    The order between these two next commands are very important
-                    Predict before update:
-                    and the average stuck at -100 which means that
-                    the algorithm never find the target
-                    
-                    Update before predict:
-                    It would converge correctly
-                    
-                    ===== Possible explanation ======
-                    If I update before predict
-                    
-                    the baseline is much closer to correct value
-                    advantage therefore is much smaller
-                    
-                    In the book, the algorithm is as following:
-                    do predict before update
-                    add a scaling factor correspond to the advantage
-                    
-                    """
+                        
+                        """
+                        IMPORTANT:
+                        
+                        The order between these two next commands are very important
+                        Predict before update:
+                        and the average stuck at -100 which means that
+                        the algorithm never find the target
+                        
+                        Update before predict:
+                        It would converge correctly
+                        
+                        ===== Possible explanation ======
+                        If I update before predict
+                        
+                        the baseline is much closer to correct value
+                        advantage therefore is much smaller
+                        
+                        In the book, the algorithm is as following:
+                        do predict before update
+                        add a scaling factor correspond to the advantage
+                        
+                        """
 
-                    self.value_estimator.update(state, accumulate_reward, sess= self.session)
+                        self.value_estimator.update(state, accumulate_reward, sess= self.session)
 
-                    predicted_reward = self.value_estimator.predict(state, sess= self.session)
+                        predicted_reward = self.value_estimator.predict(state, sess= self.session)
 
-                    # advantage
-                    advantage = accumulate_reward - predicted_reward
+                        # advantage
+                        advantage = accumulate_reward - predicted_reward
 
-                    if verbose:
-                        print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
-                         (accumulate_reward, predicted_reward, advantage) )
-                    
+                        if verbose:
+                            print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
+                             (accumulate_reward, predicted_reward, advantage) )
+                        
 
-                    _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
-                    #print ('regularizer_loss = %.2f' % regularizer_loss)
+                        _, regularizer_loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
+                        #print ('regularizer_loss = %.2f' % regularizer_loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()
         return (past_envs, stats)
+

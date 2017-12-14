@@ -100,7 +100,7 @@ class PolicyEstimator():
             self.sigma_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
-                activation_fn=tf.nn.softplus,
+                activation_fn=tf.nn.sigmoid,
                 weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension)),
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
 
