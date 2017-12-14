@@ -302,6 +302,7 @@ class Environment (object):
 		----------
 		value: = True can add object, = False couldn't add object
 		'''
+		#print ('Environment.is_bounded(o, self.boundary) = %s' % str(self.boundary))
 		if (self.boundary == None or Environment.is_bounded(o, self.boundary)) and\
 		self.is_overlap_consistency(o):
 			self.objects.append(o)

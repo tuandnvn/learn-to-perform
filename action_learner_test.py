@@ -16,31 +16,49 @@ if __name__ == '__main__':
 
     tf.reset_default_graph()
 
-	global_step = tf.Variable(0, name="global_step", trainable=False)
+    params = []
+    for policy_learning_rate in [0.001, 0.003, 0.01]:
+    	for policy_decay in [0.95, 0.96, 0.97]:
+    		for value_learning_rate in [0.001, 0.003, 0.01]:
+    			for value_decay in [0.95, 0.96, 0.97]:
+    				for breadth in range(2,5):
+	    				params.append((policy_learning_rate, policy_decay, 
+	    					value_learning_rate, value_decay, breadth))
 
-	with tf.Session() as sess:
-	    policy_est = value_estimator.PolicyEstimator(c)
-	    value_est = value_estimator.ValueEstimator(c)
-	    
-	    sess.run(tf.global_variables_initializer())
-	    
-	    with tf.variable_scope("model") as scope:
-	        print('-------- Load progress model ---------')
-	        progress_estimator = EventProgressEstimator(is_training=False, name = p.name, config = c)  
-	    
-	    # Print out all variables that would be restored
-	    for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
-	        print (variable.name)
+    for policy_learning_rate, policy_decay, value_learning_rate, value_decay, breadth in params:
+    	print ('==================================================')
+    	print (param)
+    	c.policy_learning_rate = policy_learning_rate
+    	c.policy_decay = policy_decay
+    	c.value_learning_rate = value_learning_rate
+    	c,value_decay = value_decay
 
-	    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
-	    saver.restore(sess, 'progress.mod')
-	    
-	    action_ln = action_learner.ActionLearner(c, p, progress_estimator, 
-	                                   policy_est, value_est)
-	    
-	    stats = action_ln.reinforce()
+		with tf.Session() as sess:
+		    policy_est = value_estimator.PolicyEstimator(c)
+		    value_est = value_estimator.ValueEstimator(c)
+		    
+		    sess.run(tf.global_variables_initializer())
+		    
+		    with tf.variable_scope("model") as scope:
+		        print('-------- Load progress model ---------')
+		        progress_estimator = EventProgressEstimator(is_training=False, name = p.name, config = c)  
+		    
+		    # Print out all variables that would be restored
+		    for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
+		        print (variable.name)
 
-	    with open('', 'wb') as f:
-            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+		    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
+		    saver.restore(sess, 'progress.mod')
+		    
+		    action_ln = action_learner.ActionLearner(c, p, progress_estimator, 
+		                                   policy_est, value_est, session = sess)
+		    action_policy = action_learner.random_action
 
-        print('----Done saving stats data ---')
+		    _, stats = action_ln.reinforce(action_policy, breadth = breadth, verbose = False)
+
+		    stat_file = 'session.data._%.4f_%.4f_%.4f_%.4f' % (policy_learning_rate, policy_decay, 
+	    					value_learning_rate, value_decay)
+		    with open(stat_file, 'wb') as f:
+	            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
+	        print('----Done saving stats data ---')

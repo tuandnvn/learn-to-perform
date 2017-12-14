@@ -27,8 +27,8 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-#from importlib import reload
-#reload (simulator2d)
+from importlib import reload
+reload (simulator2d)
 # reload(feature_utils)
 class BlockMovementEnv(gym.Env):
     """
@@ -69,7 +69,9 @@ class BlockMovementEnv(gym.Env):
         - n_objects: number of objects to be randomized
         - progress_threshold: condition for an episode to end
         """
-        self.e = simulator2d.Environment()
+        self.default_boundary = Cube2D(
+            transform = Transform2D(position=[0.0, 0.0], rotation=0.0, scale = 1.0))
+        self.e = simulator2d.Environment( boundary = self.default_boundary )
         self.config = config
         self.progress_estimator = progress_estimator
         self.n_objects = config.n_objects
@@ -135,16 +137,19 @@ class BlockMovementEnv(gym.Env):
             self.lastaction = action
             cur_transform = self.e.objects[object_index].transform
             # I need to call self.action_storage.append before get_observation_and_progress
-            self.action_storage.append( [object_index, prev_transform, cur_transform, None, None] )
+            self.action_storage.append( [object_index, prev_transform, cur_transform, None, None, True] )
             observation, progress = self.get_observation_and_progress()
-            self.action_storage[-1][3:] = [observation, progress]
+            self.action_storage[-1][3:5] = [observation, progress]
         else:
             if len(self.action_storage) > 0:
                 # Just return observation and progress of last action
-                _, _, _, observation, progress = self.action_storage[-1]
+                _, _, _, observation, progress, _ = self.action_storage[-1]
+                self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False] )
             else:
                 # First action failed
-                observation, progress = self.get_observation_and_progress()
+                observation, _ = self.get_observation_and_progress()
+                progress = 0
+                self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False] )
 
         info = {}
 
@@ -170,10 +175,12 @@ class BlockMovementEnv(gym.Env):
             """No memory"""
             return False
 
-        object_index, prev_transform, cur_transform, _, _ = self.action_storage[-1]
+        object_index, prev_transform, cur_transform, _, _, success = self.action_storage[-1]
 
-        # Assumption is that we can always do this
-        self.e.act(object_index, self.command_from_transform(prev_transform) )
+        "Only if the last action succeeded, we back up, otherwise just delete it"
+        if success:
+            # Assumption is that we can always do this
+            self.e.act(object_index, self.command_from_transform(prev_transform) )
 
         del self.action_storage[-1]
 
@@ -244,7 +251,9 @@ class BlockMovementEnv(gym.Env):
         for i in range(self.n_objects):
             captures[i].append(self.e.objects[i])
 
-        for object_index, prev_transform, next_transform, _, _ in self.action_storage[::-1]:
+        for object_index, prev_transform, next_transform, _, _, success in self.action_storage[::-1]:
+            if not success:
+                continue
             obj = self.e.objects[object_index]
 
             path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
@@ -329,7 +338,7 @@ class BlockMovementEnv(gym.Env):
         return session[SESSION_FEAT]
     
     def _reset(self):
-        self.e = simulator2d.Environment()
+        self.e = simulator2d.Environment(boundary = self.default_boundary )
         self.action_storage = []
 
         # states would be a list of location/orientation for block
@@ -369,7 +378,7 @@ class BlockMovementEnv(gym.Env):
         This reset the environment to a default testing state where
         locations of objects are predefined
         """
-        self.e = simulator2d.Environment()
+        self.e = simulator2d.Environment(boundary = self.default_boundary )
         self.action_storage = []
         scale = self.block_size / 2
 
@@ -402,18 +411,16 @@ class BlockMovementEnv(gym.Env):
         self.graph_size = self.graph_size / 2
 
         self._render()
-        for object_index, _, next_transform, _, _ in action_storage_clone:
+        for object_index, _, next_transform, _, _, success in action_storage_clone:
+            if not success:
+                continue
+
+            print (next_transform)
             self.step((object_index, next_transform.get_feat()))
 
             _, progress = self.get_observation_and_progress()
 
             print ("Progress = %.2f" % progress)
-
-            _, progress = self.get_observation_and_progress()
-
-            print ("Progress = %.2f" % progress)
-
-
             self._render()
 
         self.graph_size = prev_graph_size

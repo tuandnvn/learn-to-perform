@@ -15,7 +15,7 @@ class Config (object):
 	state_dimension = 12
 	action_dimension = 3
 
-	num_episodes = 10
+	num_episodes = 20
 	discount_factor = 1
 
 	# Event progress learner parameters
@@ -44,9 +44,9 @@ class Config (object):
 
 	# value estimator
 	weight_regularizer_scale = 0.1
-	policy_learning_rate = 0.001
+	policy_learning_rate = 0.01
 	policy_decay = 0.96
-	value_learning_rate = 0.005
+	value_learning_rate = 0.01
 	value_decay = 0.96
 
 class Raw_Config (Config):

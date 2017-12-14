@@ -100,7 +100,7 @@ class PolicyEstimator():
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
                 activation_fn=tf.nn.softplus,
-                weights_initializer=tf.random_uniform_initializer(minval=1.0/state_dimension, maxval=2.0/state_dimension),
+                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension)),
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=wrs)))
 
             # Using a mvn to predict action probability
