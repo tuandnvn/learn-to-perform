@@ -91,10 +91,11 @@ class PolicyEstimator():
                 inputs=state_expanded,
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.zeros_initializer))
+                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension))))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
+            We look for sigma value ~ 0.2
             """
             self.sigma_layer = 0.5 * tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,

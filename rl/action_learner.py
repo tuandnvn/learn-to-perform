@@ -14,10 +14,16 @@ from gym.wrappers import TimeLimit
 
 def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
     action_means, action_stds = policy_estimator.predict(state, sess = session)
+
+    variances = action_stds ** 2
                     
-    actions = np.random.multivariate_normal(action_means,np.diag(action_stds), size = no_of_actions)
+    actions = np.random.multivariate_normal(action_means,np.diag(variances), size = no_of_actions)
 
     return action_means, action_stds, actions
+
+
+def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
+    pass
 
 # def best_n_random_action(n):
 #     def best_random_action (state, policy_estimator, verbose = False):
@@ -165,6 +171,7 @@ class ActionLearner(object):
                         break
 
                     if verbose:
+                        print ((action_means, action_stds))
                         print ('best reward = %.2f' % best_reward)
 
                     # At this point, best_action corresponds to the best reward

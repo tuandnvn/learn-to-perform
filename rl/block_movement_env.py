@@ -461,7 +461,7 @@ class BlockMovementEnv(gym.Env):
             X, Y = np.meshgrid(x_range, y_range)
             z = mlab.bivariate_normal(X, Y, action_stds[0], action_stds[1],
                  action_means[0], action_means[1])
-            plt.contour(x_range, y_range, z, 4, alpha = 0.3)
+            plt.contour(x_range, y_range, z, 10, alpha = 0.3)
 
         plt.show()
 
