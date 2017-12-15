@@ -54,7 +54,7 @@ if __name__ == '__main__':
                                            policy_est, value_est, session = sess)
             action_policy = action_learner.random_action
 
-            _, stats = action_ln.policy_learn(action_policy, breadth = 3, verbose = False, choice = action_learner.ACTOR_CRITIC)
+            _, stats = action_ln.policy_learn(action_policy, breadth = 1, verbose = False, choice = action_learner.ACTOR_CRITIC)
 
             stat_file = os.path.join('session_data_actor_critic', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
             with open(stat_file, 'wb') as f:

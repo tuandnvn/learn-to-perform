@@ -267,10 +267,10 @@ class BlockMovementEnv(gym.Env):
             while pos < path_distance and frame_counter < frames:
                 new_obj = obj.clone()
 
-                interpolated_position = (pos / path_distance) * next_transform.position +\
-                    (1 - pos/path_distance) * prev_transform.position
-                interpolated_rotation = (pos / path_distance) * next_transform.rotation +\
-                    (1 - pos/path_distance) * prev_transform.rotation
+                interpolated_position = (pos / path_distance) * prev_transform.position +\
+                    (1 - pos/path_distance) * next_transform.position
+                interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
+                    (1 - pos/path_distance) * next_transform.rotation
 
                 new_obj.transform.position = interpolated_position
                 new_obj.transform.rotation = interpolated_rotation
@@ -388,7 +388,8 @@ class BlockMovementEnv(gym.Env):
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
         self.e.add_object(o)
-        o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
+        #o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
+        o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
         self.e.add_object(o)
 
         last_frames = self.capture_last(frames = 2)

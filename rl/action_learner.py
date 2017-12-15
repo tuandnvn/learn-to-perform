@@ -38,7 +38,7 @@ def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose =
 
     greedy_actions = np.random.multivariate_normal(action_means,np.diag(variances), size = len(action_choices[action_choices == 0])) 
 
-    random_actions = 
+    # Need to do more
 
     
 
@@ -78,7 +78,7 @@ class ActionLearner(object):
     
 
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, value_estimator, limit_step = 50, session = None):
+            policy_estimator, value_estimator, limit_step = 20, session = None):
         """
         Parameters:
         -----------
