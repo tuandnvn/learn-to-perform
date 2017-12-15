@@ -385,7 +385,7 @@ class BlockMovementEnv(gym.Env):
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
         self.e.add_object(o)
-        o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
+        o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
         self.e.add_object(o)
 
         last_frames = self.capture_last(frames = 2)

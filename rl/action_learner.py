@@ -22,8 +22,11 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
     return action_means, action_stds, actions
 
 
-def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
-    pass
+def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose = False, session = None, epsilon = 0.2):
+    """
+    In epsilon-amount of time, just do a random search over the whole space 
+    """
+    
 
 # def best_n_random_action(n):
 #     def best_random_action (state, policy_estimator, verbose = False):
@@ -166,9 +169,9 @@ class ActionLearner(object):
                                 best_reward = reward
                                 best_action = action
 
-                    if best_reward < 0:
-                        # This action is not worth taking
-                        break
+                    # if best_reward < 0:
+                    #     # This action is not worth taking
+                    #     break
 
                     if verbose:
                         print ((action_means, action_stds))
