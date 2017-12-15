@@ -6,17 +6,19 @@ import numpy as np
 import collections
 import itertools
 
+from . import uniform_env_space
 from . import block_movement_env as bme
 import plotting
 import traceback
 
 from gym.wrappers import TimeLimit
+from gym.utils import seeding
 
 def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
     action_means, action_stds = policy_estimator.predict(state, sess = session)
 
     variances = action_stds ** 2
-                    
+
     actions = np.random.multivariate_normal(action_means,np.diag(variances), size = no_of_actions)
 
     return action_means, action_stds, actions
@@ -25,20 +27,38 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
 The problem with the current learning algorithm is that gaussian distribution focus a lot on just one point, 
 where as we might want to do some exploratory move as well
 """
-def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose = False, session = None, epsilon = 0.2):
+def epsilon_greedy_action( state, policy_estimator, uniform_space, no_of_actions = 1, verbose = False, session = None, epsilon = 0.3):
     """
-    In epsilon-amount of time, just do a random search over the whole space 
+    In epsilon-amount of time, just use uniform_space instead of policy_estimator
     """
     """When action_choice == 0, do the greedy action; when action choice == 1, random an action"""
     action_means, action_stds = policy_estimator.predict(state, sess = session)
 
     variances = action_stds ** 2
 
-    action_choices = np.random.choice(2, no_of_actions, p = [epsilon, 1 - epsilon])
+    action_choices = np.random.choice(2, no_of_actions, p = [1 - epsilon, epsilon])
 
-    greedy_actions = np.random.multivariate_normal(action_means,np.diag(variances), size = len(action_choices[action_choices == 0])) 
+    no_greedy = len(action_choices[action_choices == 0])
+    no_random = len(action_choices[action_choices == 1])
 
-    # Need to do more
+    if verbose:
+        print ((action_means, variances))
+
+    greedy_actions = np.random.multivariate_normal(action_means,np.diag(variances), size = no_greedy) 
+
+    if no_random == 0:
+        return action_means, action_stds, greedy_actions
+
+    random_actions = []
+    for i in range(no_random):
+        random_actions.append(uniform_space.sample())
+
+    if no_greedy == 0:
+        return action_means, action_stds, np.array(random_actions)
+
+    actions = np.concatenate([greedy_actions, random_actions], axis = 0)
+
+    return action_means, action_stds, actions
 
     
 
@@ -56,6 +76,7 @@ def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose =
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
+Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
 class ActionLearner(object):
     """
@@ -74,8 +95,6 @@ class ActionLearner(object):
     so that we can expose the logics of saving/loading models to the outside of the learner
     otherwise we have to 
     """
-    Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
-    
 
     def __init__(self, config, project, progress_estimator, 
             policy_estimator, value_estimator, limit_step = 20, session = None):
@@ -104,6 +123,14 @@ class ActionLearner(object):
         self.limit_step = limit_step
 
         self.session = session
+
+        self.np_random, _ = seeding.np_random(None)
+
+        playground_x = [self.config.block_size-1,self.config.block_size-1, 0]
+        playground_dim = [2-2*self.config.block_size, 2-2*self.config.block_size, np.pi/2]
+        self.uniform_space = uniform_env_space.Uniform(p = playground_x, 
+                                         dimension = playground_dim, 
+                                         randomizer = self.np_random)
 
     def policy_learn( self , action_policy, depth = 1, breadth = 1, 
             verbose = False, choice = REINFORCE, default = False):
@@ -165,7 +192,7 @@ class ActionLearner(object):
                     best_action = None
                     best_reward = -1
 
-                    action_means, action_stds, actions = random_action(state, self.policy_estimator, 
+                    action_means, action_stds, actions = random_action(state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
                     for breadth_step in range(breadth):
@@ -249,9 +276,19 @@ class ActionLearner(object):
 
                 if choice == REINFORCE:
                     accumulate_reward = 0
+
+                    # We just cut 
+                    already_cut_negative_reward = False
                     # Go from backward
                     for t in range(len(episode)-1, -1, -1):
                         state, action, reward, _, _ = episode[t]
+
+                        if not already_cut_negative_reward:
+                            if reward < 0:
+                                continue
+                            else:
+                                already_cut_negative_reward = True
+                         
                         # G_t
                         accumulate_reward = accumulate_reward * discount_factor + reward
 
@@ -292,7 +329,7 @@ class ActionLearner(object):
                         
 
                         loss, _ = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
-                        print ('loss = %.2f' % loss)
+                        #print ('loss = %.2f' % loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()

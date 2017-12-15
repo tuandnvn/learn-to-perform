@@ -7,7 +7,7 @@ class Config (object):
 
 	n_objects = 2 #
 	block_size = 0.15
-	progress_threshold = 0.5
+	progress_threshold = 0.7
 
 	num_steps = 20
 	n_input = 13

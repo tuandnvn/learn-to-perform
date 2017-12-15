@@ -197,7 +197,7 @@ class BlockMovementEnv(gym.Env):
 
         return Command(position, rotation)
 
-    def get_observation_and_progress(self):
+    def get_observation_and_progress(self, verbose = False):
         # captures the last self.num_steps + 1 frames
         # last_num_steps_frames is a SESSION
         last_num_steps_frames = self.capture_last(self.num_steps + 1)
@@ -209,6 +209,9 @@ class BlockMovementEnv(gym.Env):
         # because we can make last_num_steps_frames a little bit longer
         # so we just clip down a little bit
         inputs = self._get_features(last_num_steps_frames)[-self.num_steps:]
+
+        if verbose:
+            print (inputs)
 
         # inputs: np.array (config.batch_size, self.num_steps, n_input)
         inputs = np.repeat(np.expand_dims(inputs, axis = 0), self.config.batch_size, axis = 0)
@@ -388,8 +391,8 @@ class BlockMovementEnv(gym.Env):
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
         self.e.add_object(o)
-        #o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
-        o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
+        o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
+        # o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
         self.e.add_object(o)
 
         last_frames = self.capture_last(frames = 2)
@@ -399,7 +402,7 @@ class BlockMovementEnv(gym.Env):
 
         return observation
 
-    def replay(self):
+    def replay(self, verbose = True):
         """
         For debugging purpose, we want to replay the session (just showing all the steps has been made from the beginning and progress values)
         """
@@ -422,7 +425,7 @@ class BlockMovementEnv(gym.Env):
             print (next_transform)
             self.step((object_index, next_transform.get_feat(), action_means, action_stds))
 
-            _, progress = self.get_observation_and_progress()
+            _, progress = self.get_observation_and_progress(verbose = verbose)
 
             print ("Progress = %.2f" % progress)
             self._render(action_means = action_means, action_stds = action_stds)

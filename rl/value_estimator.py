@@ -62,6 +62,8 @@ class PolicyEstimator():
         wrs = config.weight_regularizer_scale
 
         self.lr = tf.Variable(0.0, trainable=False)
+
+        hidden_size = 10
         
         with tf.variable_scope(scope): 
             "Declare all placeholders"
@@ -86,18 +88,27 @@ class PolicyEstimator():
             mu_layer is a fully connected layer, produce location/rotation of the action
             
             activation_fn=None because we want a linear function
+
+            Currently the whole problem is that a linear function might not be helpful to learn 
+            this kind of problem
             """
+            # hidden_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+            #     inputs=state_expanded,
+            #     num_outputs=hidden_size,
+            #     activation_fn=tf.nn.sigmoid,
+            #     weights_initializer=tf.random_uniform_initializer(minval=-1.0/(5 * state_dimension), maxval=1.0/(5 * state_dimension))))
+
             self.mu_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension))))
+                weights_initializer=tf.random_uniform_initializer(minval=-1.0/(5 * state_dimension), maxval=1.0/(5 * state_dimension))))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
             We look for sigma value ~ 0.2
             """
-            self.sigma_layer = 0.5 * tf.squeeze(tf.contrib.layers.fully_connected(
+            self.sigma_layer = 0.2 * tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=state_expanded,
                 num_outputs=sigma_dimension,
                 activation_fn=tf.nn.sigmoid,
