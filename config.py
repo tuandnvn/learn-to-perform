@@ -1,7 +1,7 @@
 import numpy as np
 
 class Config (object):
-	# For reinforce learnign
+	# For reinforce learning
 	playground_x = [-1,-1, 0]
 	playground_dim = [2, 2, np.pi/2]
 

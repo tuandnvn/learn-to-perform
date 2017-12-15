@@ -94,8 +94,11 @@ class BlockMovementEnv(gym.Env):
         
         self._seed()
         
-        self.object_space = uniform_env_space.Uniform(p = self.playground_x, 
-                                         dimension = self.playground_dim, 
+        # Just hard code
+        playground_x = [self.block_size-1,self.block_size-1, 0]
+        playground_dim = [2-2*self.block_size, 2-2*self.block_size, np.pi/2]
+        self.object_space = uniform_env_space.Uniform(p = playground_x, 
+                                         dimension = playground_dim, 
                                          randomizer = self.np_random)
         
         # frame need to be subtracted from previous segment of movement

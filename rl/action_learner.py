@@ -21,11 +21,25 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
 
     return action_means, action_stds, actions
 
-
+"""
+The problem with the current learning algorithm is that gaussian distribution focus a lot on just one point, 
+where as we might want to do some exploratory move as well
+"""
 def epsilon_greedy_action( state, policy_estimator, no_of_actions = 1, verbose = False, session = None, epsilon = 0.2):
     """
     In epsilon-amount of time, just do a random search over the whole space 
     """
+    """When action_choice == 0, do the greedy action; when action choice == 1, random an action"""
+    action_means, action_stds = policy_estimator.predict(state, sess = session)
+
+    variances = action_stds ** 2
+
+    action_choices = np.random.choice(2, no_of_actions, p = [epsilon, 1 - epsilon])
+
+    greedy_actions = np.random.multivariate_normal(action_means,np.diag(variances), size = len(action_choices[action_choices == 0])) 
+
+    random_actions = 
+
     
 
 # def best_n_random_action(n):
