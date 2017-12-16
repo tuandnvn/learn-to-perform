@@ -63,6 +63,12 @@ class PolicyEstimator():
 
         self.lr = tf.Variable(0.0, trainable=False)
 
+        """
+        After trying to learn sigma value, we might want to give up a
+        and just set it value for each episode
+        """
+        self.sigma_layer = tf.Variable([1,1,1], dtype = tf.float32, trainable=False)
+
         hidden_size = 10
         
         with tf.variable_scope(scope): 
@@ -82,6 +88,8 @@ class PolicyEstimator():
             
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
+
+            
             
             state_expanded = tf.expand_dims(self.state, 0)
             """
@@ -108,11 +116,11 @@ class PolicyEstimator():
             Using softplus so that the output would be > 0 but we also don't want 0
             We look for sigma value ~ 0.2
             """
-            self.sigma_layer = 0.2 * tf.squeeze(tf.contrib.layers.fully_connected(
-                inputs=state_expanded,
-                num_outputs=sigma_dimension,
-                activation_fn=tf.nn.sigmoid,
-                weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension))))
+            # self.sigma_layer = 0.2 * tf.squeeze(tf.contrib.layers.fully_connected(
+            #     inputs=state_expanded,
+            #     num_outputs=sigma_dimension,
+            #     activation_fn=tf.nn.sigmoid,
+            #     weights_initializer=tf.random_uniform_initializer(minval=1.0/(5 * state_dimension), maxval=2.0/(5 * state_dimension))))
 
             # Using a mvn to predict action probability
             mvn = tf.contrib.distributions.Normal(
@@ -162,6 +170,11 @@ class PolicyEstimator():
         sess = sess or tf.get_default_session()
         
         sess.run(tf.assign(self.lr, lr_value))
+
+    def assign_sigma(self, sigma_value, sess=None):
+        sess = sess or tf.get_default_session()
+        
+        sess.run(tf.assign(self.sigma_layer, sigma_value))
 
 
 class ValueEstimator():

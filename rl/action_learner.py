@@ -166,6 +166,8 @@ class ActionLearner(object):
         past_envs = []
 
         for i_episode in range(num_episodes):
+            sigma = self.config.start_sigma * ( self.config.end_sigma / self.config.start_sigma ) ** (float(i_episode) / num_episodes)
+
             if verbose:
                 print ('========================================')
 
@@ -173,6 +175,7 @@ class ActionLearner(object):
                 progress_estimator = self.progress_estimator, session = self.session), max_episode_steps=self.limit_step)
             policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** i_episode
             self.policy_estimator.assign_lr( policy_rate, sess= self.session )
+            self.policy_estimator.assign_sigma( sigma, sess= self.session )
 
             value_rate = self.config.value_learning_rate * self.config.value_decay ** i_episode
             self.value_estimator.assign_lr( value_rate, sess= self.session )

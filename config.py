@@ -50,7 +50,10 @@ class Config (object):
 	value_learning_rate = 0.01
 	value_decay = 0.96
 
+	# values used for sigma
 	constraint_sigma = 0.0
+	start_sigma = np.array([1.0, 1.0, 0.5])
+	end_sigma = np.array([0.05, 0.05, 0.05])
 
 class Raw_Config (Config):
 	n_input = 40
