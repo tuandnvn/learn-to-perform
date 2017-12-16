@@ -46,14 +46,15 @@ class Config (object):
 	# value estimator
 	weight_regularizer_scale = 0.1
 	policy_learning_rate = 0.01
-	policy_decay = 0.96
+	policy_decay = 0.98
 	value_learning_rate = 0.01
-	value_decay = 0.96
+	value_decay = 0.98
+	# Set policy decay and value_decay to 1 makes nan values?
 
 	# values used for sigma
 	constraint_sigma = 0.0
 	start_sigma = np.array([1.0, 1.0, 0.5])
-	end_sigma = np.array([0.05, 0.05, 0.05])
+	end_sigma = np.array([0.1, 0.1, 0.1])
 
 class Raw_Config (Config):
 	n_input = 40

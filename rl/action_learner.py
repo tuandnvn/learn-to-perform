@@ -242,11 +242,11 @@ class ActionLearner(object):
                     
                     # Print out which step we're on, useful for debugging.
                     if verbose:
-                        print("Step {} @ Episode {}/{} ({})".format(
-                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode]))
+                        print("Step {} @ Episode {}/{} ({}), (sigma = {})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode], sigma))
                     else:
-                        print("\rStep {} @ Episode {}/{} ({})".format(
-                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
+                        print("\rStep {} @ Episode {}/{} ({}), (sigma = {})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1], sigma), end="")
                     #sys.stdout.flush()
 
                     if choice == ACTOR_CRITIC:
@@ -318,7 +318,7 @@ class ActionLearner(object):
                         add a scaling factor correspond to the advantage
                         
                         """
-
+                        
                         self.value_estimator.update(state, accumulate_reward, sess= self.session)
 
                         predicted_reward = self.value_estimator.predict(state, sess= self.session)
