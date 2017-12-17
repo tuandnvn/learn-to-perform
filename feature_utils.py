@@ -386,11 +386,11 @@ def standardize(session):
      [  1.   5.   0.   0.  -1.  -1.   1.   1.   7.   7.   0.   0.   0.]
      [  2.   4.   1.  -1.  -1.   1.   1.   1.   5.   8.  -3.  -2.   1.]
     """
-    session[SESSION_FEAT_STAND] = []
+    standardized = []
     for frame in range(session[SESSION_LEN]):
         f1, f2, f3, f4, f5, f6, f7, f8, _, _, _, _, _ = session[SESSION_FEAT][frame]
 
-        session[SESSION_FEAT_STAND].append([float(f1)/8, math.tanh(float(f2)/2), math.tanh(f3), math.tanh(f4), math.tanh(f5), math.tanh(f6), math.tanh(f7), math.tanh(f8)])
+        standardized.append([float(f1)/8, float(f2)/10, math.tanh(f3/2), math.tanh(f4/2), math.tanh(f5/2), math.tanh(f6/2), math.tanh(f7/2), math.tanh(f8/2)])
 
 
-    session[SESSION_FEAT] = session[SESSION_FEAT_STAND]
+    session[SESSION_FEAT] = standardized
