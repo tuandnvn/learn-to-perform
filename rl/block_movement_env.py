@@ -32,6 +32,10 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
 from importlib import reload
 reload (simulator2d)
 # reload(feature_utils)
+
+SPEED = 'SPEED'
+WHOLE = 'WHOLE'
+
 class BlockMovementEnv(gym.Env):
     """
     This class encapsulate an environment, allowing checking constraints of the environment
@@ -222,7 +226,7 @@ class BlockMovementEnv(gym.Env):
 
         return (observation, progress)
 
-    def capture_last(self, frames):
+    def capture_last(self, frames, mode = WHOLE):
         """
         Capture movement of objects during the last number of frames
         frames should be num_step + 1
@@ -232,6 +236,10 @@ class BlockMovementEnv(gym.Env):
         Args:
         -----
             frames (int): # of frames
+            mode: important flag, if mode == 'SPEED' -> Always interpolate depend on project.speed (It would not work when scale increase)
+                                                    because it seems like most of the time it just give the progress score for very last frames
+                                  if mode == 'WHOLE' -> Always interpolate from begining -> should be better because it explains the whole process 
+                                                    that the user see.
 
         Returns:
         --------
@@ -259,41 +267,91 @@ class BlockMovementEnv(gym.Env):
         for i in range(self.n_objects):
             captures[i].append(self.e.objects[i])
 
-        for object_index, prev_transform, next_transform, _, _, success, _, _ in self.action_storage[::-1]:
-            if not success:
-                continue
-            obj = self.e.objects[object_index]
+        if mode == SPEED:
+            for object_index, prev_transform, next_transform, _, _, success, _, _ in self.action_storage[::-1]:
+                if not success:
+                    continue
+                obj = self.e.objects[object_index]
 
-            path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
+                path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
 
-            pos = self.speed - left_over_distance
-            while pos < path_distance and frame_counter < frames:
-                new_obj = obj.clone()
+                pos = self.speed - left_over_distance
+                while pos < path_distance and frame_counter < frames:
+                    new_obj = obj.clone()
 
-                interpolated_position = (pos / path_distance) * prev_transform.position +\
-                    (1 - pos/path_distance) * next_transform.position
-                interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
-                    (1 - pos/path_distance) * next_transform.rotation
+                    interpolated_position = (pos / path_distance) * prev_transform.position +\
+                        (1 - pos/path_distance) * next_transform.position
+                    interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
+                        (1 - pos/path_distance) * next_transform.rotation
 
-                new_obj.transform.position = interpolated_position
-                new_obj.transform.rotation = interpolated_rotation
+                    new_obj.transform.position = interpolated_position
+                    new_obj.transform.rotation = interpolated_rotation
 
-                captures[object_index].append(new_obj)
+                    captures[object_index].append(new_obj)
 
-                # For static objects, just add the last frames
-                for i in range(self.n_objects):
-                    if i != object_index:
-                        captures[i].append(captures[i][-1])
+                    # For static objects, just add the last frames
+                    for i in range(self.n_objects):
+                        if i != object_index:
+                            captures[i].append(captures[i][-1])
 
-                pos += self.speed
-                frame_counter += 1
+                    pos += self.speed
+                    frame_counter += 1
 
-            # We have enough frames, don't need to trace back anymore
-            if frame_counter >= frames:
-                break
-            else:
-                # pos >= path_distance
-                # recalculate left_over_distance for next action
+                # We have enough frames, don't need to trace back anymore
+                if frame_counter >= frames:
+                    break
+                else:
+                    # pos >= path_distance
+                    # recalculate left_over_distance for next action
+                    left_over_distance = pos - path_distance
+        elif mode == WHOLE:
+            # First pass:
+            # Calculate the total travelling distance
+            total_path_distance = 0.0
+            for object_index, prev_transform, next_transform, _, _, success, _, _ in self.action_storage[::-1]:
+                if not success:
+                    continue
+                obj = self.e.objects[object_index]
+
+                path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
+
+                total_path_distance += path_distance
+
+            # Actual speed
+            frame_distance = total_path_distance / (frames - 1)
+
+            for object_index, prev_transform, next_transform, _, _, success, _, _ in self.action_storage[::-1]:
+                # After each loop, left_over_distance < frame_distance
+                if not success:
+                    continue
+                obj = self.e.objects[object_index]
+
+                path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
+
+                pos = frame_distance - left_over_distance
+
+                while pos < path_distance:
+                    new_obj = obj.clone()
+
+                    interpolated_position = (pos / path_distance) * prev_transform.position +\
+                        (1 - pos/path_distance) * next_transform.position
+                    interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
+                        (1 - pos/path_distance) * next_transform.rotation
+
+                    new_obj.transform.position = interpolated_position
+                    new_obj.transform.rotation = interpolated_rotation
+
+                    captures[object_index].append(new_obj)
+
+                    # For static objects, just add the last frames
+                    for i in range(self.n_objects):
+                        if i != object_index:
+                            captures[i].append(captures[i][-1])
+
+                    pos += frame_distance
+                    frame_counter += 1
+
+                # 0 <= left_over_distance < frame_distance
                 left_over_distance = pos - path_distance
 
         # back to the beginning, just interpolate the last frame
@@ -373,7 +431,7 @@ class BlockMovementEnv(gym.Env):
                 retry += 1
             
 
-        last_frames = self.capture_last(frames = 2)
+        last_frames = self.capture_last(frames = 2, mode = SPEED)
 
         # Set the first observation
         observation = self._get_observation(last_frames)
@@ -395,12 +453,20 @@ class BlockMovementEnv(gym.Env):
         # o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
         self.e.add_object(o)
 
-        last_frames = self.capture_last(frames = 2)
+        last_frames = self.capture_last(frames = 2, mode = SPEED)
 
         # Set the first observation
         observation = self._get_observation(last_frames)
 
         return observation
+
+    def default_action(self):
+        """
+        Use for default setup, for debugging purpose
+        """
+        self._step((0, [ -0.8, 0.6,  0.5], None, None))
+        self._step((0, [ -0.3, 0.6,  0.5], None, None))
+        self._step((0, [ -0.1, 0.1,  0.5], None, None))
 
     def replay(self, verbose = True):
         """

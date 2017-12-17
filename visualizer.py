@@ -4,6 +4,9 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import collections as mc
 from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_OBJ_2D, START, END
+import io
+import base64
+from IPython.display import HTML, display_html
 
 colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1), 
           (0.5, 0.5, 0, 1), (0,0.5, 0.5,1), (0.5, 0, 0.5,1),
@@ -54,7 +57,7 @@ def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6
     ax.set_yticks(np.arange(min_y, max_y, 0.1))
     ax.set_xlim([min_x, max_x])
     ax.set_ylim([min_y, max_y])
-    fig.set_size_inches(20, 12)
+    fig.set_size_inches(6, 6)
 
     ax.autoscale()
     ax.margins(0.1)
@@ -81,13 +84,18 @@ def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6
     # the video can be embedded in html5.  You may need to adjust this for
     # your system: for more information, see
     # http://matplotlib.sourceforge.net/api/animation_api.html
-    anim.save(name, fps=30, extra_args=['-vcodec', 'libx264'])
+    if name:
+        anim.save(name, fps=30, extra_args=['-vcodec', 'libx264'])
     
-    if show:
-        plt.show()
+        if show:
+            video = io.open(name, 'r+b').read()
+            encoded = base64.b64encode(video)
+            display_html(HTML(data='''<video alt="test" controls>
+                            <source src="data:video/mp4;base64,{0}" type="video/mp4" />
+                         </video>'''.format(encoded.decode('ascii'))))
 
 def animate_event(session, event_index, min_x = -.6, max_x = 1, min_y =  -.6, max_y = 1, 
-                name = "event.mp4", show = True, colors = colors ):
+                name = 'temp.mp4', show = True, colors = colors ):
     """
     Visualize an event in the session, given the event_index
     """
