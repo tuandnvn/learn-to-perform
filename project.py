@@ -40,7 +40,10 @@ class ProjectData(object):
     @staticmethod
     def load(file_path):
         with open(file_path, 'rb') as f: 
-            return pickle.load(f)
+            if sys.version_info >= (3,0):
+                return pickle.load(f, encoding='latin-1')
+            else:
+                return pickle.load(f)
         print('----Done loading project data---') 
         
 class Project(object):
@@ -82,6 +85,9 @@ class Project(object):
     
         for session in self.sessions:
             self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
+            
+            # Rescale feature
+            feature_utils.standardize(session)
 
     def generate_data(self, linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator):
@@ -89,7 +95,7 @@ class Project(object):
         # rearranged_data = (samples, num_steps, data_point_size)
         # rearranged_lbls = (samples, num_steps)
         self.rearranged_data, self.rearranged_lbls = generate_utils.turn_to_intermediate_data(self, 
-            self.feature_size, self.config.num_steps, self.config.hop_step, 
+            self.config.n_input, self.config.num_steps, self.config.hop_step, 
             linear_progress_lbl_func = linear_progress_lbl_func)
 
         # Generate training and testing data 

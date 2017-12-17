@@ -161,6 +161,7 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step,
     rearranged_data: (# samples, num_steps, n_input)
     rearranged_lbls: (# samples, num_steps)
     """
+    print ('turn_to_intermediate_data with n_input = %d, num_steps = %d, hop_step = %d' % (n_input, num_steps, hop_step))
     samples = 0   # Number of samples of interpolating
     
     for session_data in project_data:

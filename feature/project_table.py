@@ -80,7 +80,7 @@ def get_projected_point (p, plane):
     return p - plane[:3] * t
 
 
-def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.18 ):
+def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_size = 0.15 ):
     """
     To estimate the transform from the projected coordination
 

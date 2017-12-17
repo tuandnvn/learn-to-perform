@@ -10,7 +10,7 @@ class Config (object):
 	progress_threshold = 0.7
 
 	num_steps = 20
-	n_input = 13
+	n_input = 8
 	
 	state_dimension = 12
 	action_dimension = 3

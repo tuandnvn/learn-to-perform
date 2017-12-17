@@ -21,6 +21,7 @@ SESSION_EVENTS = "session_events"
 SESSION_LEN = "session_length"
 SESSION_FEAT = "session_feature"
 SESSION_OBJ_2D = "session_obj_2d"
+SESSION_FEAT_STAND = "session_feature_standardized"
 
 START = "start"
 END = "end"

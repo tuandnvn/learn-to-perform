@@ -9,11 +9,12 @@ delineated by the table surface
 
 Also handling QSR features 
 '''
+import math
 import numpy as np
 import bisect
 
 from feature.project_table import project_markers, estimate_cube_2d
-from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION, SESSION_OBJ_2D, SESSION_FEAT
+from utils import SESSION_OBJECTS, SESSION_LEN, BLOCK_SIZE, ROTATION_QUANTIZATION, SESSION_OBJ_2D, SESSION_FEAT, SESSION_FEAT_STAND
 import session_utils
 
 from qsrlib.qsrlib import QSRlib, QSRlib_Request_Message
@@ -355,3 +356,41 @@ def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     diff_feature_chain = np.concatenate ( [need_diff_chain, padded_diff_chain, feature_chain[:, diff_feature:]], axis = 1 )
     
     return diff_feature_chain
+
+def standardize(session):
+    """
+    The qualitative features sometimes doesn't seem to work very well
+    so we need a mechanism to standarize them.
+    Basically, let's just rescale:
+    1,2: / max abs value
+    3,4,5,6,7,8: tanh(value) (rescale to -1 to 1)
+    9, 10: throw away
+    11, 12, 13: tanh(value) (rescale to -1 to 1) throw away (temporarily)
+
+
+    Sample of current features
+     -1: cardinal direction between two centers
+     -2: distance btw two centers
+     -3: delta(1)
+     -4: delta(2)
+     -5,6,7,8: qtccs
+     -9: o1 orientation (need to standarize to positive)
+     -10: o2 orientation (need to standarize to positive)
+     -11: 9 diff 10
+     -12: delta(9)
+     -13: delta(10)
+     [  0.   5.   0.   0.  -1.   0.   1.   0.  -5.   8. -13. -11.   0.]
+     [  0.   4.   0.  -1.  -1.   0.   1.   0.  -1.   8.  -9.   4.   0.]
+     [  1.   4.   1.   0.  -1.   1.   1.  -1.   3.   8.  -5.   4.   0.]
+     [  1.   5.   0.   1.   1.   1.   1.  -1.   7.   7.   0.   4.  -1.]
+     [  1.   5.   0.   0.  -1.  -1.   1.   1.   7.   7.   0.   0.   0.]
+     [  2.   4.   1.  -1.  -1.   1.   1.   1.   5.   8.  -3.  -2.   1.]
+    """
+    session[SESSION_FEAT_STAND] = []
+    for frame in range(session[SESSION_LEN]):
+        f1, f2, f3, f4, f5, f6, f7, f8, _, _, _, _, _ = session[SESSION_FEAT][frame]
+
+        session[SESSION_FEAT_STAND].append([float(f1)/8, math.tanh(float(f2)/2), math.tanh(f3), math.tanh(f4), math.tanh(f5), math.tanh(f6), math.tanh(f7), math.tanh(f8)])
+
+
+    session[SESSION_FEAT] = session[SESSION_FEAT_STAND]
