@@ -31,7 +31,7 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
 
 from importlib import reload
 reload (simulator2d)
-# reload(feature_utils)
+reload(feature_utils)
 
 SPEED = 'SPEED'
 WHOLE = 'WHOLE'
@@ -401,6 +401,8 @@ class BlockMovementEnv(gym.Env):
         """
         feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 
+        feature_utils.standardize(session)
+        
         return session[SESSION_FEAT]
     
     def _reset(self):
