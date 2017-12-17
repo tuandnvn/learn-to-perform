@@ -464,9 +464,10 @@ class BlockMovementEnv(gym.Env):
         """
         Use for default setup, for debugging purpose
         """
-        self._step((0, [ -0.8, 0.6,  0.5], None, None))
-        self._step((0, [ -0.3, 0.6,  0.5], None, None))
-        self._step((0, [ -0.1, 0.1,  0.5], None, None))
+        self._step((0, [ -0.75, 0.5,  0.5], None, None))
+        self._step((0, [ -0.3, 0.55,  0.5], None, None))
+        self._step((0, [ -0.2, 0.15,  0.5], None, None))
+        self._step((0, [ -0.5, 0.0,  0.5], None, None))
 
     def replay(self, verbose = True):
         """
@@ -475,7 +476,6 @@ class BlockMovementEnv(gym.Env):
         action_storage_clone = self.action_storage[:]
         while self.back():
             continue
-
 
         prev_graph_size = self.graph_size
 

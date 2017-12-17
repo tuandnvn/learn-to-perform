@@ -47,7 +47,7 @@ def plot (session, from_frame, to_frame, show = True):
         plt.show()
 
 def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6, max_y = 1, 
-                name = "event.mp4", show = True, colors = colors):
+                name = "temp.mp4'", show = True, colors = colors):
     """
     
     """
