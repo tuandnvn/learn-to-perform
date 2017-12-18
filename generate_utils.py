@@ -1,6 +1,7 @@
 import numpy as np
 from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_FEAT,\
             START, END, LABEL
+from simulator.utils import Cube2D
 
 def generate_data(rearranged_data, rearranged_lbls, config) :
     """
@@ -165,9 +166,9 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step,
     samples = 0   # Number of samples of interpolating
     
     for session_data in project_data:
-        correct_no_samples = ( session_data[SESSION_LEN] - num_steps ) // hop_step + 1
+        session_sample = ( session_data[SESSION_LEN] - num_steps ) // hop_step + 1
         
-        samples += correct_no_samples
+        samples += session_sample
         
     print('Total number of samples ' + str(samples))
 
@@ -179,19 +180,189 @@ def turn_to_intermediate_data(project_data, n_input, num_steps, hop_step,
     for session_data in project_data:
         feature_data = session_data[SESSION_FEAT]
                
-        correct_no_samples = ( len(feature_data) - num_steps ) // hop_step + 1
+        session_sample = ( len(feature_data) - num_steps ) // hop_step + 1
     
         lbls = linear_progress_lbl_func(session_data)
         print (lbls.shape)
         
-        for i in range(correct_no_samples):
+        for i in range(session_sample):
             for j in range(num_steps):
                 interpolated_data[( ( sample_counter + i ) * num_steps + j)] =\
                              feature_data[i * hop_step + j]
                     
                 interpolated_lbls[( ( sample_counter + i ) * num_steps + j)] = lbls[i * hop_step + j]
             
-        sample_counter += correct_no_samples
+        sample_counter += session_sample
+    
+    # Divide the first dimension from samples * num_steps -> (samples, num_steps)
+    rearranged_data = interpolated_data.reshape((samples, num_steps, n_input))
+    
+    rearranged_lbls = interpolated_lbls.reshape((samples, num_steps))
+    
+    return (rearranged_data, rearranged_lbls)
+
+def get_rescale ( session_data, from_frame, to_frame, scale):
+    """
+    To generate some data from_frame, to_frame at a scale
+    
+    For example, we can generate data from 0 to 30 (exclusive) at scale 1.5 -> result is 20 frames
+
+    We should only accept .5
+
+    Parameters:
+    -----------
+    session_data: typical session data
+
+    Return:
+    ----------
+    
+    """
+    assert np.isclose(scale * 2, int(scale * 2))
+
+    result = []
+    if np.isclose(scale, int(scale)):
+        # Downscaling
+        t = int(scale)
+        for i in range(from_frame, to_frame, t):
+            result.append( session_data[SESSION_FEAT][i] )
+
+        return result
+
+    else:
+        t = int(scale * 2)
+        for i in range(from_frame, to_frame, t):
+            result.append( session_data[SESSION_FEAT][i] )
+            middle = np.array(session_data[SESSION_FEAT][int(i + scale)]) * 0.5 + np.array(session_data[SESSION_FEAT][int(i + scale + 1)]) * 0.5
+            result.append( middle )
+        return result
+
+def get_rescale_lbls(lbls, from_frame, to_frame, scale, num_steps):
+    """
+    To generate labels from from_frame to to_frame at a scale
+    
+    For example, we can generate labels for frames from 0 to 30 (exclusive) at scale 1.5 -> result is labels for 20 frames
+
+    We should only accept .5
+
+    We always give some discount of the label over the segment
+    Example:
+    Event: 5 to 33
+    
+    Take segment: 
+    -    0 to 20, scale = 1, -> lbls would be 0 at the begining, than increase to 15/28 at frame 19
+    -    15 to 35, scale = 1 -> it use to be that it would increase to 1 than start to decrease
+                            -> It now only increases to (33-15)/28 before start to decrease. It decreases with twice the rate of increasing
+
+    This way it would be much harder to get to maximum progress value of 1. However, it seems like we give higher progress for 
+    action with no-move at the beginning to action with no-move at the end? That's probably ok because we don't actually have 
+    no-move at the end when we interpolate.
+
+    If this segment crosses two action-demonstrations, we should interpolate according to the last event.
+
+    Parameters:
+    -----------
+    lbls: linear progress labels
+
+    Return:
+    ----------
+    lbsl:  size = num_steps = (to_frame - from_frame) // scale
+    """
+    assert num_steps == (to_frame - from_frame) // scale
+    assert np.isclose(scale * 2, int(scale * 2))
+
+    new_lbls = []
+
+    result = []
+    if np.isclose(scale, int(scale)):
+        # Downscaling
+        t = int(scale)
+        for i in range(from_frame, to_frame, t):
+            result.append( lbls[i] )
+    else:
+        t = int(scale * 2)
+        for i in range(from_frame, to_frame, t):
+            result.append( lbls[i] )
+            lbl = (lbls[int(i + scale)] + lbls[int(i + scale + 1)]) / 2
+            result.append( lbl )
+
+    return np.maximum(result - result[0],[0] * num_steps)
+        
+
+def turn_to_intermediate_data_multiscale(project_data, n_input, num_steps, hop_step, scales = [1.0, 1.5, 2.0]):
+    """
+    A function to generate a pair of batch-data (x, y)
+
+    The difference between this and turn_to_intermediate_data is that
+    this would generate data with different scaling level (1, 1.5, 2 etc.)
+    and also with different kind of progress lbls.
+    For example, if the action is from frame 1 to frame 33
+    [0, 20] ~ 0.7
+    [0, 30] ~ 1 (rescale)
+    [0, 40] ~ 0.9 (rescale)
+
+    We also generate more data than normal because we rescale at different scales
+    
+    Parameters:
+    -----------
+    - project_data: a list of session_data (in ecat-learning, )
+    each session is a dictionary
+    dict_keys(['session_events', 'session_name', 'session_objects', 'session_length'])
+    
+    Notice that you need to preprocess session_data before passing it
+    for each session_data in data:
+        preprocess session_data[SESSION_OBJECTS] into session_data[SESSION_FEAT]:
+        - projecting them into 2d using session_util.project_to2d
+        - interpolate them using session_util.interpolate_multi_object_data
+        - downsample them to an appropriate speed
+        - get feature by running qsr_feature_extractor with the help of get_location_objects_most_active
+    
+    - n_input: Vector feature size
+    - num_steps: A fix number of steps for each sample
+    - hop_step: A fix number of frame offset btw two events
+    - linear_progress_lbl_func: a function that when you give it a session, it gives 
+    you a lbls list of length the same as the session
+    - scales: 
+    
+    Return:
+    -------
+    rearranged_data: (# samples, num_steps, n_input)
+    rearranged_lbls: (# samples, num_steps)
+    """
+    print ('turn_to_intermediate_data_multiscale with n_input = %d, num_steps = %d, hop_step = %d, scales = %s' % (n_input, num_steps, hop_step, str(scales)))
+    samples = 0   # Number of samples of interpolating
+    
+    for session_data in project_data:
+        for scale in scales:
+            session_sample_scale = ( session_data[SESSION_LEN] - int(num_steps * scale) ) // hop_step + 1
+            
+            print ('For scale = %.1f ; session_sample_scale = %d' % (scale, session_sample_scale) )
+            samples += session_sample_scale
+        
+    print('Total number of samples ' + str(samples))
+
+    # At any time, 
+    interpolated_data = np.zeros([samples * num_steps, n_input], dtype=np.float32)
+    interpolated_lbls = np.zeros([samples * num_steps], dtype=np.float32)
+    
+    sample_counter = 0
+    for session_data in project_data:
+        lbls = linear_progress_lbl_generator_retreat(session_data, retreat_phase = 10)
+
+        for scale in scales:
+            feature_data = session_data[SESSION_FEAT]
+                   
+            session_sample_scale = ( len(feature_data) - int(num_steps  * scale) ) // hop_step + 1
+            
+            for i in range(session_sample_scale):
+                # num_steps features
+                scaled_features = get_rescale (session_data, i, i + int(num_steps  * scale), scale)
+                # num_steps lbls
+                scaled_lbls = get_rescale_lbls(lbls, i, i + int(num_steps  * scale), scale, num_steps)
+
+                interpolated_data[( sample_counter + i ) * num_steps:  ( sample_counter + i + 1) * num_steps ] = scaled_features        
+                interpolated_lbls[( sample_counter + i ) * num_steps:  ( sample_counter + i + 1) * num_steps ] = scaled_lbls
+                
+            sample_counter += session_sample_scale
     
     # Divide the first dimension from samples * num_steps -> (samples, num_steps)
     rearranged_data = interpolated_data.reshape((samples, num_steps, n_input))

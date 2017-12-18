@@ -279,13 +279,7 @@ class BlockMovementEnv(gym.Env):
                 while pos < path_distance and frame_counter < frames:
                     new_obj = obj.clone()
 
-                    interpolated_position = (pos / path_distance) * prev_transform.position +\
-                        (1 - pos/path_distance) * next_transform.position
-                    interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
-                        (1 - pos/path_distance) * next_transform.rotation
-
-                    new_obj.transform.position = interpolated_position
-                    new_obj.transform.rotation = interpolated_rotation
+                    new_obj.transform = (pos / path_distance) * prev_transform + (1 - pos/path_distance) * next_transform
 
                     captures[object_index].append(new_obj)
 
@@ -333,13 +327,7 @@ class BlockMovementEnv(gym.Env):
                 while pos < path_distance:
                     new_obj = obj.clone()
 
-                    interpolated_position = (pos / path_distance) * prev_transform.position +\
-                        (1 - pos/path_distance) * next_transform.position
-                    interpolated_rotation = (pos / path_distance) * prev_transform.rotation +\
-                        (1 - pos/path_distance) * next_transform.rotation
-
-                    new_obj.transform.position = interpolated_position
-                    new_obj.transform.rotation = interpolated_rotation
+                    new_obj.transform = (pos / path_distance) * prev_transform + (1 - pos/path_distance) * next_transform
 
                     captures[object_index].append(new_obj)
 
@@ -402,7 +390,7 @@ class BlockMovementEnv(gym.Env):
         feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 
         feature_utils.standardize(session)
-        
+
         return session[SESSION_FEAT]
     
     def _reset(self):
