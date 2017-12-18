@@ -34,6 +34,9 @@ class Transform2D (object):
 	def __mul__(self, scalar):
 		return Transform2D( self.position * scalar, self.rotation * scalar, self.scale * scalar )
 
+	def __rmul__(self, scalar):
+		return self.__mul__(scalar)
+
 class Geometry2D (object):
 	'''
 	markers: a set of points on the geometry object that allow tracking
