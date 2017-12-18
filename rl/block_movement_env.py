@@ -149,13 +149,18 @@ class BlockMovementEnv(gym.Env):
             observation, progress = self.get_observation_and_progress()
             self.action_storage[-1][3:5] = [observation, progress]
         else:
+            """
+            Action failed
+            We can reduce the progress to avoid falling out of the table
+            """
             if len(self.action_storage) > 0:
                 # Just return observation and progress of last action
                 _, _, _, observation, progress, _, _, _ = self.action_storage[-1]
+                progress -= self.config.failed_action_penalty
             else:
                 # First action failed
                 observation, _ = self.get_observation_and_progress()
-                progress = 0
+                progress = -self.config.failed_action_penalty
             
             self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False, action_means, action_stds] )
 
@@ -439,8 +444,8 @@ class BlockMovementEnv(gym.Env):
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
         self.e.add_object(o)
-        o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
-        # o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
+        # o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
+        o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
         self.e.add_object(o)
 
         last_frames = self.capture_last(frames = 2, mode = SPEED)

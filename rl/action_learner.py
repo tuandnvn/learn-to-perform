@@ -198,10 +198,15 @@ class ActionLearner(object):
                     action_means, action_stds, actions = random_action(state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
+                    if verbose:
+                        print ((action_means, action_stds))
+
                     for breadth_step in range(breadth):
                         action = actions[breadth_step]
                         next_state, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
 
+                        if verbose:
+                            print ('action = %s' % str((action, reward)))
                         self.env.env.back()
 
                         if done:
@@ -218,7 +223,6 @@ class ActionLearner(object):
                     #     break
 
                     if verbose:
-                        print ((action_means, action_stds))
                         print ('best reward = %.2f' % best_reward)
 
                     # At this point, best_action corresponds to the best reward
@@ -229,7 +233,7 @@ class ActionLearner(object):
                     #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
                     
                     if verbose:
-                        print ((action, reward, done))
+                        print ('best_action = ' + str((best_action, reward, done)))
 
                     if choice == REINFORCE:
                         transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
@@ -264,6 +268,10 @@ class ActionLearner(object):
                         """
                         # advantage
                         advantage = td_target - predicted_target
+
+                        if verbose:
+                            print ('td_target = %.2f, predicted_target = %.2f, advantage = %.2f' 
+                                % (td_target, predicted_target, advantage) )
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
                         loss, _ = self.policy_estimator.update(state, advantage, action, sess= self.session)
@@ -281,16 +289,16 @@ class ActionLearner(object):
                     accumulate_reward = 0
 
                     # We just cut 
-                    already_cut_negative_reward = False
+                    # already_cut_negative_reward = False
                     # Go from backward
                     for t in range(len(episode)-1, -1, -1):
                         state, action, reward, _, _ = episode[t]
 
-                        if not already_cut_negative_reward:
-                            if reward < 0:
-                                continue
-                            else:
-                                already_cut_negative_reward = True
+                        # if not already_cut_negative_reward:
+                        #     if reward < 0:
+                        #         continue
+                        #     else:
+                        #         already_cut_negative_reward = True
                          
                         # G_t
                         accumulate_reward = accumulate_reward * discount_factor + reward
@@ -318,7 +326,7 @@ class ActionLearner(object):
                         add a scaling factor correspond to the advantage
                         
                         """
-                        
+
                         self.value_estimator.update(state, accumulate_reward, sess= self.session)
 
                         predicted_reward = self.value_estimator.predict(state, sess= self.session)

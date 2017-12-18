@@ -9,7 +9,7 @@ import project
 from project import Project
 
 if __name__ == '__main__':
-    p = project.Project.load("slidearound_hopstep_1.proj")
+    p = project.Project.load("slidearound_hopstep_1_multiscale.proj")
 
     c = config.Config()
     c.num_episodes = 200
@@ -17,9 +17,9 @@ if __name__ == '__main__':
     tf.reset_default_graph()
 
     params = []
-    for policy_learning_rate in [0.002, 0.02]:
+    for policy_learning_rate in [0.002, 0.01]:
         for policy_decay in [0.95, 0.96, 0.97]:
-            for value_learning_rate in [0.002, 0.02]:
+            for value_learning_rate in [0.002, 0.01]:
                 for value_decay in [0.95, 0.96, 0.97]:
                     params.append((policy_learning_rate, policy_decay, 
                         value_learning_rate, value_decay))
@@ -54,9 +54,9 @@ if __name__ == '__main__':
                                            policy_est, value_est, session = sess)
             action_policy = action_learner.random_action
 
-            _, stats = action_ln.policy_learn(action_policy, breadth = 1, verbose = False, choice = action_learner.ACTOR_CRITIC)
+            _, stats = action_ln.policy_learn(action_policy, breadth = 5, verbose = False, choice = action_learner.ACTOR_CRITIC, default = True)
 
-            stat_file = os.path.join('session_data_actor_critic', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
+            stat_file = os.path.join('session_data_actor_critic_1', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
             with open(stat_file, 'wb') as f:
                 pickle.dump(stats, f, pickle.HIGHEST_PROTOCOL)
 

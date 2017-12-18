@@ -90,8 +90,6 @@ class PolicyEstimator():
             self.target = tf.placeholder(name="target", dtype = tf.float32)
 
             
-            
-            state_expanded = tf.expand_dims(self.state, 0)
             """
             mu_layer is a fully connected layer, produce location/rotation of the action
             
@@ -100,17 +98,17 @@ class PolicyEstimator():
             Currently the whole problem is that a linear function might not be helpful to learn 
             this kind of problem
             """
-            # hidden_layer = tf.squeeze(tf.contrib.layers.fully_connected(
-            #     inputs=state_expanded,
-            #     num_outputs=hidden_size,
-            #     activation_fn=tf.nn.sigmoid,
-            #     weights_initializer=tf.random_uniform_initializer(minval=-1.0/(5 * state_dimension), maxval=1.0/(5 * state_dimension))))
+            hidden_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+                inputs=tf.expand_dims(self.state, 0),
+                num_outputs=hidden_size,
+                activation_fn=tf.nn.sigmoid,
+                weights_initializer=tf.random_uniform_initializer(minval=-2.0, maxval=2.0)))
 
             self.mu_layer = tf.squeeze(tf.contrib.layers.fully_connected(
-                inputs=state_expanded,
+                inputs=tf.expand_dims(hidden_layer, 0),
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.random_uniform_initializer(minval=-1.0/(5 * state_dimension), maxval=1.0/(5 * state_dimension))))
+                weights_initializer=tf.random_uniform_initializer(minval=-1.0, maxval=1.0)))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
