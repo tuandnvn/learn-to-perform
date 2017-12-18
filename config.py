@@ -29,13 +29,13 @@ class Config (object):
 	# Progress learner hyper-parameters
 	s2s = False
 	# Typical value for LSTM
-	keep_prob = 0.6
-	hidden_size = 100
+	keep_prob = 0.5
+	hidden_size = 200
 	num_layers = 2
 	max_epoch = 10
-	max_max_epoch = 30
-	lr_decay = 0.97
-	learning_rate = 0.005
+	max_max_epoch = 60
+	lr_decay = 0.95
+	learning_rate = 0.002
 	max_grad_norm = 5
 	epoch_shuffle = False
 	optimizer = 'adam'
