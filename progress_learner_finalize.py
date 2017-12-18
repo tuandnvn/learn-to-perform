@@ -8,19 +8,11 @@ from progress_learner import run_epoch, EventProgressEstimator
 from config import Config
 
 class Final_Config(Config):
-	keep_prob = 0.6
-	hidden_size = 100
-	num_layers = 2
 	max_epoch = 10
-	max_max_epoch = 50
-	lr_decay = 0.97
-	learning_rate = 0.005
-	max_grad_norm = 5
-	epoch_shuffle = False
-	optimizer = 'adam'
+	max_max_epoch = 60
 
 if __name__ == "__main__":
-    p = Project.load("slidearound_hopstep_1.proj")
+    p = Project.load("slidearound_hopstep_1_multiscale.proj")
     
     config = Final_Config()
     
