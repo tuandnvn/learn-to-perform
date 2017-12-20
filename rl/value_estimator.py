@@ -174,7 +174,6 @@ class PolicyEstimator():
         
         sess.run(tf.assign(self.sigma_layer, sigma_value))
 
-
 class ValueEstimator():
     """
     Value Function approximator.

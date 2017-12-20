@@ -89,7 +89,7 @@ class ActionLearner(object):
     - It stores a progress learner (progress_learner.EventProgressEstimator) 
         that have a model be load from a project file path
     - It stores a policy_estimator and a value_estimator
-    - It is a REINFORCE RL learner
+    - It is a REINFORCE or ACTOR_CRITIC RL learner
 
     We don't initialize ActionLearner but we set different components for it
     so that we can expose the logics of saving/loading models to the outside of the learner

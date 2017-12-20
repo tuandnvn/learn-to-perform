@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
             _, stats = action_ln.policy_learn(action_policy, breadth = 5, verbose = False, choice = action_learner.ACTOR_CRITIC, default = True)
 
-            stat_file = os.path.join('session_data_actor_critic_1', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
+            stat_file = os.path.join('session_data_actor_critic_default', 'session.data._%.4f_%.4f_%.4f_%.4f' % param)
             with open(stat_file, 'wb') as f:
                 pickle.dump(stats, f, pickle.HIGHEST_PROTOCOL)
 
