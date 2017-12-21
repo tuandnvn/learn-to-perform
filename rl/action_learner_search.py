@@ -200,7 +200,8 @@ class ActionLearner_Search(object):
 	- All "good" trajectories are kept as update samples for the policy.
 
 	- The target is for the agent to quickly find a good policy 
-
+    - When the number of actions need to search doesn't improve at a step
+    - We might want to split the gaussian models into a gaussian mixture model 
 	
 	"""
 	def __init__(self, config, project, progress_estimator, 
@@ -224,3 +225,11 @@ class ActionLearner_Search(object):
         self.session = session
 
         self.np_random, _ = seeding.np_random(None)
+
+    	select_object = 0
+
+    def learn( self ):
+        for i_loop in range(self.config.no_of_loops):
+            print ('Current loop index = %d' % i_loop)
+
+            

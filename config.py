@@ -53,11 +53,24 @@ class Config (object):
 
 	# values used for sigma
 	constraint_sigma = 0.0
-	start_sigma = np.array([1.0, 1.0, 0.5])
+	start_sigma = np.array([2.0, 2.0, 0.5])
 	end_sigma = np.array([0.1, 0.1, 0.1])
 
 	# Fail action penalty
 	failed_action_penalty = 0.05
+
+	# searching with branching configuration parameters
+	no_of_start_setups = 10 # In each loop, we start with 10 random setups - train setups
+	no_of_test_setups = 10 # We also want to test the learned algorithm on some test configurations
+	strong_progress_threshold = 0.9 # For this, because we will search in a large space, and going deep
+									# so we will raise the value of progress_threshold
+	sigma_discount_factor = 0.7 # In each loop, we reduce sigma by this factor.
+								# However, we should stop 
+	no_of_loops = 10 
+
+	start_branching = 20 # Target is so that at the last loop, we reduce start_branching down so that we lower
+						 # the number of searching steps we spend
+
 
 class Raw_Config (Config):
 	n_input = 40
