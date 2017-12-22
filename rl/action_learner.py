@@ -195,7 +195,7 @@ class ActionLearner(object):
                     best_action = None
                     best_reward = -1
 
-                    action_means, action_stds, actions = random_action(state, self.policy_estimator,
+                    action_means, action_stds, actions = action_policy(state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
                     if verbose:

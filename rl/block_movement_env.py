@@ -47,7 +47,7 @@ class BlockMovementEnv(gym.Env):
     """
     """
     def __init__(self, config, speed, name=None, 
-        progress_estimator = None, graph_size = 8, session = None):
+        progress_estimator = None, graph_size = 8, session = None , reset = True):
         """
         Parameters:
         - name: the name of the event action to be learned
@@ -77,7 +77,7 @@ class BlockMovementEnv(gym.Env):
         """
         self.default_boundary = Cube2D(
             transform = Transform2D(position=[0.0, 0.0], rotation=0.0, scale = 1.0))
-        self.e = simulator2d.Environment( boundary = self.default_boundary )
+        self.e = simulator2d.Environment( boundary = self.default_boundary)
         self.config = config
         self.progress_estimator = progress_estimator
         self.n_objects = config.n_objects
@@ -112,7 +112,12 @@ class BlockMovementEnv(gym.Env):
         # each action = (object_index, prev_transform, cur_transform, resulted_observation, resulted_progress)
         self.action_storage = []
 
-        self._reset()
+        # Store objects from the beginning
+        # so that we can clone the environment 
+        self.start_config = []
+
+        if reset:
+            self._reset()
         
     def _step(self, action):
         """Run one timestep of the environment's dynamics. When end of
@@ -368,6 +373,8 @@ class BlockMovementEnv(gym.Env):
         """
         object_data = session[SESSION_OBJ_2D]
         sess_len = session[SESSION_LEN]
+        print (object_data)
+        print (sess_len)
 
         object_1_name, object_2_name = feature_utils.get_most_active_objects_interval(object_data, object_data.keys(), 0, sess_len)
 
@@ -417,21 +424,47 @@ class BlockMovementEnv(gym.Env):
 
                 o = Cube2D(transform = Transform2D(position, rotation, scale))
 
-                if self.e.add_object(o):
+                if self.add_object(o):
                     break
                     
                 if retry > 10:
                     break
                 
                 retry += 1
-            
 
+        return self.get_observation_start()
+
+    def get_observation_start(self):
         last_frames = self.capture_last(frames = 2, mode = SPEED)
 
         # Set the first observation
         observation = self._get_observation(last_frames)
 
         return observation
+
+    def add_object(self, o):
+        if self.e.add_object(o):
+            self.start_config.append(o.clone())
+            return True
+
+        return False
+
+    def clone(self):
+        """
+        Clone the current environment
+        """
+        cloned_self = BlockMovementEnv(self.config, self.speed, name = self.name, 
+            progress_estimator = self.progress_estimator, graph_size = self.graph_size, 
+            session = self.session, reset = False)
+        for o in self.start_config:
+            cloned_self.add_object(o)
+
+        for object_index, _, next_transform, _, _, _, action_means, action_stds in self.action_storage: 
+            action = object_index, next_transform, action_means, action_stds
+            cloned_self.step(action)
+
+        return cloned_self
+
 
     def default(self):
         """
@@ -443,10 +476,10 @@ class BlockMovementEnv(gym.Env):
         scale = self.block_size / 2
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
-        self.e.add_object(o)
+        self.add_object(o)
         # o = Cube2D(transform = Transform2D([-0.5, 0.3], 0.60, scale))
         o = Cube2D(transform = Transform2D([-0.2344808, -0.16797299], 0.60, scale))
-        self.e.add_object(o)
+        self.add_object(o)
 
         last_frames = self.capture_last(frames = 2, mode = SPEED)
 
@@ -482,13 +515,17 @@ class BlockMovementEnv(gym.Env):
             if not success:
                 continue
 
-            print ((action_means, action_stds))
-            print (next_transform)
+            if verbose:
+                print ((action_means, action_stds))
+                print (next_transform)
+
             self.step((object_index, next_transform.get_feat(), action_means, action_stds))
 
             _, progress = self.get_observation_and_progress(verbose = verbose)
 
-            print ("Progress = %.2f" % progress)
+            if verbose:
+                print ("Progress = %.2f" % progress)
+
             self._render(action_means = action_means, action_stds = action_stds)
 
         self.graph_size = prev_graph_size
