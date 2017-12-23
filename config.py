@@ -7,7 +7,7 @@ class Config (object):
 
 	n_objects = 2 #
 	block_size = 0.15
-	progress_threshold = 0.9
+	progress_threshold = 0.85
 
 	num_steps = 20
 	n_input = 8
@@ -68,7 +68,7 @@ class Config (object):
 								# However, we should stop 
 	no_of_loops = 10 
 
-	branching = 10 # Target is so that at the last loop, we reduce branching down so that we lower
+	branching = 20 # Target is so that at the last loop, we reduce branching down so that we lower
 				   # the number of searching steps we spend
 
 
