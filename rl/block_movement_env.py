@@ -332,27 +332,31 @@ class BlockMovementEnv(gym.Env):
 
                 path_distance = np.linalg.norm(prev_transform.position - next_transform.position)
 
-                pos = frame_distance - left_over_distance
+                if path_distance == 0:
+                    # nothing to do here
+                    pass
+                else:
+                    pos = frame_distance - left_over_distance
 
-                print ('path_distance = %.4f; frame_distance = %.4f; left_over_distance = %.4f ' % (path_distance, frame_distance, left_over_distance))
-                while pos < path_distance:
-                    print ('pos = %.4f' % pos)
-                    new_obj = obj.clone()
+                    #print ('path_distance = %.4f; frame_distance = %.4f; left_over_distance = %.4f ' % (path_distance, frame_distance, left_over_distance))
+                    while pos < path_distance:
+                        #print ('pos = %.4f' % pos)
+                        new_obj = obj.clone()
 
-                    new_obj.transform = (pos / path_distance) * prev_transform + (1 - pos/path_distance) * next_transform
+                        new_obj.transform = (pos / path_distance) * prev_transform + (1 - pos/path_distance) * next_transform
 
-                    captures[object_index].append(new_obj)
+                        captures[object_index].append(new_obj)
 
-                    # For static objects, just add the last frames
-                    for i in range(self.n_objects):
-                        if i != object_index:
-                            captures[i].append(captures[i][-1])
+                        # For static objects, just add the last frames
+                        for i in range(self.n_objects):
+                            if i != object_index:
+                                captures[i].append(captures[i][-1])
 
-                    pos += frame_distance
-                    frame_counter += 1
+                        pos += frame_distance
+                        frame_counter += 1
 
-                # 0 <= left_over_distance < frame_distance
-                left_over_distance = pos - path_distance
+                    # 0 <= left_over_distance < frame_distance
+                    left_over_distance = pos - path_distance
 
         # back to the beginning, just interpolate the last frame
         if frame_counter < frames:
