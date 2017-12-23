@@ -275,7 +275,7 @@ def run_epoch(m, data, lbl, verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load("slidearound_hopstep_1_multiscale.proj")
+    p = Project.load("slidearound_hopstep_1_multiscale_quant.proj")
     
     config = Config()
     

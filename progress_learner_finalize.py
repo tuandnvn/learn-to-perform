@@ -12,7 +12,7 @@ class Final_Config(Config):
 	max_max_epoch = 60
 
 if __name__ == "__main__":
-    p = Project.load("slidearound_hopstep_1_multiscale.proj")
+    p = Project.load("slidearound_hopstep_1_multiscale_quant.proj")
     
     config = Final_Config()
     
