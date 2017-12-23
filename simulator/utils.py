@@ -27,6 +27,9 @@ class Transform2D (object):
 	def __str__(self):
 		return str(self.get_feat())
 
+	def __repr__(self):
+		return str(self.get_feat()) + " - " + str(self.scale)
+
 	def __add__(self, another_transform):
 		return Transform2D( self.position + another_transform.position, self.rotation + another_transform.rotation,
 		        self.scale + another_transform.scale )

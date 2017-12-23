@@ -14,7 +14,7 @@ import traceback
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
 from importlib import reload
-reload(bme)
+# reload(bme)
 
 def random_action_constraint(state, policy_estimator, no_of_actions = 1, verbose = False, 
        session = None, constraint_function = lambda a : True):
@@ -249,6 +249,83 @@ class ActionLearner_Search(object):
 
         self.np_random, _ = seeding.np_random(None)
 
+    def learn_one_setup( self, action_policy, verbose = False):
+        sigma = self.config.start_sigma
+        self.policy_estimator.assign_sigma( sigma, sess= self.session )
+        select_object = 0
+        branching = self.config.branching
+        env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
+                progress_estimator = self.progress_estimator, session = self.session)
+        env.reset()
+
+        explorations = [env.clone()]
+
+        # Each accumulated reward for each exploration
+        rewards = [0]
+
+        found_completed_act = False
+        # We do one action at a time for all exploration
+        for action_level in range(3):
+            if verbose:
+                print ('action_level = %d' % action_level)
+        
+            # This would store a tuple of (exploration_index, accumulated_reward, action, action_means, action_stds)
+            # branching ** 2
+            tempo_rewards = []
+            
+            for exploration_index, exploration in enumerate(explorations):
+                if verbose:
+                    print ('exploration_index = %d' % exploration_index)
+
+
+                if action_level == 0:
+                    no_of_search = branching ** 2
+                    state = exploration.get_observation_start()
+                else:
+                    no_of_search = branching
+                    # State interpolated by WHOLE mode
+                    state, _ = exploration.get_observation_and_progress()
+                #print ('state = ' + str(state))
+
+                action_means, action_stds, actions = action_policy(state, self.policy_estimator,
+                    verbose = verbose, no_of_actions = no_of_search, session = self.session)
+
+                #print (actions)
+
+                for action_index, action in enumerate(actions):
+                    _, reward, done, _ = exploration.step((select_object,action, action_means, action_stds))
+                    #print ((action, reward))
+                    exploration.back()
+
+                    tempo_rewards.append( (exploration_index, rewards[exploration_index] + reward,
+                        action, action_means, action_stds) )
+
+                    if done:
+                        print ("found_completed_act found_completed_act found_completed_act")
+                        found_completed_act = True
+
+            tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
+            test = [(t[0], t[1]) for t in tempo_rewards]
+
+            if verbose:
+                print (test[:branching])
+
+            new_explorations = []
+            rewards = []
+            for exploration_index, acc_reward, action, action_means, action_stds in tempo_rewards[:branching]:
+                env = explorations[exploration_index].clone()
+                env.step((select_object,action, action_means, action_stds))
+                new_explorations.append(env)
+                rewards.append(acc_reward)
+            
+            explorations = new_explorations
+
+            if found_completed_act:
+                # Stop increase action_level
+                break
+
+        return explorations
+
     def learn( self , action_policy, verbose = False):
         select_object = 0
 
@@ -306,7 +383,6 @@ class ActionLearner_Search(object):
                         if verbose:
                             print ('exploration_index = %d' % exploration_index)
 
-
                         if action_level == 0:
                             no_of_search = branching ** 2
                             state = exploration.get_observation_start()
@@ -328,6 +404,7 @@ class ActionLearner_Search(object):
                                 action, action_means, action_stds) )
 
                             if done:
+                                print ("found_completed_act found_completed_act found_completed_act")
                                 found_completed_act = True
 
                     tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)

@@ -99,8 +99,8 @@ class BlockMovementEnv(gym.Env):
         self._seed()
         
         # Just hard code
-        playground_x = [self.block_size-1,self.block_size-1, 0]
-        playground_dim = [2-2*self.block_size, 2-2*self.block_size, np.pi/2]
+        playground_x = [2 * self.block_size-1,2 *  self.block_size-1, 0]
+        playground_dim = [2-4*self.block_size, 2-4*self.block_size, np.pi/2]
         self.object_space = uniform_env_space.Uniform(p = playground_x, 
                                          dimension = playground_dim, 
                                          randomizer = self.np_random)
@@ -334,7 +334,9 @@ class BlockMovementEnv(gym.Env):
 
                 pos = frame_distance - left_over_distance
 
+                print ('path_distance = %.4f; frame_distance = %.4f; left_over_distance = %.4f ' % (path_distance, frame_distance, left_over_distance))
                 while pos < path_distance:
+                    print ('pos = %.4f' % pos)
                     new_obj = obj.clone()
 
                     new_obj.transform = (pos / path_distance) * prev_transform + (1 - pos/path_distance) * next_transform
@@ -493,10 +495,14 @@ class BlockMovementEnv(gym.Env):
         """
         Use for default setup, for debugging purpose
         """
+        print ([ -0.75, 0.5,  0.5])
         self._step((0, [ -0.75, 0.5,  0.5], None, None))
+        print ([ -0.75, 0.5,  0.5])
+        self._step((0, [ -0.75, 0.5,  0.5], None, None))
+        print ([ -0.3, 0.55,  0.5])
         self._step((0, [ -0.3, 0.55,  0.5], None, None))
-        self._step((0, [ -0.2, 0.15,  0.5], None, None))
-        self._step((0, [ -0.5, 0.0,  0.5], None, None))
+        # self._step((0, [ -0.2, 0.15,  0.5], None, None))
+        # self._step((0, [ -0.5, 0.0,  0.5], None, None))
 
     def replay(self, verbose = True):
         """
@@ -520,12 +526,12 @@ class BlockMovementEnv(gym.Env):
                 print ((action_means, action_stds))
                 print (next_transform)
 
-            self.step((object_index, next_transform.get_feat(), action_means, action_stds))
+            _, reward, _, _ = self.step((object_index, next_transform.get_feat(), action_means, action_stds))
 
             _, progress = self.get_observation_and_progress(verbose = verbose)
 
             if verbose:
-                print ("Progress = %.2f" % progress)
+                print ("Progress = %.2f; reward = %.2f" % (progress, reward))
 
             self._render(action_means = action_means, action_stds = action_stds)
 
