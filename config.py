@@ -10,11 +10,10 @@ class Config (object):
 	progress_threshold = 0.85
 
 	num_steps = 20
-	n_input = 8
+	n_input = 24
 	
 	state_dimension = 12
 	action_dimension = 3
-
 
 	num_episodes = 20
 	discount_factor = 1

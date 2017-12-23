@@ -29,9 +29,9 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-from importlib import reload
-reload (simulator2d)
-reload(feature_utils)
+# from importlib import reload
+# reload (simulator2d)
+# reload(feature_utils)
 
 SPEED = 'SPEED'
 WHOLE = 'WHOLE'
@@ -412,9 +412,7 @@ class BlockMovementEnv(gym.Env):
         return session[SESSION_FEAT]
     
     def _reset(self):
-        self.e = simulator2d.Environment(boundary = self.default_boundary )
-        self.action_storage = []
-        self.start_config = []
+        self._reset_env()
 
         # states would be a list of location/orientation for block
         # sampled from the observation space
@@ -478,8 +476,8 @@ class BlockMovementEnv(gym.Env):
         This reset the environment to a default testing state where
         locations of objects are predefined
         """
-        self.e = simulator2d.Environment(boundary = self.default_boundary )
-        self.action_storage = []
+        self._reset_env()
+
         scale = self.block_size / 2
 
         o = Cube2D(transform = Transform2D([-0.71322928, -0.68750558], 0.50, scale))
@@ -507,6 +505,43 @@ class BlockMovementEnv(gym.Env):
         self._step((0, [ -0.3, 0.55,  0.5], None, None))
         # self._step((0, [ -0.2, 0.15,  0.5], None, None))
         # self._step((0, [ -0.5, 0.0,  0.5], None, None))
+
+    # A very bad case when one block just go cross the other block again and again
+    bad_case_1 = [
+            [
+                [ 0.59725597, -0.39822445,  1.39316013],
+                [0.56717354,  0.39338609,  0.07934932]
+            ],
+            [
+                [ 0.22539376,  0.88562338,  0.33300875],
+                [ 0.47532061, -0.01304514, 0.4202172 ],
+                [ 0.83911565, -0.2808123,   0.25341885] 
+            ]
+        ]
+    
+    def test_case(self, case):
+        """
+        test a case like bad_case_1
+
+        case = [ object_array, action_array ]
+        """
+        self._reset_env()
+
+        scale = self.block_size / 2
+
+        object_array, action_array = case
+
+        for obj in object_array:
+            o = Cube2D(transform = Transform2D([obj[0], obj[1]], obj[2], scale))
+            self.add_object(o)
+
+        for action in action_array:
+            self._step((0, action, None, None))
+
+    def _reset_env(self):
+        self.e = simulator2d.Environment(boundary = self.default_boundary )
+        self.action_storage = []
+        self.start_config = []
 
     def replay(self, verbose = True):
         """

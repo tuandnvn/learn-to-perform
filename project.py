@@ -87,7 +87,7 @@ class Project(object):
             self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
             
             # Rescale feature
-            feature_utils.standardize(session)
+            # feature_utils.standardize(session)
 
     def generate_data(self, linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator):
@@ -134,7 +134,7 @@ if __name__ == "__main__":
      
     p_data = ProjectData.load("slidearound_p2.proj")
     p = Project(p_data)
-    p.standardize(feature_utils.qsr_feature_extractor) 
+    p.standardize(feature_utils.marker_feature_extractor) 
     # p.generate_data()
     # p.save("slidearound_raw.proj")
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     p.generate_data(linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator_retreat)
 
-    p.save("slidearound_hopstep_1_multiscale.proj")
+    p.save("slidearound_hopstep_1_multiscale_quant.proj")
 
     # print (p.training_data[0][0])
     # print (p.training_lbl[0][0])
