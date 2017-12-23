@@ -373,8 +373,8 @@ class BlockMovementEnv(gym.Env):
         """
         object_data = session[SESSION_OBJ_2D]
         sess_len = session[SESSION_LEN]
-        print (object_data)
-        print (sess_len)
+        # print (object_data)
+        # print (sess_len)
 
         object_1_name, object_2_name = feature_utils.get_most_active_objects_interval(object_data, object_data.keys(), 0, sess_len)
 
@@ -408,6 +408,7 @@ class BlockMovementEnv(gym.Env):
     def _reset(self):
         self.e = simulator2d.Environment(boundary = self.default_boundary )
         self.action_storage = []
+        self.start_config = []
 
         # states would be a list of location/orientation for block
         # sampled from the observation space
@@ -460,7 +461,7 @@ class BlockMovementEnv(gym.Env):
             cloned_self.add_object(o)
 
         for object_index, _, next_transform, _, _, _, action_means, action_stds in self.action_storage: 
-            action = object_index, next_transform, action_means, action_stds
+            action = (object_index, next_transform.get_feat(), action_means, action_stds)
             cloned_self.step(action)
 
         return cloned_self

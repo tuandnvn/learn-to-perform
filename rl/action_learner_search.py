@@ -249,9 +249,9 @@ class ActionLearner_Search(object):
 
         self.np_random, _ = seeding.np_random(None)
 
+    def learn( self , action_policy, verbose = False):
         select_object = 0
 
-    def learn( self , action_policy, verbose = False):
         sigma = self.config.start_sigma
         branching = self.config.branching
 
@@ -262,7 +262,6 @@ class ActionLearner_Search(object):
             env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                 progress_estimator = self.progress_estimator, session = self.session)
             env.reset()
-
             train_envs.append(env)
 
         # These will be used to test the performance of our learned policy
@@ -271,7 +270,6 @@ class ActionLearner_Search(object):
         for i in range(self.config.no_of_test_setups):
             env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                 progress_estimator = self.progress_estimator, session = self.session)
-            env.reset()
 
             test_envs.append(env)
 
@@ -281,65 +279,76 @@ class ActionLearner_Search(object):
                 print ('Current loop index = %d' % i_loop)
 
             # At any time, we only keep self.config.branching of 
-            # explorations, each is just an environment
-            explorations = []
-            for env in train_envs:
-                explorations.append(env.clone())
+            # explorations for each train_env_index
+            explorations = {}
+            for train_env_index, train_env in enumerate(train_envs):
+                explorations[train_env_index] = [train_env.clone()]
 
-            # Each accumulated reward for each exploration
-            rewards = [0] * len(explorations)
             
-            found_completed_act = False
-            # We do one action at a time for all exploration
-            for action_level in itertools.count():
-                if verbose:
-                    print ('action_level = %d' % action_level)
-                # This would store a tuple of (exploration_index, accumulated_reward, action, action_means, action_stds)
-                # branching ** 2
-                tempo_rewards = []
+            # Traverse through each train_env_index
+            for train_env_index in explorations.keys():
+                print ('train_env_index = %d' % train_env_index)
 
-                for exploration_index, exploration in enumerate(explorations):
+                # Each accumulated reward for each exploration
+                rewards = [0]
+
+                found_completed_act = False
+                # We do one action at a time for all exploration
+                for action_level in itertools.count():
                     if verbose:
-                        print ('exploration_index = %d' % exploration_index)
-
-                    if action_level == 0:
-                        state = exploration.get_observation_start()
-                    else:
-                        # State interpolated by WHOLE mode
-                        state, _ = exploration.get_observation_and_progress()
-
-                    action_means, action_stds, actions = action_policy(state, self.policy_estimator,
-                        verbose = verbose, no_of_actions = branching, session = self.session)
-
-                    for action_index, action in enumerate(actions):
-                        _, reward, done, _ = exploration.step((select_object,action, action_means, action_stds))
-                        exploration.back()
-
-                        tempo_rewards.append( (exploration_index, rewards[exploration_index] + reward,
-                            action, action_means, action_stds) )
-
-                        if done:
-                            found_completed_act = True
-
-                tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
-                test = [(t[0], t[1]) for t in tempo_rewards]
-
-                if verbose:
-                    print (test)
-
-                new_explorations = []
-                for exploration_index, reward, action, action_means, action_stds in tempo_rewards[:branching]:
-                    env = explorations[exploration_index].clone()
-                    env.step((select_object,action, action_means, action_stds))
-                    new_explorations.append(env)
-
-                explorations = new_explorations
+                        print ('action_level = %d' % action_level)
+                
+                    # This would store a tuple of (exploration_index, accumulated_reward, action, action_means, action_stds)
+                    # branching ** 2
+                    tempo_rewards = []
+                    
+                    for exploration_index, exploration in enumerate(explorations[train_env_index]):
+                        if verbose:
+                            print ('exploration_index = %d' % exploration_index)
 
 
-                if found_completed_act:
-                    # Stop increase action_level
-                    break
+                        if action_level == 0:
+                            no_of_search = branching ** 2
+                            state = exploration.get_observation_start()
+                        else:
+                            no_of_search = branching
+                            # State interpolated by WHOLE mode
+                            state, _ = exploration.get_observation_and_progress()
+                        #print ('state = ' + str(state))
 
+                        action_means, action_stds, actions = action_policy(state, self.policy_estimator,
+                            verbose = verbose, no_of_actions = no_of_search, session = self.session)
+
+                        for action_index, action in enumerate(actions):
+                            _, reward, done, _ = exploration.step((select_object,action, action_means, action_stds))
+                            #print ((action, reward))
+                            exploration.back()
+
+                            tempo_rewards.append( (exploration_index, rewards[exploration_index] + reward,
+                                action, action_means, action_stds) )
+
+                            if done:
+                                found_completed_act = True
+
+                    tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
+                    test = [(t[0], t[1]) for t in tempo_rewards]
+
+                    if verbose:
+                        print (test[:branching])
+
+                    new_explorations = []
+                    rewards = []
+                    for exploration_index, acc_reward, action, action_means, action_stds in tempo_rewards[:branching]:
+                        env = explorations[train_env_index][exploration_index].clone()
+                        env.step((select_object,action, action_means, action_stds))
+                        new_explorations.append(env)
+                        rewards.append(acc_reward)
+                    
+                    explorations[train_env_index] = new_explorations
+
+                    if found_completed_act:
+                        # Stop increase action_level
+                        break
 
             sigma *= self.config.sigma_discount_factor
 
