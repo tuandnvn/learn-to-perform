@@ -1,6 +1,6 @@
 import numpy as np
 from utils import SESSION_NAME, SESSION_OBJECTS, SESSION_EVENTS, SESSION_LEN, SESSION_FEAT,\
-            START, END, LABEL
+            START, END, LABEL, TRAINING, VALIDATING, TESTING
 from simulator.utils import Cube2D
 
 def generate_data(rearranged_data, rearranged_lbls, config) :
@@ -40,6 +40,7 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     split_1 = int(train_percentage * samples)
     split_2 = int((train_percentage + validation_percentage) * samples)
 
+    t = {TRAINING : (0, split_1), VALIDATING : (split_1, split_2), TESTING : (split_2, samples)}
     
     training_data = rearranged_data[random_indices[:split_1]]
     training_lbl = rearranged_lbls[random_indices[:split_1]]
@@ -53,8 +54,40 @@ def generate_data(rearranged_data, rearranged_lbls, config) :
     training_data, training_lbl = get_data_lbl(training_data, training_lbl, batch_size , num_steps, n_input )
     validation_data, validation_lbl = get_data_lbl(validation_data, validation_lbl, batch_size , num_steps, n_input )
     testing_data, testing_lbl = get_data_lbl(testing_data, testing_lbl, batch_size , num_steps, n_input )
-                    
+
     return (training_data, training_lbl, validation_data, validation_lbl, testing_data, testing_lbl)
+
+
+def generate_data_info(rearranged_data, rearranged_lbls, rearranged_info, config) :
+    samples = rearranged_data.shape[0]
+    num_steps = rearranged_data.shape[1]
+    n_input = rearranged_data.shape[2]
+    
+    training_data = []
+    testing_data = []
+
+    batch_size = config.batch_size
+    
+    train_percentage = config.train_percentage
+    validation_percentage = config.validation_percentage    
+    
+    random_indices = np.arange(samples)
+    np.random.shuffle(random_indices)
+    
+    split_1 = int(train_percentage * samples)
+    split_2 = int((train_percentage + validation_percentage) * samples)
+
+    t = {TRAINING : (0, split_1), VALIDATING : (split_1, split_2), TESTING : (split_2, samples)}
+
+    all_data = {}
+    for data_type in [TRAINING, VALIDATING, TESTING]:
+        data = rearranged_data[random_indices[t[data_type][0]:t[data_type][1]]] 
+        lbl = rearranged_lbls[random_indices[t[data_type][0]:t[data_type][1]]]
+        info = rearranged_info[random_indices[t[data_type][0]:t[data_type][1]]]
+
+        all_data[data_type] = (get_reshape(data, batch_size), get_reshape(lbl, batch_size), get_reshape(info, batch_size))
+
+    return all_data
 
 def get_data_lbl( data , lbl, batch_size , num_steps, n_input ) :
     epoch_size = int(len(data) // batch_size)
@@ -65,6 +98,12 @@ def get_data_lbl( data , lbl, batch_size , num_steps, n_input ) :
                     reshape((epoch_size, batch_size, num_steps))
 
     return (data, lbl)
+
+def get_reshape(data, batch_size):
+    # Split the first dimension into multiple batch_size
+    epoch_size = int(len(data) // batch_size)
+    new_shape = [epoch_size, batch_size] + list(data.shape[1:])
+    return np.reshape(data[:epoch_size * batch_size], new_shape)
 
 def gothrough(data, lbl):
     for i in range(np.shape(data)[0]):

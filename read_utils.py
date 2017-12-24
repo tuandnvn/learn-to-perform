@@ -9,8 +9,9 @@ import os
 import numpy as np
 import sys  
 
-#reload(sys)  
-#sys.setdefaultencoding('utf8')
+# This is needed to load utf8 text
+reload(sys)  
+sys.setdefaultencoding('utf8')
 # from nltk.stem.porter import PorterStemmer
 
 from utils import DATA_DIR
@@ -100,7 +101,7 @@ def load_one_param_file( file_path ):
 
                     if face_index != None:
                         # Replace all infinity values
-                        points_str = bounding.text.replace('∞', 'inf')
+                        points_str = bounding.text.replace(u'∞', 'inf')
 
                         if frameNo not in session_data[SESSION_OBJECTS][obj_name]:
                             session_data[SESSION_OBJECTS][obj_name][frameNo] = {}
