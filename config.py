@@ -20,7 +20,7 @@ class Config (object):
 
 	# Event progress learner parameters
 	hop_step = 1
-	batch_size = 10
+	batch_size = 30
 	train_percentage = 0.8
 	validation_percentage = 0.1
 	test_percentage = 0.1
@@ -32,9 +32,9 @@ class Config (object):
 	hidden_size = 200
 	num_layers = 2
 	max_epoch = 10
-	max_max_epoch = 60
+	max_max_epoch = 50
 	lr_decay = 0.95
-	learning_rate = 0.002
+	learning_rate = 0.001
 	max_grad_norm = 5
 	epoch_shuffle = False
 	optimizer = 'adam'

@@ -44,6 +44,9 @@ class EventProgressEstimator(object):
                 self._targets = tf.placeholder(tf.float32, [None, num_steps])
             else:
                 self._targets = tf.placeholder(tf.float32, [None])
+
+            # Sample's weights, NOT network's weights
+            self._weights = tf.placeholder(tf.float32, [None])
                 
             
             if is_training:
@@ -136,7 +139,7 @@ class EventProgressEstimator(object):
             print ("self._targets.shape = %s " % str(self._targets.shape))
             
             # Loss = mean squared error of target and predictions
-            self.loss = tf.losses.mean_squared_error(self._targets, self.output)
+            self.loss = tf.losses.mean_squared_error(self._targets, self.output, self._weights)
             
             if is_training:
                 # 
@@ -181,10 +184,11 @@ class EventProgressEstimator(object):
             assert len(outputs.shape) == 1
             assert outputs.shape[0] == batch_size
         
-    def update(self, inputs, outputs, initial_state = None, sess=None):
+    def update(self, inputs, outputs, weights = None, initial_state = None, sess=None):
         """
         inputs: np.array (batch_size, num_steps, n_input)
         outputs: np.array (batch_size, num_steps) or (batch_size)
+        weights: (Optional) weight of samples np.array (batch_size)
         
         We need to run train_op to update the parameters
         We also need to return its loss
@@ -201,13 +205,18 @@ class EventProgressEstimator(object):
         
         if not initial_state is None:
             feed_dict[self.initial_state] = initial_state
+
+        if weights is None:
+            weights = np.ones(batch_size, dtype=np.float32)
+            
+        feed_dict[self._weights] = weights
         
         _, loss, state = sess.run([self.train_op, self.loss, self.final_state], 
                            feed_dict)
         
         return loss, state
     
-    def predict(self, inputs, outputs = None, sess=None):
+    def predict(self, inputs, outputs = None, weights = None, sess=None):
         """
         inputs: np.array (batch_size, num_steps, n_input)
         outputs: np.array (batch_size, num_steps) or (batch_size)
@@ -223,9 +232,12 @@ class EventProgressEstimator(object):
         
         sess = sess or tf.get_default_session()
         
+        if weights is None:
+            weights = np.ones(batch_size, dtype=np.float32)
+
         if not outputs is None:
             predicted, loss = sess.run([self.output, self.loss],
-                    {self._input_data: inputs, self._targets: outputs})
+                    {self._input_data: inputs, self._targets: outputs, self._weights: weights})
             return (predicted, loss)
         else:
             predicted = sess.run(self.output,
@@ -246,25 +258,26 @@ class EventProgressEstimator(object):
 # LSTM cell states        
 # state = None
 
-def run_epoch(m, data, lbl, verbose=False, training = True):
+def run_epoch(m, data, lbl, info = None, verbose=False, training = True):
     state = None
     costs = 0
     cost_iters = 0
     
-    for step, (x, y) in enumerate( gothrough(data, lbl) ):
+    for step, (x, y, z) in enumerate( zip(data, lbl, info) ):
         y_prime = y
         if not m.config.s2s:
             # Just use the last label
             y_prime = y[:,-1]
         
         if training:
-            cost, state = m.update(x, y_prime, initial_state = state)
+            cost, state = m.update(x, y_prime, weights = z, initial_state = state)
         else:
-            predicted, cost = m.predict(x, y_prime)
+            predicted, cost = m.predict(x, y_prime, weights = z)
             
             if verbose:
                 print ('Predicted = ' +str(predicted))
                 print ('Labels = ' +str(y_prime))
+                print ('Infos = ' +str(z))
         
         costs += cost
         cost_iters += 1
