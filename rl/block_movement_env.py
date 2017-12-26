@@ -99,8 +99,8 @@ class BlockMovementEnv(gym.Env):
         self._seed()
         
         # Just hard code
-        playground_x = [2 * self.block_size-1,2 *  self.block_size-1, 0]
-        playground_dim = [2-4*self.block_size, 2-4*self.block_size, np.pi/2]
+        playground_x = [3 * self.block_size-1,3 *  self.block_size-1, 0]
+        playground_dim = [2-6*self.block_size, 2-6*self.block_size, np.pi/2]
         self.object_space = uniform_env_space.Uniform(p = playground_x, 
                                          dimension = playground_dim, 
                                          randomizer = self.np_random)
@@ -405,9 +405,10 @@ class BlockMovementEnv(gym.Env):
         --------
             session[SESSION_FEAT] : np.array (# frames, # features)
         """
-        feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
+        # feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
+        # feature_utils.standardize(session)
 
-        feature_utils.standardize(session)
+        feature_utils.marker_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 
         return session[SESSION_FEAT]
     
@@ -507,6 +508,7 @@ class BlockMovementEnv(gym.Env):
         # self._step((0, [ -0.5, 0.0,  0.5], None, None))
 
     # A very bad case when one block just go cross the other block again and again
+    # Very bad case for qualitative (0.75)
     bad_case_1 = [
             [
                 [ 0.59725597, -0.39822445,  1.39316013],
@@ -516,6 +518,19 @@ class BlockMovementEnv(gym.Env):
                 [ 0.22539376,  0.88562338,  0.33300875],
                 [ 0.47532061, -0.01304514, 0.4202172 ],
                 [ 0.83911565, -0.2808123,   0.25341885] 
+            ]
+        ]
+
+    # Very bad case for quantitative (0.83)
+    bad_case_2 = [
+            [
+                [ 0.55916773, -0.45340549,  0.38294344],
+                [-0.40964779, -0.12172395,  1.27858668]
+            ],
+            [
+                [ 0.54158484,  0.86653476,  0.79448832],
+                [-0.49951228, -0.69036695,  0.15960644],
+                [ 0.41131718, -0.26221855,  0.36441135]
             ]
         ]
     
