@@ -1,2 +1,2 @@
-model_checkpoint_path: "progress_all.mod"
-all_model_checkpoint_paths: "progress_all.mod"
+model_checkpoint_path: "progress_SlidePast.mod"
+all_model_checkpoint_paths: "progress_SlidePast.mod"

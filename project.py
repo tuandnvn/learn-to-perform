@@ -181,12 +181,19 @@ if __name__ == "__main__":
     """
     This code will load the data from params files and project to 2D, which is the most time consuming part in loading
     """
-    # for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast"]:
-    #     p_data = ProjectData(project_name, ["Session1", "Session2"])
-    #     print ('Load project ' + p_data.name)
-    #     p_data.load_data()
-    #     p_data.preprocess()
-    #     p_data.save(project_name.lower() + "_p2.proj")
+    def create_projects():
+        for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast"]:
+            p_data = ProjectData(project_name, ["Session1", "Session2"])
+            print ('Load project ' + p_data.name)
+            p_data.load_data()
+            p_data.preprocess()
+            p = Project(p_data)
+            p.standardize(feature_utils.marker_feature_extractor)
+            p.generate_data()
+            p.save(project_name.lower() + "_project.proj")
+
+    create_projects()
+
 
     # p_data = ProjectData("SlideAround", ["Session1", "Session2"])
     # print ('Load project ' + p_data.name)
@@ -217,7 +224,7 @@ if __name__ == "__main__":
         multi_p.generate_data()
         multi_p.save(output_name)
 
-    load_multi_project("all_actions.proj")
+    # load_multi_project("all_actions.proj")
 
 
     # p.generate_data(linear_progress_lbl_func = 

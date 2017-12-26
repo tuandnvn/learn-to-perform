@@ -9,11 +9,15 @@ from config import Config
 
 class Final_Config(Config):
 	max_epoch = 10
-	max_max_epoch = 60
+	max_max_epoch = 30
 
 if __name__ == "__main__":
-    def learn_all_simple():
-        p = Project.load("slidearound_hopstep_1_multiscale_quant.proj")
+    def learn_all_simple(project_name):
+        print ('==============================================')
+        print ('Learn progress model for ' + project_name)
+        file_name = project_name.lower() + "_project.proj"
+
+        p = Project.load(file_name)
         
         config = Final_Config()
         
@@ -43,9 +47,13 @@ if __name__ == "__main__":
 
 
             saver = tf.train.Saver()
-            saver.save(session, "progress.mod")
+            saver.save(session, "progress_" + project_name + ".mod")
 
             print('-------- Saved progress.mod ---------')
+
+    for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
+        learn_all_simple(project_name)
+
 
     def learn_all_negative_samples():
         multi_p = Multi_Project.load("all_actions.proj")
@@ -104,4 +112,4 @@ if __name__ == "__main__":
 
             print('-------- Saved progress.mod ---------')
 
-    learn_all_negative_samples()
+    # learn_all_negative_samples()

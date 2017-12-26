@@ -258,7 +258,11 @@ class EventProgressEstimator(object):
 # LSTM cell states        
 # state = None
 
-def run_epoch(m, data, lbl, info = None, verbose=False, training = True):
+def none_info ():
+    while True:
+        yield None
+
+def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     state = None
     costs = 0
     cost_iters = 0
@@ -288,9 +292,9 @@ def run_epoch(m, data, lbl, info = None, verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load("slidearound_hopstep_1_multiscale_quant.proj")
+    p = Project.load("slideaway_project.proj")
     
-    config = Config()
+    config = Raw_Config()
     
     np.random.seed()
 
