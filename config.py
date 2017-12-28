@@ -73,3 +73,9 @@ class Config (object):
 
 class Raw_Config (Config):
 	n_input = 40
+
+class Next_Frame_Config (object):
+	# Probably just simple location/orientation difference btw two objects
+	n_input = 3
+	n_output = 3
+

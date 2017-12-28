@@ -265,7 +265,7 @@ class ActionLearner_Search(object):
 
         found_completed_act = False
         # We do one action at a time for all exploration
-        for action_level in range(6):
+        for action_level in range(3):
             if verbose:
                 print ('action_level = %d' % action_level)
         
