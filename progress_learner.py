@@ -226,8 +226,9 @@ class EventProgressEstimator(object):
         """
         self.checkInputs(inputs)
         
+        batch_size = inputs.shape[0]
+
         if not outputs is None:
-            batch_size = inputs.shape[0]
             self.checkOutputs(outputs, batch_size)
         
         sess = sess or tf.get_default_session()
