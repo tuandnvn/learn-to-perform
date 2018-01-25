@@ -427,7 +427,7 @@ def standardize_simple(session):
      [  1.   5.   0.   0.  -1.  -1.   1.   1.   7.   7.   0.   0.   0.]
      [  2.   4.   1.  -1.  -1.   1.   1.   1.   5.   8.  -3.  -2.   1.]
     """
-
+    standardized = []
     for frame in range(session[SESSION_LEN]):
         _, _, f3, f4, f5, f6, f7, f8, _, _, f11, _, _ = session[SESSION_FEAT][frame]
 

@@ -184,7 +184,7 @@ if __name__ == "__main__":
     This code will load the data from params files and project to 2D, which is the most time consuming part in loading
     """
     def create_projects():
-        for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast"]:
+        for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
             p_data = ProjectData(project_name, ["Session1", "Session2"])
             print ('Load project ' + p_data.name)
             p_data.load_data()
