@@ -349,8 +349,6 @@ def _turn_response_to_features(keys, qsrlib_response_message, diff_feature):
     # (#frame, diff_feature)
     padded_diff_chain = np.pad(diff_chain, [(1,0), (0,0)], 'constant', constant_values = (0,))
 
-    
-    
     # Add for the first frame
     # (#frame, 2 * diff_feature + other_feature)
     diff_feature_chain = np.concatenate ( [need_diff_chain, padded_diff_chain, feature_chain[:, diff_feature:]], axis = 1 )
@@ -391,6 +389,59 @@ def standardize(session):
         f1, f2, f3, f4, f5, f6, f7, f8, _, _, _, _, _ = session[SESSION_FEAT][frame]
 
         standardized.append([float(f1)/8, float(f2)/10, math.tanh(f3/2), math.tanh(f4/2), math.tanh(f5/2), math.tanh(f6/2), math.tanh(f7/2), math.tanh(f8/2)])
+
+
+    session[SESSION_FEAT] = standardized
+
+
+def standardize_simple(session):
+    """
+    The qualitative features sometimes doesn't seem to work very well
+    so we need a mechanism to standarize them.
+    Basically, let's just rescale:
+    1,2: throw away
+    3,4,5,6,7,8: Keep
+    9, 10: Throw away
+    11: Keep
+    12, 13: Throw away
+
+    4: change from 7 to -1
+    change from -7 to 1
+
+
+    Sample of current features
+     -1: cardinal direction between two centers
+     -2: distance btw two centers
+     -3: delta(1)
+     -4: delta(2)
+     -5,6,7,8: qtccs
+     -9: o1 orientation (need to standarize to positive)
+     -10: o2 orientation (need to standarize to positive)
+     -11: 9 diff 10
+     -12: delta(9)
+     -13: delta(10)
+     [  0.   5.   0.   0.  -1.   0.   1.   0.  -5.   8. -13. -11.   0.]
+     [  0.   4.   0.  -1.  -1.   0.   1.   0.  -1.   8.  -9.   4.   0.]
+     [  1.   4.   1.   0.  -1.   1.   1.  -1.   3.   8.  -5.   4.   0.]
+     [  1.   5.   0.   1.   1.   1.   1.  -1.   7.   7.   0.   4.  -1.]
+     [  1.   5.   0.   0.  -1.  -1.   1.   1.   7.   7.   0.   0.   0.]
+     [  2.   4.   1.  -1.  -1.   1.   1.   1.   5.   8.  -3.  -2.   1.]
+    """
+
+    for frame in range(session[SESSION_LEN]):
+        _, _, f3, f4, f5, f6, f7, f8, _, _, f11, _, _ = session[SESSION_FEAT][frame]
+
+        if f11 == -3:
+            f11 = 1
+        elif f11 == 3:
+            f11 = -1
+
+        if f4 == -7:
+            f4 = 1
+        elif f4 == 7:
+            f4 = -1
+
+        standardized.append([f3, f4, f5, f6, f7, f8, f11])
 
 
     session[SESSION_FEAT] = standardized

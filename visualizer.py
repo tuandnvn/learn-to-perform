@@ -13,7 +13,7 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-def plot (session, from_frame, to_frame, show = True):
+def plot (session, from_frame, to_frame, width = 5, height = 5, show = True):
     """
 
     """
@@ -23,21 +23,28 @@ def plot (session, from_frame, to_frame, show = True):
     ax.set_yticks(np.arange(-2, 2, 0.1))
     ax.set_xlim([-2, 2])
     ax.set_ylim([-2, 2])
-    fig.set_size_inches(20, 12)
+    fig.set_size_inches(width, height)
     
     color_counter = 0
     for object_name in object_data:
         data = object_data[object_name]
         
-        for frameNo in data:
-            if from_frame  <= frameNo <= to_frame :
-                # Mistake
-                # data[frameNo].transform.scale = data[frameNo].transform.scale / 2
-                shape = data[frameNo].get_markers()
-                
-                lc = mc.PolyCollection([shape], edgecolors=[colors[color_counter]], 
-                                       facecolors=[colors[color_counter]], linewidths=[2])
-                ax.add_collection(lc)
+        def draw_for_frame(frameNo):
+            # Mistake
+            # data[frameNo].transform.scale = data[frameNo].transform.scale / 2
+            shape = data[frameNo].get_markers()
+            
+            lc = mc.PolyCollection([shape], edgecolors=[colors[color_counter]], 
+                                   facecolors=[colors[color_counter]], linewidths=[2])
+            ax.add_collection(lc)
+
+        if isinstance(data, dict):
+            for frameNo in data:
+                if from_frame  <= frameNo <= to_frame :
+                    draw_for_frame(frameNo)
+        elif isinstance(data, list):
+            for frameNo in range(from_frame, to_frame):
+                draw_for_frame(frameNo)
 
         color_counter += 1
     ax.autoscale()

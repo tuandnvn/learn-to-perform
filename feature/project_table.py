@@ -119,9 +119,11 @@ def estimate_cube_2d ( rectangle_projected, first_point, second_point, block_siz
     det = np.linalg.det([[1,0], side])
     rotation = math.atan2(det, dot)
     
-    # We want a value between 0 and pi/2
-    if rotation > np.pi / 2:
+    # We want a value between 0 and pi/2  [0, pi/2)
+    if rotation >= np.pi / 2:
         rotation -= np.pi / 2
+    elif rotation < -np.pi / 2:
+        rotation += np.pi
     elif rotation < 0:
         rotation += np.pi / 2
     scale = block_size / 2

@@ -91,7 +91,9 @@ class Project(Data):
             self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
             
             # Rescale feature
-            # feature_utils.standardize(session)
+            # Here we can do 
+            # Selecting only features we like, or make some modification on the feature
+            feature_utils.standardize_simple(session)
 
     def generate_data(self, linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator):
@@ -188,7 +190,7 @@ if __name__ == "__main__":
             p_data.load_data()
             p_data.preprocess()
             p = Project(p_data)
-            p.standardize(feature_utils.marker_feature_extractor)
+            p.standardize(feature_utils.qsr_feature_extractor)
             p.generate_data()
             p.save(project_name.lower() + "_project.proj")
 

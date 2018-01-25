@@ -33,7 +33,7 @@ NORMAL = "Annotator.PolygonObject"
 # 18 cm?
 BLOCK_SIZE = 0.15
 # just 10 degree
-ROTATION_QUANTIZATION = np.pi / 9
+ROTATION_QUANTIZATION = np.pi / 8
 
 TRAINING = 'TRAINING'
 VALIDATING = 'VALIDATING'
