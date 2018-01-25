@@ -437,11 +437,13 @@ def standardize_simple(session):
             f11 = -1
 
         if f4 == -7:
-            f4 = 1
+            f4 = 1.0
         elif f4 == 7:
-            f4 = -1
+            f4 = -1.0
+
+        f11 /= 2
 
         standardized.append([f3, f4, f5, f6, f7, f8, f11])
 
 
-    session[SESSION_FEAT] = standardized
+    session[SESSION_FEAT] = np.array(standardized)

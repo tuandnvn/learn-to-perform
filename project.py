@@ -189,6 +189,7 @@ if __name__ == "__main__":
             print ('Load project ' + p_data.name)
             p_data.load_data()
             p_data.preprocess()
+            p_data.save(project_name.lower() + "_data.proj")
             p = Project(p_data)
             p.standardize(feature_utils.qsr_feature_extractor)
             p.generate_data()
