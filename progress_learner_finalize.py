@@ -9,7 +9,7 @@ from config import Config
 
 class Final_Config(Config):
 	max_epoch = 10
-	max_max_epoch = 30
+	max_max_epoch = 50
 
 if __name__ == "__main__":
     def learn_all_simple(project_name):

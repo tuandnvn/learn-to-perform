@@ -293,9 +293,9 @@ def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load("slideaway_project.proj")
+    p = Project.load("slidenext_project.proj")
     
-    config = Raw_Config()
+    config = Config()
     
     np.random.seed()
 
