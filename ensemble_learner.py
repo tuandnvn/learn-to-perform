@@ -1,5 +1,9 @@
 from simulator.utils import Cube2D, Transform2D, Command
-from rl.action_learner_search import ActionLearner_Search
+from rl import action_learner_search 
+from rl import block_movement_env as bme
+from importlib import reload
+
+reload(action_learner_search)
 
 class Learner(object):
     """
@@ -37,6 +41,9 @@ class Action_Learner_Using_Search (Learner):
 
         self.action_policy = action_policy
 
+        self.limit_step = limit_step
+        self.session = session
+
         # Without receiving some initial states, we don't 
         self.wrapped_learner = None
 
@@ -57,7 +64,7 @@ class Action_Learner_Using_Search (Learner):
 
         table, block1, block2 = states
 
-        self.config.playground_x = [table[0][0], table[0][2] , 0]
+        self.config.playground_x = [table[0][0] - table[1][0], table[0][2] - table[1][2], 0]
         self.config.playground_dim = [2 * table[1][0], 2 * table[1][2], 0]
 
         env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
@@ -65,7 +72,7 @@ class Action_Learner_Using_Search (Learner):
 
         env._reset_env()
 
-        scale = self.block_size / 2
+        scale = self.config.block_size / 2
 
         o1 = Cube2D(transform = Transform2D([block1[0], block1[2]], 0, scale))
         env.add_object(o1)
@@ -73,7 +80,7 @@ class Action_Learner_Using_Search (Learner):
         o2 = Cube2D(transform = Transform2D([block2[0], block2[2]], 0, scale))
         env.add_object(o2)
 
-        self.wrapped_learner = ActionLearner_Search(self.config, self.project, self.progress_estimator, 
+        self.wrapped_learner = action_learner_search.ActionLearner_Search(self.config, self.project, self.progress_estimator, 
             self.policy_estimator, self.limit_step, self.session, env)
 
     def produce_action (self, select_object):
@@ -85,7 +92,7 @@ class Action_Learner_Using_Search (Learner):
         for _, _, transform, _, _, success, _, _ in explorations[0].action_storage:
             if success:
                 _2d_coordinates = transform.position
-                _3d_coordinates = [_2d_coordinates[0], 0.8, _2d_coordinates[1]]
+                _3d_coordinates = [_2d_coordinates[0][0], 0.8, _2d_coordinates[0][1]]
 
                 action_coordinates.append(_3d_coordinates)
 
@@ -102,7 +109,7 @@ class Ensemble_Learner(object):
         self.all_learners = {}
         self.action_types = action_types
         for action_type in self.action_types:
-            self.all_learners[action_type] = Action_Learner_Using_Search(config, projects[action_type], progress_estimator[action_type], 
+            self.all_learners[action_type] = Action_Learner_Using_Search(config, projects[action_type], progress_estimators[action_type], 
                 policy_estimator, action_policy, limit_step, session)
 
     def receive_state (self, states):
@@ -115,7 +122,7 @@ class Ensemble_Learner(object):
         def make_command_str( action ):
             command_str = "slide(block%d,<%.2f; %.2f; %.2f>)"
 
-            cstr = command_str % ( select_object + 1, action_coordinates[0], action_coordinates[1], action_coordinates[2] )
+            cstr = command_str % ( select_object + 1, action[0], action[1], action[2] )
 
             return cstr
 

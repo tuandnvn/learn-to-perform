@@ -37,6 +37,27 @@ def random_action_constraint(state, policy_estimator, no_of_actions = 1, verbose
 
     return action_means, action_stds, actions[:no_of_actions]
 
+
+def grid_random_action(no_of_actions = 1, verbose = False, constraint_function = lambda a : True):
+    """
+    Random no_of_actions that satisfy constraints specified by constraint_function
+    """
+    action_means, action_stds = policy_estimator.predict(state, sess = session)
+
+    variances = action_stds ** 2
+
+    actions = []
+
+    while True:
+        tempo = np.random.multivariate_normal(action_means,np.diag(variances), size = no_of_actions)
+
+        actions += [act for act in tempo if constraint_function(act)]
+
+        if len(actions) > no_of_actions:
+            break
+
+    return action_means, action_stds, actions[:no_of_actions]
+
 class PolicyEstimator():
     """
     Policy Function approximator.
@@ -270,7 +291,7 @@ class ActionLearner_Search(object):
 
         found_completed_act = False
         # We do one action at a time for all exploration
-        for action_level in range(3):
+        for action_level in range(1):
             if verbose:
                 print ('action_level = %d' % action_level)
         

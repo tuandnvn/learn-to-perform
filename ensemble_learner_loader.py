@@ -8,26 +8,31 @@ if module_path not in sys.path:
     sys.path.append(module_path)
 a = os.path.join(module_path, "strands_qsr_lib\qsr_lib\src3")
 sys.path.append(a)
-
+from importlib import reload
 import ensemble_learner
+
 from rl import action_learner, action_learner_search, value_estimator
 import progress_learner
 import config
 import project
 # Need to add this import to load class
 from project import Project
-from importlib import reload
+
 from rl import block_movement_env
 import matplotlib
 from matplotlib import pyplot as plt
 import plotting
+
+reload(ensemble_learner)
+reload(config)
 
 def action_policy(config):
     """
     Given a config that has defined a playground
     """
     def boundary_constraint(action):
-        for i in range(3):
+        # Ignore rotation
+        for i in range(2):
             if action[i] < config.playground_x[i]:
                 return False
             if action[i] > config.playground_x[i] + config.playground_dim[i]:
@@ -54,7 +59,8 @@ def create_ensemble_learner():
     projects = {}
     progress_estimators = {}
 
-    action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
+    # action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
+    action_types = ["SlideToward"]
 
     for project_name in action_types:
         print ('========================================================')
@@ -76,10 +82,10 @@ def create_ensemble_learner():
     for project_name in action_types:
         saver.restore(sess, '../progress_' + project_name + '.mod')
 
-    ensemble_learner = ensemble_learner.Ensemble_Learner(config, action_types, projects, progress_estimators, 
-            policy_estimator, action_policy, limit_step = 4, session = sess)
+    learner = ensemble_learner.Ensemble_Learner(c, action_types, projects, progress_estimators, 
+            policy_est, action_policy(c), limit_step = 4, session = sess)
 
-    return ensemble_learner
+    return learner
 
 # if __name__ == '__main__':
 #     ensemble_learner = create_ensemble_learner()
