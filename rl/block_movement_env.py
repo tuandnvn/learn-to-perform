@@ -183,6 +183,61 @@ class BlockMovementEnv(gym.Env):
 
         return (observation, reward, done, info)
 
+    def try_step_multi (self, actions):
+        """
+        Try multiple actions at the same time
+        Return progress for multiple actions
+        But dont do any real step
+        """
+        legal_action_indices = []
+        legal_action_features = []
+
+        for i, action in enumerate(actions):
+            object_index, new_location, action_means, action_stds = action
+        
+            position = new_location[:2]
+            rotation = new_location[2]
+
+            prev_transform = self.e.objects[object_index].transform
+
+            if self.e.act(object_index, Command(position, rotation)):
+                inputs = self.get_feature_only()
+
+                legal_action_indices.append(i)
+                legal_action_features.append(inputs)
+
+                # Back transform
+                self.e.act(object_index, 
+                    self.command_from_transform(prev_transform), check_condition = False )
+
+
+        if len(legal_action_indices) == 0:
+            return ([], [])
+
+        legal_action_feats = np.stack(legal_action_features)
+
+        action_size = legal_action_feats.shape[0]
+        num_steps = legal_action_feats.shape[1]
+        feature_size = legal_action_feats.shape[2]
+        epoch_size = int(np.ceil(action_size / self.config.batch_size))
+
+        zero_filled = np.zeros( (  epoch_size * self.config.batch_size, num_steps, feature_size ))
+
+        zero_filled[:legal_action_feats.shape[0]] = legal_action_feats
+
+        zero_filled = zero_filled.reshape((epoch_size, self.config.batch_size, num_steps, feature_size))
+
+        all_progress = []
+        for i in range(epoch_size):
+            progress = self.progress_estimator.predict(zero_filled[i], sess = self.session)
+            all_progress.append(progress)
+
+        all_progress = np.concatenate(all_progress)
+        
+
+        return (legal_action_indices, all_progress[:action_size])
+
+
     def back(self):
         """
         Back one step
@@ -235,6 +290,23 @@ class BlockMovementEnv(gym.Env):
         # print ('progress = %.2f' % progress)
 
         return (observation, progress)
+
+    def get_feature_only(self, verbose = False):
+        """
+        This collect features for prediction
+        """
+        # captures the last self.num_steps + 1 frames
+        # last_num_steps_frames is a SESSION
+        last_num_steps_frames = self.capture_last(self.num_steps + 1)
+
+        # Extract features from the last frames
+        # inputs: np.array (self.num_steps, n_input)
+        # because we can make last_num_steps_frames a little bit longer
+        # so we just clip down a little bit
+        inputs = self._get_features(last_num_steps_frames)[-self.num_steps:]
+
+        return inputs
+
 
     def capture_last(self, frames, mode = WHOLE):
         """
@@ -405,10 +477,10 @@ class BlockMovementEnv(gym.Env):
         --------
             session[SESSION_FEAT] : np.array (# frames, # features)
         """
-        # feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
-        # feature_utils.standardize(session)
+        feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
+        feature_utils.standardize_simple(session)
 
-        feature_utils.marker_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
+        # feature_utils.marker_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 
         return session[SESSION_FEAT]
     

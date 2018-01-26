@@ -14,7 +14,7 @@ import traceback
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
 from importlib import reload
-# reload(bme)
+reload(bme)
 
 def random_action_constraint(state, policy_estimator, no_of_actions = 1, verbose = False, 
        session = None, constraint_function = lambda a : True):
@@ -228,7 +228,7 @@ class ActionLearner_Search(object):
     
     """
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, limit_step = 10, session = None):
+            policy_estimator, limit_step = 10, session = None, env = None):
         self.config = config
 
         # All of these components should be 
@@ -249,14 +249,19 @@ class ActionLearner_Search(object):
 
         self.np_random, _ = seeding.np_random(None)
 
-    def learn_one_setup( self, action_policy, verbose = False):
+        if env == None:
+            env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
+                progress_estimator = self.progress_estimator, session = self.session)
+            env.reset()
+        
+        self.env = env
+
+    def learn_one_setup( self, action_policy, select_object = 0, verbose = False):
         sigma = self.config.start_sigma
         self.policy_estimator.assign_sigma( sigma, sess= self.session )
-        select_object = 0
         branching = self.config.branching
-        env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
-                progress_estimator = self.progress_estimator, session = self.session)
-        env.reset()
+        # shorten
+        env = self.env
 
         explorations = [env.clone()]
 
@@ -301,8 +306,19 @@ class ActionLearner_Search(object):
                         action, action_means, action_stds) )
 
                     if done:
-                        print ("found_completed_act found_completed_act found_completed_act")
+                        print ("=== found_completed_act ===")
                         found_completed_act = True
+
+                # tuple_actions = [(select_object, action, action_means, action_stds) for action in actions]
+                # legal_action_indices, all_progress = exploration.try_step_multi(tuple_actions)
+
+                # for index, progress in zip (legal_action_indices, all_progress):
+                #     tempo_rewards.append( (exploration_index, progress,
+                #         actions[index], action_means, action_stds) )
+
+                #     if progress > self.config.progress_threshold:
+                #         print ("=== found_completed_act ===")
+                #         found_completed_act = True
 
             tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
             test = [(t[0], t[1]) for t in tempo_rewards]
