@@ -59,8 +59,8 @@ def create_ensemble_learner():
     projects = {}
     progress_estimators = {}
 
-    # action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
-    action_types = ["SlideToward"]
+    action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
+    # action_types = ["SlideToward", "SlideAway"]
 
     for project_name in action_types:
         print ('========================================================')
@@ -77,9 +77,9 @@ def create_ensemble_learner():
     for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
         print (variable.name)
 
-    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
-
     for project_name in action_types:
+        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
+
         saver.restore(sess, '../progress_' + project_name + '.mod')
 
     learner = ensemble_learner.Ensemble_Learner(c, action_types, projects, progress_estimators, 
