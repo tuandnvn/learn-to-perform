@@ -67,7 +67,8 @@ class Config (object):
 								# However, we should stop 
 	no_of_loops = 10 
 
-	branching = 20 # Target is so that at the last loop, we reduce branching down so that we lower
+	keep_branching = 9
+	branching = 36 # Target is so that at the last loop, we reduce branching down so that we lower
 				   # the number of searching steps we spend
 
 

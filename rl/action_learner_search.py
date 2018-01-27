@@ -37,26 +37,26 @@ def random_action_constraint(state, policy_estimator, no_of_actions = 1, verbose
 
     return action_means, action_stds, actions[:no_of_actions]
 
-
-def grid_random_action(no_of_actions = 1, verbose = False, constraint_function = lambda a : True):
+def action_policy(config):
     """
-    Random no_of_actions that satisfy constraints specified by constraint_function
+    Given a config that has defined a playground
     """
-    action_means, action_stds = policy_estimator.predict(state, sess = session)
-
-    variances = action_stds ** 2
-
-    actions = []
-
-    while True:
-        tempo = np.random.multivariate_normal(action_means,np.diag(variances), size = no_of_actions)
-
-        actions += [act for act in tempo if constraint_function(act)]
-
-        if len(actions) > no_of_actions:
-            break
-
-    return action_means, action_stds, actions[:no_of_actions]
+    def boundary_constraint(action):
+        # Ignore rotation
+        for i in range(2):
+            if action[i] < config.playground_x[i]:
+                return False
+            if action[i] > config.playground_x[i] + config.playground_dim[i]:
+                return False
+        
+        return True
+    
+    def q(state, policy_estimator, no_of_actions = 1, verbose = False, 
+       session = None):
+        return random_action_constraint(state, policy_estimator,
+                    no_of_actions, verbose, session, boundary_constraint)
+    
+    return q
 
 class PolicyEstimator():
     """
@@ -248,8 +248,7 @@ class ActionLearner_Search(object):
     - We might want to split the gaussian models into a gaussian mixture model 
     
     """
-    def __init__(self, config, project, progress_estimator, 
-            policy_estimator, limit_step = 10, session = None, env = None):
+    def __init__(self, config, project, progress_estimator, limit_step = 10, session = None, env = None):
         self.config = config
 
         # All of these components should be 
@@ -262,7 +261,8 @@ class ActionLearner_Search(object):
         self.progress_estimator = progress_estimator
 
         # This should belong to class PolicyEstimator
-        self.policy_estimator = policy_estimator
+        with tf.variable_scope("search", reuse = True) as scope:
+            self.policy_estimator = PolicyEstimator(self.config)
 
         self.limit_step = limit_step
 
@@ -277,9 +277,18 @@ class ActionLearner_Search(object):
         
         self.env = env
 
-    def learn_one_setup( self, action_policy, select_object = 0, verbose = False):
+        self.action_policy = action_policy(self.config)
+
+    def learn_one_setup( self, select_object = 0, verbose = False):
         sigma = self.config.start_sigma
         self.policy_estimator.assign_sigma( sigma, sess= self.session )
+
+        # Every action_level, we would search for keep_branching * branching new positions
+        # keep_branching is the number of explorations keep from the previous step
+        # For the first action_level, keep_branching = 1
+        #  branching is the number of new action explored for each exploration
+        # For the first action_level, keep_branching = keep_branching * branching
+        keep_branching = self.config.keep_branching
         branching = self.config.branching
         # shorten
         env = self.env
@@ -291,7 +300,7 @@ class ActionLearner_Search(object):
 
         found_completed_act = False
         # We do one action at a time for all exploration
-        for action_level in range(1):
+        for action_level in range(3):
             if verbose:
                 print ('action_level = %d' % action_level)
         
@@ -305,7 +314,7 @@ class ActionLearner_Search(object):
 
 
                 if action_level == 0:
-                    no_of_search = branching ** 2
+                    no_of_search = keep_branching * branching
                     state = exploration.get_observation_start()
                 else:
                     no_of_search = branching
@@ -313,7 +322,7 @@ class ActionLearner_Search(object):
                     state, _ = exploration.get_observation_and_progress()
                 #print ('state = ' + str(state))
 
-                action_means, action_stds, actions = action_policy(state, self.policy_estimator,
+                action_means, action_stds, actions = self.action_policy(state, self.policy_estimator,
                     verbose = verbose, no_of_actions = no_of_search, session = self.session)
 
                 #print (actions)
@@ -345,11 +354,11 @@ class ActionLearner_Search(object):
             test = [(t[0], t[1]) for t in tempo_rewards]
 
             if verbose:
-                print (test[:branching])
+                print (test[:keep_branching])
 
             new_explorations = []
             rewards = []
-            for exploration_index, acc_reward, action, action_means, action_stds in tempo_rewards[:branching]:
+            for exploration_index, acc_reward, action, action_means, action_stds in tempo_rewards[:keep_branching]:
                 env = explorations[exploration_index].clone()
                 env.step((select_object,action, action_means, action_stds))
                 new_explorations.append(env)

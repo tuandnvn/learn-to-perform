@@ -26,33 +26,12 @@ import plotting
 reload(ensemble_learner)
 reload(config)
 
-def action_policy(config):
-    """
-    Given a config that has defined a playground
-    """
-    def boundary_constraint(action):
-        # Ignore rotation
-        for i in range(2):
-            if action[i] < config.playground_x[i]:
-                return False
-            if action[i] > config.playground_x[i] + config.playground_dim[i]:
-                return False
-        
-        return True
-    
-    def q(state, policy_estimator, no_of_actions = 1, verbose = False, 
-       session = None):
-        return action_learner_search.random_action_constraint(state, policy_estimator,
-                    no_of_actions, verbose, session, boundary_constraint)
-    
-    return q
-
 def create_ensemble_learner():
     c = config.Config()
     tf.reset_default_graph()
 
     global_step = tf.Variable(0, name="global_step", trainable=False)
-    policy_est = action_learner_search.PolicyEstimator(c)
+    # policy_est = action_learner_search.PolicyEstimator(c)
     sess =  tf.Session()
     sess.run(tf.global_variables_initializer())
 
@@ -82,8 +61,7 @@ def create_ensemble_learner():
 
         saver.restore(sess, '../progress_' + project_name + '.mod')
 
-    learner = ensemble_learner.Ensemble_Learner(c, action_types, projects, progress_estimators, 
-            policy_est, action_policy(c), limit_step = 4, session = sess)
+    learner = ensemble_learner.Ensemble_Learner(c, action_types, projects, progress_estimators, limit_step = 4, session = sess)
 
     return learner
 
