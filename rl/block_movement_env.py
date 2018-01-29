@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import gym
 from gym import error, spaces
@@ -9,6 +10,7 @@ import matplotlib.cm as cm
 import matplotlib.mlab as mlab
 import pylab as pl
 from matplotlib import collections as mc
+import visualizer
 
 from . import uniform_env_space
 from simulator import simulator2d
@@ -702,6 +704,21 @@ class BlockMovementEnv(gym.Env):
             plt.contour(x_range, y_range, z, 10, alpha = 0.3)
 
         plt.show()
+
+    def save_visualization_to_file(self, file_name, length = 90):
+        """
+        Save animation to a file with length = # of frames
+        """
+        session = self.capture_last(length)
+        visualizer.animate(session , 0, length, name = file_name, min_x = -1, max_x = 1, min_y =  -1, max_y = 1, show = False )
+
+    def save(self, file_name):
+        """
+        For purpose of keeping data for later references
+        """
+        saved_data = { "start_config" : self.start_config, "action_storage" : self.action_storage } 
+        with open(file_name, 'b+w') as fh:
+            pickle.dump(saved_data, fh)
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

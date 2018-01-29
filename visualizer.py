@@ -1,5 +1,6 @@
 import numpy as np
 import pylab as pl
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import collections as mc
@@ -82,6 +83,8 @@ def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6
         ax.add_collection(lc)
         return lc,
 
+    # mywriter = animation.FFMpegWriter(fps=30)
+
     # call the animator.  blit=True means only re-draw the parts that have changed.
     anim = animation.FuncAnimation(fig, anim,
                                    frames=to_frame - from_frame, interval=20, blit=True)
@@ -92,7 +95,8 @@ def animate (session, from_frame, to_frame, min_x = -.6, max_x = 1, min_y =  -.6
     # your system: for more information, see
     # http://matplotlib.sourceforge.net/api/animation_api.html
     if name:
-        anim.save(name, fps=30, extra_args=['-vcodec', 'libx264'])
+        anim.save(name, fps=10, extra_args=['-vcodec', 'libx264'])
+        # anim.save(name,writer=mywriter)
     
         if show:
             video = io.open(name, 'r+b').read()
