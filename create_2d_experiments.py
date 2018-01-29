@@ -9,7 +9,7 @@ import config
 import project
 # Need to add this import to load class
 from project import Project
-from importlib import reload
+# from importlib import reload
 from rl import block_movement_env
 import matplotlib
 from matplotlib import pyplot as plt
@@ -38,7 +38,7 @@ for project_name in action_types:
     print ('Load for action type = ' + project_name)
     p_name = project_name.lower() + "_project.proj"
 
-    projects[project_name] = project.Project.load('../' + p_name)
+    projects[project_name] = project.Project.load(p_name)
 
     with tf.variable_scope("model") as scope:
         print('-------- Load progress model ---------')
@@ -51,7 +51,7 @@ for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
 for project_name in action_types:
     saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
-    saver.restore(sess, '../progress_' + project_name + '.mod')
+    saver.restore(sess, 'progress_' + project_name + '.mod')
 
 c.progress_threshold=0.92
 action_lns = {}
@@ -59,12 +59,12 @@ for project_name in action_types:
     action_lns[project_name] = action_learner_search.ActionLearner_Search(c, projects[project_name], progress_estimators[project_name], session = sess)
 
 for project_name in action_types:
-    prefix = "..\\experiments\\human_evaluation_2d\\" + project_name + "\\"
+    prefix = os.path.join( "experiments", "human_evaluation_2d" , project_name)
     print ("============")
     print (prefix)
     al = action_lns[project_name]
-    for n in range(10):
+    for n in range(30):
         al.env.reset()
         explorations = al.learn_one_setup(verbose = True)
-        explorations[0].save(prefix + str(n) + ".dat")
-        explorations[0].save_visualization_to_file(prefix + str(n) + ".mp4")
+        explorations[0].save(os.path.join( prefix, str(n) + ".dat" ))
+        explorations[0].save_visualization_to_file(os.path.join( prefix, str(n) + ".mp4" ))

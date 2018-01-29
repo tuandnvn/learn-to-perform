@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 import sys
     
@@ -13,8 +14,8 @@ import traceback
 
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
-from importlib import reload
-reload(bme)
+# from importlib import reload
+# reload(bme)
 
 def random_action_constraint(state, policy_estimator, no_of_actions = 1, verbose = False, 
        session = None, constraint_function = lambda a : True):

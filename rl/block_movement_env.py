@@ -5,6 +5,7 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.mlab as mlab
@@ -717,7 +718,7 @@ class BlockMovementEnv(gym.Env):
         For purpose of keeping data for later references
         """
         saved_data = { "start_config" : self.start_config, "action_storage" : self.action_storage } 
-        with open(file_name, 'b+w') as fh:
+        with open(file_name, 'wb') as fh:
             pickle.dump(saved_data, fh)
 
     def _seed(self, seed=None):

@@ -429,7 +429,7 @@ def standardize_simple(session):
     """
     standardized = []
     for frame in range(session[SESSION_LEN]):
-        _, _, f3, f4, f5, f6, f7, f8, _, _, f11, _, _ = session[SESSION_FEAT][frame]
+        _, f2, f3, f4, f5, f6, f7, f8, _, _, f11, _, _ = session[SESSION_FEAT][frame]
 
         if f11 == -3:
             f11 = 1
