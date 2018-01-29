@@ -443,7 +443,7 @@ def standardize_simple(session):
 
         f11 /= 2
 
-        standardized.append([f3, f4, f5, f6, f7, f8, f11])
+        standardized.append([f2, f3, f4, f5, f6, f7, f8, f11])
 
 
     session[SESSION_FEAT] = np.array(standardized)

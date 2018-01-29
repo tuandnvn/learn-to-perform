@@ -31,7 +31,8 @@ sess.run(tf.global_variables_initializer())
 projects = {}
 progress_estimators = {}
 
-action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
+action_types = ["SlideNext"]
+# action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
 
 for project_name in action_types:
     print ('========================================================')

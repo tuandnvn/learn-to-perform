@@ -51,7 +51,8 @@ if __name__ == "__main__":
 
             print('-------- Saved progress.mod ---------')
 
-    for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
+    for project_name in ["SlideNext"]:
+    # for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
         learn_all_simple(project_name)
 
 

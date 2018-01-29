@@ -185,8 +185,8 @@ if __name__ == "__main__":
     """
     def create_projects():
         from project import Project, ProjectData
-        # for project_name in ["SlideNext"]:
-        for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
+        for project_name in ["SlideNext"]:
+        # for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
             p_data = ProjectData(project_name, ["Session1", "Session2"])
             print ('Load project ' + p_data.name)
             p_data.load_data()
