@@ -637,6 +637,9 @@ class BlockMovementEnv(gym.Env):
         self.start_config = start_config
         self.action_storage = action_storage
 
+        for o in self.start_config:
+            self.add_object(o)
+
     def replay(self, verbose = True):
         """
         For debugging purpose, we want to replay the session (just showing all the steps has been made from the beginning and progress values)

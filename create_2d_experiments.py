@@ -21,6 +21,10 @@ tf.reset_default_graph()
 
 global_step = tf.Variable(0, name="global_step", trainable=False)
 
+# =============================
+# Need to run this line afterward
+# dos2unix experiments/human_evaluation_2d/SlidePast/*.dat
+
 sess =  tf.Session()
 
 with tf.variable_scope("search") as scope:
