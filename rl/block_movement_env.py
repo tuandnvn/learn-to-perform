@@ -5,7 +5,6 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.mlab as mlab
@@ -632,6 +631,11 @@ class BlockMovementEnv(gym.Env):
         self.e = simulator2d.Environment(boundary = self.default_boundary )
         self.action_storage = []
         self.start_config = []
+
+    def reset_env_to_state(self, start_config, action_storage) :
+        self._reset_env()
+        self.start_config = start_config
+        self.action_storage = action_storage
 
     def replay(self, verbose = True):
         """
