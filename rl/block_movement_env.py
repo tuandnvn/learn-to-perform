@@ -634,11 +634,15 @@ class BlockMovementEnv(gym.Env):
 
     def reset_env_to_state(self, start_config, action_storage) :
         self._reset_env()
-        self.start_config = start_config
-        self.action_storage = action_storage
 
-        for o in self.start_config:
+        for o in start_config:
             self.add_object(o)
+
+        for object_index, _, next_transform, _, _, success, action_means, action_stds in action_storage:
+            if not success:
+                continue
+
+            self.step((object_index, next_transform.get_feat(), action_means, action_stds))
 
     def replay(self, verbose = True):
         """
