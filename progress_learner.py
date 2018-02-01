@@ -54,7 +54,7 @@ class EventProgressEstimator(object):
             
             lstm_cell = BasicLSTMCell(size, forget_bias = 1.0, state_is_tuple=True)
             
-            if is_training and config.keep_prob < 1:
+            if config.keep_prob_bool and config.keep_prob < 1:
                 lstm_cell = DropoutWrapper(lstm_cell, output_keep_prob=config.keep_prob)
                 
             multi_lstm_cell = MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
