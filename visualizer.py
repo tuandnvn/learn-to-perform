@@ -1,6 +1,6 @@
 import numpy as np
-import pylab as pl
 import matplotlib as mpl
+import pylab as pl
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import collections as mc

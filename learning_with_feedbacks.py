@@ -15,11 +15,11 @@ import config
 import project
 # Need to add this import to load class
 from project import Project
-from importlib import reload
 from rl import block_movement_env
 import matplotlib
 from matplotlib import pyplot as plt
 import plotting
+import pickle
 
 c = config.Config()
 c.no_of_loops = 1
@@ -45,7 +45,7 @@ for project_name in action_types:
     print ('Load for action type = ' + project_name)
     p_name = project_name.lower() + "_project.proj"
 
-    projects[project_name] = project.Project.load('../' + p_name)
+    projects[project_name] = project.Project.load(p_name)
 
     with tf.variable_scope("model") as scope:
         print('-------- Load progress model ---------')
@@ -55,6 +55,11 @@ for project_name in action_types:
 for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
     print (variable.name)
 
+action_lns = {}
+for project_name in action_types:
+    action_lns[project_name] = action_learner_search.ActionLearner_Search(c, projects[project_name], progress_estimators[project_name], session = sess)
+
+prefix = os.path.join( "experiments", "human_evaluation_2d" , "SlideAround")
 p = progress_estimators["SlideAround"]
 al = action_lns["SlideAround"]
 new_demonstrations = []
@@ -62,7 +67,10 @@ for index in range(30):
     stored_config_file = os.path.join(prefix, str(index) + ".dat")
     with open(stored_config_file, 'rb') as fh:
         # need this encoding 
-        stored_config = pickle.load(fh, encoding='latin-1')
+        if sys.version_info >= (3,0):
+            stored_config = pickle.load(fh, encoding='latin-1')
+        else:
+            stored_config = pickle.load(fh)
 
         e = block_movement_env.BlockMovementEnv(al.config, al.project.speed, al.project.name, 
                 progress_estimator = p, session = al.session)
@@ -70,12 +78,12 @@ for index in range(30):
         
         new_demonstrations.append(e)
 
-new_prefix = os.path.join( "..", "experiments", "human_evaluation_2d" , "SlideAroundNew")
+new_prefix = os.path.join( "experiments", "human_evaluation_2d" , "SlideAroundNew")
 
 for project_name in action_types:
     saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
-    saver.restore(sess, '../progress_' + project_name + '.mod.1')
+    saver.restore(sess, 'progress_' + project_name + '.mod.1')
 
 
 for index in range(15, 30):
@@ -88,7 +96,7 @@ for index in range(15, 30):
 for project_name in action_types:
     saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
-    saver.restore(sess, '../progress_' + project_name + '.mod.2')
+    saver.restore(sess, 'progress_' + project_name + '.mod.2')
 
 
 for index in range(0, 15):
