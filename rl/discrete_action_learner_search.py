@@ -27,10 +27,10 @@ def grid_random_action(c, no_of_actions = 1, verbose = False):
     """
     sqrt_action = math.sqrt(no_of_actions)
 
-	x_coordinate = np.linspace( c.playground_x[0] + c.playground_dim[0] / (2 * sqrt_action) , c.playground_x[0] + c.playground_dim[0] - c.playground_dim[0] / (2 * sqrt_action), sqrt_action )
-	y_coordinate = np.linspace( c.playground_x[1] + c.playground_dim[1] / (2 * sqrt_action) , c.playground_x[1] + c.playground_dim[1] - c.playground_dim[1] / (2 * sqrt_action), sqrt_action )
+    x_coordinate = np.linspace( c.playground_x[0] + c.playground_dim[0] / (2 * sqrt_action) , c.playground_x[0] + c.playground_dim[0] - c.playground_dim[0] / (2 * sqrt_action), sqrt_action )
+    y_coordinate = np.linspace( c.playground_x[1] + c.playground_dim[1] / (2 * sqrt_action) , c.playground_x[1] + c.playground_dim[1] - c.playground_dim[1] / (2 * sqrt_action), sqrt_action )
 
-	action_std = np.array([c.playground_dim[0] / (2 * sqrt_action), c.playground_dim[1] / (2 * sqrt_action)])
+    action_std = np.array([c.playground_dim[0] / (2 * sqrt_action), c.playground_dim[1] / (2 * sqrt_action)])
     variances = action_std ** 2
 
     actions = []
@@ -47,6 +47,50 @@ def grid_random_action(c, no_of_actions = 1, verbose = False):
             break
 
     return action_means[:no_of_actions], action_stds, actions[:no_of_actions]
+
+
+def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.linspace(0, np.pi/2, 5)[:4] , no_of_actions = 1, verbose = False, constraint_function = lambda a : True):
+    """
+    Random actions in the slot around the grid point
+    with the grid point being the ones that takes into 
+    consideration the angle made with the static square
+
+    c: config
+    env: to get the positions of the objects in the current environment
+
+    return: List of (action_mean, action_std, action)
+    """
+    if select_object == 0:
+        static_object = 1
+    else:
+        static_object = 0
+
+    static_object_transform = env.e.objects[static_object].transform
+    theta = static_object_transform.rotation
+
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
+
+    action_means = []
+    action_stds = []
+    actions = []
+
+    while True:
+        for ds in discretized_space:
+            # Starting from straight north and going clockwise
+            for values in [ (0, ds), (ds, ds), (ds, 0), (ds, -ds), (0, -ds), (-ds, -ds), (-ds, 0), (-ds, ds) ]:
+                location = R.dot( np.array([[values[0]], [values[1]]]) )
+                location = location.flatten() + np.reshape( static_object_transform.position, [2])
+                action = np.concatenate( [location, np.array([theta])] )
+
+                if constraint_function(action):
+                    action_means.append(action)
+                    action_stds.append(np.ones(3))
+                    actions.append(action)
+                    if len(actions) >= no_of_actions:
+                        return action_means, action_stds, actions
+
+    
 
 class Discrete_ActionLearner_Search(object):
     """
@@ -95,7 +139,7 @@ class Discrete_ActionLearner_Search(object):
 
         found_completed_act = False
         # We do one action at a time for all exploration
-        for action_level in range(1):
+        for action_level in range(4):
             if verbose:
                 print ('action_level = %d' % action_level)
         
@@ -109,7 +153,7 @@ class Discrete_ActionLearner_Search(object):
 
 
                 if action_level == 0:
-                    no_of_search = keep_branching * branching
+                    no_of_search = branching
                     state = exploration.get_observation_start()
                 else:
                     no_of_search = branching
@@ -117,16 +161,28 @@ class Discrete_ActionLearner_Search(object):
                     state, _ = exploration.get_observation_and_progress()
                 #print ('state = ' + str(state))
 
-                actions_with_means_and_stds = grid_random_action(self.config, no_of_actions = no_of_search)
+                action_means, action_stds, actions = quantized_random_action(self.config, exploration, select_object, no_of_actions = no_of_search)
 
-                tuple_actions = [(select_object, action, action_mean, action_std) for action_mean, action_std, action in actions_with_means_and_stds]
-                legal_action_indices, all_progress = exploration.try_step_multi(tuple_actions)
+                # tuple_actions = [(select_object, action, action_mean, action_std) for action_mean, action_std, action in zip(action_means, action_stds, actions)]
+                # legal_action_indices, all_progress = exploration.try_step_multi(tuple_actions)
 
-                for index, progress in zip (legal_action_indices, all_progress):
-                    tempo_rewards.append( (exploration_index, progress,
-                        actions[index], action_means, action_stds) )
+                # for index, progress in zip (legal_action_indices, all_progress):
+                #     tempo_rewards.append( (exploration_index, progress,
+                #         actions[index], action_means[index], action_stds[index]) )
 
-                    if progress > self.config.progress_threshold:
+                #     if progress > self.config.progress_threshold:
+                #         print ("=== found_completed_act ===")
+                #         found_completed_act = True
+
+                for action_index, action in enumerate(actions):
+                    _, reward, done, _ = exploration.step((select_object,action, action_means[action_index], action_stds[action_index]))
+                    #print ((action, reward))
+                    exploration.back()
+
+                    tempo_rewards.append( (exploration_index, rewards[exploration_index] + reward,
+                        action, action_means[action_index], action_stds[action_index]) )
+
+                    if done:
                         print ("=== found_completed_act ===")
                         found_completed_act = True
 
@@ -138,9 +194,9 @@ class Discrete_ActionLearner_Search(object):
 
             new_explorations = []
             rewards = []
-            for exploration_index, acc_reward, action, action_means, action_stds in tempo_rewards[:keep_branching]:
+            for exploration_index, acc_reward, action, action_mean, action_std in tempo_rewards[:keep_branching]:
                 env = explorations[exploration_index].clone()
-                env.step((select_object,action, action_means, action_stds))
+                env.step((select_object, action, action_mean, action_std))
                 new_explorations.append(env)
                 rewards.append(acc_reward)
             
