@@ -186,7 +186,6 @@ class ValueEstimator():
     
     Just use a very simple linear fully connected layer between state and output
     """
-    
     def __init__(self, config, scope="value_estimator"):
         # This state dimension would probably be 12
         # location + rotation of two most objects
