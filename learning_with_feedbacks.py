@@ -9,7 +9,7 @@ if module_path not in sys.path:
 a = os.path.join(module_path, "strands_qsr_lib\qsr_lib\src3")
 
 sys.path.append(a)
-from rl import action_learner, action_learner_search, value_estimator
+from rl import action_learner, action_learner_search, value_estimator, discrete_action_learner_search
 import progress_learner
 import config
 import project
@@ -23,6 +23,8 @@ import pickle
 
 c = config.Config()
 c.no_of_loops = 1
+c.keep_branching = 24
+c.branching = 24
 tf.reset_default_graph()
 
 global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -57,7 +59,7 @@ for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
 
 action_lns = {}
 for project_name in action_types:
-    action_lns[project_name] = action_learner_search.ActionLearner_Search(c, projects[project_name], progress_estimators[project_name], session = sess)
+    action_lns[project_name] = discrete_action_learner_search.Discrete_ActionLearner_Search(c, projects[project_name], progress_estimators[project_name], session = sess)
 
 prefix = os.path.join( "experiments", "human_evaluation_2d" , "SlideAround")
 p = progress_estimators["SlideAround"]
@@ -78,7 +80,7 @@ for index in range(30):
         
         new_demonstrations.append(e)
 
-new_prefix = os.path.join( "experiments", "human_evaluation_2d" , "SlideAroundNew")
+new_prefix = os.path.join( "experiments", "human_evaluation_2d" , "SlideAroundDiscrete")
 
 for project_name in action_types:
     saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
@@ -88,7 +90,7 @@ for project_name in action_types:
 
 for index in range(15, 30):
     print ('Re-demonstrate for ' + str(index))
-    a = action_learner_search.ActionLearner_Search(c, projects['SlideAround'], p, session = sess, env = new_demonstrations[index])
+    a = discrete_action_learner_search.Discrete_ActionLearner_Search(c, projects['SlideAround'], p, session = sess, env = new_demonstrations[index])
     explorations = a.learn_one_setup(verbose = True)
     explorations[0].save(os.path.join( new_prefix, str(index) + ".dat" ))
     explorations[0].save_visualization_to_file(os.path.join( new_prefix, str(index) + ".mp4" ))
@@ -101,7 +103,7 @@ for project_name in action_types:
 
 for index in range(0, 15):
     print ('Re-demonstrate for ' + str(index))
-    a = action_learner_search.ActionLearner_Search(c, projects['SlideAround'], p, session = sess, env = new_demonstrations[index])
+    a = discrete_action_learner_search.Discrete_ActionLearner_Search(c, projects['SlideAround'], p, session = sess, env = new_demonstrations[index])
     explorations = a.learn_one_setup(verbose = True)
     explorations[0].save(os.path.join( new_prefix, str(index) + ".dat" ))
     explorations[0].save_visualization_to_file(os.path.join( new_prefix, str(index) + ".mp4" ))
