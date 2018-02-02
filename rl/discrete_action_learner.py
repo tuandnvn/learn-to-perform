@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 import collections
 import itertools
+import math
 
 from . import uniform_env_space
 from . import block_movement_env as bme
@@ -14,7 +15,8 @@ import traceback
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
 
-from action_learner import random_action
+from .action_learner import random_action
+
 
 def epsilon_greedy_action_2( state, policy_estimator, uniform_space, no_of_actions = 1, verbose = False, session = None, epsilon_1 = 0.5, epsilon_2 = 0.3):
     """
@@ -69,9 +71,12 @@ def realize_action( env, select_object, action, discretized_space = [0.18, 0.36,
     
     action is (0.8, 0.8, 0.8) -> quantize to (1, 1, 1)  -> same real action position
 
-    However, we don't quantize to (0,0,0) as that would violate overllaping position
+    However, we don't quantize to (0,0,0) as that would violate overlaping constraint
+    We also only quantize down to values <= len(discretized_space)
 
     action is (0.1, 0.1, 0.1) -> quantize to (1, 1, 0)  
+
+    action is (5, 5, 1) -> quantize to (3, 3, 1)  
 
     Return a real position of action
     """
@@ -84,26 +89,54 @@ def realize_action( env, select_object, action, discretized_space = [0.18, 0.36,
     pos = static_object_transform.position
     theta = static_object_transform.rotation
 
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
 
+    # Clone
+    discrete_action = np.array(action)
+
+    for i in range(3):
+        discrete_action[i] = round(discrete_action[i])
+
+    for i in range(2):
+        if discrete_action[i] == 0:
+            if action[i] >= 0:
+                discrete_action[i] = 1
+            else: 
+                discrete_action[i] = -1
+
+        if math.fabs(discrete_action[i]) > len(discretized_space):
+            discrete_action[i] = math.copysign( len(discretized_space),  discrete_action[i])
+
+    # print (discrete_action)
+
+    # Just position without rotation
+    values = [ math.copysign( discretized_space[int(math.fabs(discrete_action[i])) - 1], discrete_action[i]) for i in range(2) ]
+
+    # print (values)
+    # Rotated without translation
+    location = R.dot( np.array( [[values[0]], [values[1]]]) )
+    # print (location)
+    # Real loation
+    location = location.flatten() + np.reshape( pos, [2])
+
+    rotation = ( theta + discretized_rotation * discrete_action[2] ) % (np.pi/2)
+
+    return np.concatenate( [location, [rotation] ] )
 
 def quantize_position ( env, select_object, action, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.linspace(0, np.pi/2, 5)[:4] ):
     """
-    Translate position of the moving object into a quantized form
+    Translate position of the moving object into a quantized form in relative to the static object
 
     This is a reverse of realize_action
     """
+    if select_object == 0:
+        static_object = 1
+    else:
+        static_object = 0
 
-# def best_n_random_action(n):
-#     def best_random_action (state, policy_estimator, verbose = False):
-#         action_means, action_stds = self.policy_estimator.predict(state)
-                        
-#         action = np.random.normal(action_means,action_stds)
+    
 
-#         if verbose:
-#             print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-#         return action
-
-#     return best_random_action
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
