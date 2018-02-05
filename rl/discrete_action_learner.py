@@ -14,8 +14,25 @@ import traceback
 
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
+from gym.spaces import MultiDiscrete
 
 from .action_learner import random_action
+
+
+class MultiDiscreteNoZero ( MultiDiscrete ) :
+    def __init__(self, array_of_param_array, no_zero_range):
+        """
+        Range of indices that don't allow 0
+        """
+        MultiDiscrete.__init__(self, array_of_param_array)
+        self.no_zero_range = no_zero_range
+
+    def sample(self):
+        while True:
+            s = MultiDiscrete.sample(self)
+            b = np.array(s[self.no_zero_range[0] : self.no_zero_range[1]])
+            if len(b[b == 0]) == 0:
+                return s
 
 
 def epsilon_greedy_action_2( state, policy_estimator, uniform_space, no_of_actions = 1, verbose = False, session = None, epsilon_1 = 0.5, epsilon_2 = 0.3):
@@ -124,9 +141,9 @@ def realize_action( env, select_object, action, discretized_space = [0.18, 0.36,
 
     return np.concatenate( [location, [rotation] ] )
 
-def quantize_position ( env, select_object, action, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.linspace(0, np.pi/2, 5)[:4] ):
+def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8 ):
     """
-    Translate position of the moving object into a quantized form in relative to the static object
+    Translate position of the select_object into a quantized form in relative to the static object
 
     This is a reverse of realize_action
     """
@@ -135,7 +152,42 @@ def quantize_position ( env, select_object, action, discretized_space = [0.18, 0
     else:
         static_object = 0
 
-    
+    static_object_transform = env.e.objects[static_object].transform
+    moving_object_transform = env.e.objects[select_object].transform
+    theta = static_object_transform.rotation
+
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
+
+    distance = np.reshape( moving_object_transform.position - static_object_transform.position, [2])
+
+    distance = R.transpose().dot( distance )
+
+    prev_margin = 0
+    abs_distance = np.abs(distance)
+
+    values = np.zeros(3)
+
+    for d_i, d in enumerate(discretized_space):
+        q = abs_distance / d
+
+        for i, v in enumerate(q):
+            if prev_margin <= abs_distance[i]:
+                if d_i < len(discretized_space) - 1:
+                    if v < 1.5:
+                        values[i] = math.copysign( d_i + 1, distance[i] )
+                else:
+                    values[i] = math.copysign( d_i + 1, distance[i] )
+
+        prev_margin = d * 1.5
+
+    rotation_diff = moving_object_transform.rotation - static_object_transform.rotation
+    if rotation_diff < 0:
+        rotation_diff += np.pi / 2
+
+    values[2] = rotation_diff // discretized_rotation
+    return values
+
 
 
 REINFORCE = 'REINFORCE'
@@ -157,7 +209,7 @@ class DiscreteActionLearner(object):
     """
 
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, value_estimator, limit_step = 20, session = None):
+            policy_estimator, value_estimator, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8, limit_step = 20, session = None):
         """
         Parameters:
         -----------
@@ -188,9 +240,10 @@ class DiscreteActionLearner(object):
 
         playground_x = [self.config.block_size-1,self.config.block_size-1, 0]
         playground_dim = [2-2*self.config.block_size, 2-2*self.config.block_size, np.pi/2]
-        self.uniform_space = uniform_env_space.Uniform(p = playground_x, 
-                                         dimension = playground_dim, 
-                                         randomizer = self.np_random)
+
+        self.uniform_space = MultiDiscreteNoZero( [(-len(discretized_space), len(discretized_space)), 
+            (-len(discretized_space), len(discretized_space)), 
+            (0, int((np.pi/2) // discretized_rotation)) ], (0,2) )
 
     def policy_learn( self , action_policy, depth = 1, breadth = 1, 
             verbose = False, choice = REINFORCE, default = False):
