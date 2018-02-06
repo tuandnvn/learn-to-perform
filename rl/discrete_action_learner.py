@@ -323,7 +323,7 @@ class DiscreteActionLearner(object):
                 else:
                     state = self.env.reset()
 
-                state = quantize_state(state)
+                quantized_state = quantize_state(state)
                 
                 episode = []
                 
@@ -332,7 +332,7 @@ class DiscreteActionLearner(object):
                     best_action = None
                     best_reward = -1
 
-                    action_means, action_stds, actions = action_policy(state, self.policy_estimator,
+                    action_means, action_stds, actions = action_policy(quantized_state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
                     actions = [realize_action( self.env.env, select_object, action ) for action in actions]
@@ -343,6 +343,7 @@ class DiscreteActionLearner(object):
 
                     for breadth_step in range(breadth):
                         action = actions[breadth_step]
+
                         _, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
 
                         if verbose:
@@ -365,11 +366,12 @@ class DiscreteActionLearner(object):
                     if verbose:
                         print ('best reward = %.2f' % best_reward)
 
+                    translated_action_means = action_means + state[9:12]
                     # At this point, best_action corresponds to the best reward
                     # really do the action
-                    next_state, reward, done, _ = self.env.step((select_object,best_action, action_means, action_stds))
+                    next_state, reward, done, _ = self.env.step((select_object,best_action, translated_action_means, action_stds))
 
-                    next_state = quantize_state(next_state)
+                    quantized_next_state = quantize_state(next_state)
 
                     # if abs(reward - best_reward) > 0.01:
                     #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
@@ -378,7 +380,7 @@ class DiscreteActionLearner(object):
                         print ('best_action = ' + str((best_action, reward, done)))
 
                     if choice == REINFORCE:
-                        transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
+                        transition = Transition(state=quantized_state, action=action, reward=reward, next_state=quantized_next_state, done=done)
                         # Keep track of the transition
                         episode.append(transition)
                     
@@ -399,11 +401,11 @@ class DiscreteActionLearner(object):
                         """
                         We handle update right here
                         """
-                        predicted_next_state_value = self.value_estimator.predict(next_state, sess= self.session)
+                        predicted_next_state_value = self.value_estimator.predict(quantized_next_state, sess= self.session)
                         td_target = reward + discount_factor * predicted_next_state_value
-                        self.value_estimator.update(state, td_target, sess= self.session)
+                        self.value_estimator.update(quantized_state, td_target, sess= self.session)
                         
-                        predicted_target = self.value_estimator.predict(state, sess= self.session)
+                        predicted_target = self.value_estimator.predict(quantized_state, sess= self.session)
                         
                         """
                         Implement update right away
@@ -416,12 +418,12 @@ class DiscreteActionLearner(object):
                                 % (td_target, predicted_target, advantage) )
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
-                        loss = self.policy_estimator.update(state, advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(quantized_state, advantage, action, sess= self.session)
                         #print ('loss = %.2f' % loss)
                     if done:
                         break
                         
-                    state = next_state
+                    quantized_state = quantized_next_state
                 
 
                 past_envs.append(self.env)

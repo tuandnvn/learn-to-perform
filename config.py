@@ -12,7 +12,7 @@ class Config (object):
 	num_steps = 20
 	n_input = 7
 	
-	state_dimension = 6
+	state_dimension = 3
 	action_dimension = 3
 
 	num_episodes = 20
