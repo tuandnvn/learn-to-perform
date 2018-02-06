@@ -69,7 +69,7 @@ class PolicyEstimator():
         """
         self.sigma_layer = tf.Variable([1,1,1], dtype = tf.float32, trainable=False)
 
-        hidden_size = 10
+        hidden_size = config.value_estimator_hidden_size
         
         with tf.variable_scope(scope): 
             "Declare all placeholders"
@@ -186,14 +186,14 @@ class ValueEstimator():
     
     Just use a very simple linear fully connected layer between state and output
     """
-    def __init__(self, config, scope="value_estimator"):
+    def __init__(self, config, scope="value_estimator", reuse = False):
         # This state dimension would probably be 12
         # location + rotation of two most objects
         state_dimension = config.state_dimension
 
         self.lr = tf.Variable(0.0, trainable=False)
 
-        with tf.variable_scope(scope): 
+        with tf.variable_scope(scope, reuse): 
             # No batch
             self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
             

@@ -76,6 +76,9 @@ def epsilon_greedy_action_2( state, policy_estimator, uniform_space, no_of_actio
 
     actions = np.concatenate([greedy_actions, gaussian_actions, random_actions], axis = 0)
 
+    if verbose:
+        print (actions)
+
     return action_means, action_stds, actions
 
 def realize_action( env, select_object, action, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8):
@@ -117,10 +120,13 @@ def realize_action( env, select_object, action, discretized_space = [0.18, 0.36,
 
     for i in range(2):
         if discrete_action[i] == 0:
-            if action[i] >= 0:
+            if action[i] > 0:
                 discrete_action[i] = 1
-            else: 
+            elif action[i] < 0:
                 discrete_action[i] = -1
+            else:
+                discrete_action[i] = [1, -1] [np.random.choice(2)]
+
 
         if math.fabs(discrete_action[i]) > len(discretized_space):
             discrete_action[i] = math.copysign( len(discretized_space),  discrete_action[i])
@@ -154,16 +160,26 @@ def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.7
 
     static_object_transform = env.e.objects[static_object].transform
     moving_object_transform = env.e.objects[select_object].transform
-    theta = static_object_transform.rotation
+    return quantize_feat ( moving_object_transform.get_feat(), static_object_transform.get_feat(), discretized_space, discretized_rotation)
+
+def quantize_feat ( moving_object, static_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8, zero_tolerance = 0 ):
+    """
+    moving_object : array of 3
+    static_object : array of 3
+    """
+    static_object_pos = static_object[:2] 
+    moving_object_pos = moving_object[:2]
+    
+    theta = static_object[2]
 
     c, s = np.cos(theta), np.sin(theta)
     R = np.array([[c, -s], [s, c]])
 
-    distance = np.reshape( moving_object_transform.position - static_object_transform.position, [2])
+    distance = np.reshape( moving_object_pos - static_object_pos, [2])
 
     distance = R.transpose().dot( distance )
 
-    prev_margin = 0
+    prev_margin = zero_tolerance
     abs_distance = np.abs(distance)
 
     values = np.zeros(3)
@@ -181,7 +197,7 @@ def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.7
 
         prev_margin = d * 1.5
 
-    rotation_diff = moving_object_transform.rotation - static_object_transform.rotation
+    rotation_diff = moving_object[2] - static_object[2]
     if rotation_diff < 0:
         rotation_diff += np.pi / 2
 
@@ -189,6 +205,17 @@ def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.7
     return values
 
 
+def quantize_state ( state ):
+    """
+    State from the block environment is features of moving and static objects
+    Discretize for the moving object
+    """
+
+    # Get relative
+    pos = quantize_feat ( state[3:6], state[9:12] )
+    velocity = quantize_feat ( state[3:6], state[:3], zero_tolerance = 0.05 )
+
+    return np.concatenate([pos, velocity])
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
@@ -241,9 +268,7 @@ class DiscreteActionLearner(object):
         playground_x = [self.config.block_size-1,self.config.block_size-1, 0]
         playground_dim = [2-2*self.config.block_size, 2-2*self.config.block_size, np.pi/2]
 
-        self.uniform_space = MultiDiscreteNoZero( [(-len(discretized_space), len(discretized_space)), 
-            (-len(discretized_space), len(discretized_space)), 
-            (0, int((np.pi/2) // discretized_rotation)) ], (0,2) )
+        
 
     def policy_learn( self , action_policy, depth = 1, breadth = 1, 
             verbose = False, choice = REINFORCE, default = False):
@@ -297,6 +322,8 @@ class DiscreteActionLearner(object):
                     state = self.env.env.default()
                 else:
                     state = self.env.reset()
+
+                state = quantize_state(state)
                 
                 episode = []
                 
@@ -308,12 +335,15 @@ class DiscreteActionLearner(object):
                     action_means, action_stds, actions = action_policy(state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
+                    actions = [realize_action( self.env.env, select_object, action ) for action in actions]
+
                     if verbose:
+
                         print ((action_means, action_stds))
 
                     for breadth_step in range(breadth):
                         action = actions[breadth_step]
-                        next_state, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
+                        _, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
 
                         if verbose:
                             print ('action = %s' % str((action, reward)))
@@ -339,6 +369,8 @@ class DiscreteActionLearner(object):
                     # really do the action
                     next_state, reward, done, _ = self.env.step((select_object,best_action, action_means, action_stds))
 
+                    next_state = quantize_state(next_state)
+
                     # if abs(reward - best_reward) > 0.01:
                     #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
                     
@@ -356,11 +388,11 @@ class DiscreteActionLearner(object):
                     
                     # Print out which step we're on, useful for debugging.
                     if verbose:
-                        print("Step {} @ Episode {}/{} ({}), (sigma = {})".format(
-                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode], sigma))
+                        print("Step {} @ Episode {}/{} ({})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode]))
                     else:
-                        print("\rStep {} @ Episode {}/{} ({}), (sigma = {})".format(
-                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1], sigma), end="")
+                        print("\rStep {} @ Episode {}/{} ({})".format(
+                                t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
                     #sys.stdout.flush()
 
                     if choice == ACTOR_CRITIC:
@@ -384,13 +416,12 @@ class DiscreteActionLearner(object):
                                 % (td_target, predicted_target, advantage) )
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
-                        loss, _ = self.policy_estimator.update(state, advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(state, advantage, action, sess= self.session)
                         #print ('loss = %.2f' % loss)
                     if done:
                         break
                         
                     state = next_state
-                
                 
 
                 past_envs.append(self.env)
@@ -449,7 +480,7 @@ class DiscreteActionLearner(object):
                              (accumulate_reward, predicted_reward, advantage) )
                         
 
-                        loss, _ = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
                         #print ('loss = %.2f' % loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)

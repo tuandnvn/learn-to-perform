@@ -1,20 +1,21 @@
-from value_estimator import PolicyEstimator, ValueEstimator
+import tensorflow as tf
+from .value_estimator import PolicyEstimator
 
 class DiscretePolicyEstimator ( PolicyEstimator ):
-	"""
-	This is a simple version in which
-	there would be no rotation.
-	
-	Let's the state to be a discretized version of the original state
-	
-	The prediction value would be converted to discretized values
-	"""
-	def __init__(self, config, scope="policy_estimator"):
-		# This state dimension would be 6
-		# Current discretized transform of moving object + Discretized form of velocity vector
-		# For example, state of a block just north of the static block, and straightly align
-		# with the static block would be (0, 1, 0)
-		# straightly south, and rotate 45 degree would be (0, -1, 2)
+    """
+    This is a simple version in which
+    there would be no rotation.
+    
+    Let's the state to be a discretized version of the original state
+    
+    The prediction value would be converted to discretized values
+    """
+    def __init__(self, config, scope="policy_estimator", reuse = False): 
+        # This state dimension would be 6
+        # Current discretized transform of moving object + Discretized form of velocity vector
+        # For example, state of a block just north of the static block, and straightly align
+        # with the static block would be (0, 1, 0)
+        # straightly south, and rotate 45 degree would be (0, -1, 2)
         state_dimension = config.state_dimension
 
         # Moving-to discretized transform of moving object 
@@ -23,8 +24,9 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
         self.lr = tf.Variable(0.0, trainable=False)
 
         self.sigma_layer = tf.Variable([1,1,1], dtype = tf.float32, trainable=False)
+        hidden_size = config.value_estimator_hidden_size
 
-        with tf.variable_scope(scope): 
+        with tf.variable_scope(scope, reuse): 
             "Declare all placeholders"
             "Placeholder for input"
             """
@@ -60,7 +62,7 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
                 inputs=tf.expand_dims(hidden_layer, 0),
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.random_uniform_initializer(minval=-1.0, maxval=1.0)))
+                weights_initializer=tf.zeros_initializer()))
 
             # Using a mvn to predict action probability
             mvn = tf.contrib.distributions.Normal(
@@ -79,3 +81,18 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())
+
+
+    def update(self, state, target, action, sess=None):
+        """
+        state: input state
+        target: return from time t of episode * discount factor
+        action: input action
+        
+        We need to run train_op to update the parameters
+        We also need to return its loss
+        """
+        sess = sess or tf.get_default_session()
+        _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.action: action, self.target: target})
+        
+        return loss

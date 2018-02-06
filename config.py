@@ -12,7 +12,7 @@ class Config (object):
 	num_steps = 20
 	n_input = 7
 	
-	state_dimension = 12
+	state_dimension = 6
 	action_dimension = 3
 
 	num_episodes = 20
@@ -50,6 +50,7 @@ class Config (object):
 	policy_decay = 0.98
 	value_learning_rate = 0.001
 	value_decay = 0.98
+	value_estimator_hidden_size = 20
 	# Set policy decay and value_decay to 1 makes nan values?
 
 	# values used for sigma
