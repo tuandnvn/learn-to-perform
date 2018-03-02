@@ -403,7 +403,7 @@ y = Dropout(0.4) (y)
 # Two weights, two bias
 # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
 # Result would be 
-y1 = 2 * Dense(2, activation = 'tanh') (y)
+y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
 y2 = Dense(2, activation = 'linear') (y)
 Coordinates = Input(shape= (2, ))
 c1 = Multiply()([y1, Coordinates])
