@@ -393,25 +393,12 @@ print("Max sequence len = ", max_len)
 """
 Model 1:
 We only select the first target to predict
+
+Model 2:
+We select two targets to predict
+If there is only one target, we set the second input to be (0, 0)
 """
 sequence_length = 320
-Note = Input(shape=(sequence_length, n_vocab))
-y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
-y = Dropout(0.4) (y)
-y = LSTM(400) (y)
-y = Dropout(0.4) (y)
-# Two weights, two bias
-# If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
-# Result would be 
-y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
-y2 = Dense(2, activation = 'linear') (y)
-Coordinates = Input(shape= (2, ))
-c1 = Multiply()([y1, Coordinates])
-c = Add()([y2, c1])
-m1 = Model(inputs = [Note, Coordinates], outputs = c)
-
-print (m1.summary())
-m1.compile(loss='mean_squared_error', optimizer='adam')
 
 def step_decay(epoch):
     initial_lrate = 0.001
@@ -419,6 +406,50 @@ def step_decay(epoch):
     epochs_drop = 5
     lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
     return lrate
+
+def create_model_1():
+    Note = Input(shape=(sequence_length, n_vocab))
+    y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
+    y = Dropout(0.4) (y)
+    y = LSTM(400) (y)
+    y = Dropout(0.4) (y)
+    # Two weights, two bias
+    # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
+    # Result would be 
+    y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+    y2 = Dense(2, activation = 'linear') (y)
+    Coordinates = Input(shape= (2, ))
+    c1 = Multiply()([y1, Coordinates])
+    c = Add()([y2, c1])
+    m = Model(inputs = [Note, Coordinates], outputs = c)
+
+    print (m.summary())
+    m.compile(loss='mean_squared_error', optimizer='adam')
+
+    return m
+
+def create_model_2():
+    Note = Input(shape=(sequence_length, n_vocab))
+    y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
+    y = Dropout(0.4) (y)
+    y = LSTM(400) (y)
+    y = Dropout(0.4) (y)
+    # Two weights, two bias
+    # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
+    # Result would be 
+    y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+    y2 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+    y3 = Dense(2, activation = 'linear') (y)
+    Coordinates = Input(shape= (4, ))
+    c1 = Multiply()([y1, Lambda(lambda x: x[:2])(Coordinates)])
+    c2 = Multiply()([y2, Lambda(lambda x: x[2:4])(Coordinates)])
+    c = Add()([y3, c1, c2])
+    m = Model(inputs = [Note, Coordinates], outputs = c)
+
+    print (m.summary())
+    m.compile(loss='mean_squared_error', optimizer='adam')
+
+    return m
 
 X_1 = {}
 X_2 = {}
@@ -428,39 +459,77 @@ Y = {}
 When creating data for training,
 we only use data that have moving_obj == cand_obj
 """
+def create_data_1():
+    for datatype in [TRAIN, DEV, TEST]:
+        X_1[datatype] = []
+        X_2[datatype] = []
+        Y[datatype] = []
+        
+        for sample in all_data[datatype]:
+            if datatype == TRAIN and sample.moving_obj != sample.cand_obj:
+                continue
+            
+            if len(sample.locative_objects) > 0:
+                locative_object = sample.locative_objects[0]
+            else:
+                locative_object = sample.cand_obj
+            
+            # [len]
+            x_1 = [char_to_int[char] for char in ' '.join(sample.text_form).lower() if char in char_to_int]
+            # array (len, n_vocab)
+            x_1 = np_utils.to_categorical(x_1, num_classes = n_vocab)
+            
+            padded_x_1 = np.zeros((sequence_length, n_vocab))
 
-for datatype in [TRAIN, DEV, TEST]:
-    X_1[datatype] = []
-    X_2[datatype] = []
-    Y[datatype] = []
-    
-    for sample in all_data[datatype]:
-        if datatype == TRAIN and sample.moving_obj != sample.cand_obj:
-            continue
-        
-        if len(sample.locative_objects) > 0:
-            locative_object = sample.locative_objects[0]
-        else:
-            locative_object = sample.cand_obj
-        
-        # [len]
-        x_1 = [char_to_int[char] for char in ' '.join(sample.text_form).lower() if char in char_to_int]
-        # array (len, n_vocab)
-        x_1 = np_utils.to_categorical(x_1, num_classes = n_vocab)
-        
-        padded_x_1 = np.zeros((sequence_length, n_vocab))
+            padded_x_1[-x_1.shape[0]:] = x_1
+            if locative_object is None:
+                x_2 = np.zeros((2,))
+            else:
+                x_2 = sample.state[locative_object]
+            
+            y = sample.target
+            
+            X_1[datatype].append(padded_x_1)
+            X_2[datatype].append(x_2)
+            Y[datatype].append(y)
 
-        padded_x_1[-x_1.shape[0]:] = x_1
-        if locative_object is None:
-            x_2 = np.zeros((2,))
-        else:
-            x_2 = sample.state[locative_object]
+def create_data_2():
+    for datatype in [TRAIN, DEV, TEST]:
+        X_1[datatype] = []
+        X_2[datatype] = []
+        Y[datatype] = []
         
-        y = sample.target
-        
-        X_1[datatype].append(padded_x_1)
-        X_2[datatype].append(x_2)
-        Y[datatype].append(y)
+        for sample in all_data[datatype]:
+            if datatype == TRAIN and sample.moving_obj != sample.cand_obj:
+                continue
+            
+            x_2 = np.zeros(4)
+
+            if len(sample.locative_objects) > 0:
+                x_2[:2] = sample.state[sample.locative_objects[0]]
+                if len(sample.locative_objects) > 1:
+                    x_2[2:4] = sample.state[sample.locative_objects[1]]
+            else:
+                if sample.cand_obj is not None:
+                    x_2[:2] = sample.state[sample.cand_obj]
+            
+            # [len]
+            x_1 = [char_to_int[char] for char in ' '.join(sample.text_form).lower() if char in char_to_int]
+            # array (len, n_vocab)
+            x_1 = np_utils.to_categorical(x_1, num_classes = n_vocab)
+            
+            padded_x_1 = np.zeros((sequence_length, n_vocab))
+
+            padded_x_1[-x_1.shape[0]:] = x_1
+            
+            y = sample.target
+            
+            X_1[datatype].append(padded_x_1)
+            X_2[datatype].append(x_2)
+            Y[datatype].append(y)
+
+
+create_data_2()
 
 for datatype in [TRAIN, DEV, TEST]:
     X_1[datatype] = np.array(X_1[datatype])
@@ -485,6 +554,7 @@ lrate = LearningRateScheduler(step_decay)
 
 callbacks_list = [checkpoint, lrate]
 
-m1.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
+m = create_model_2()
+m.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
 
-m1.predict([X_1[TEST], X_2[TEST] ], Y[TEST], batch_size=32)
+m.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
