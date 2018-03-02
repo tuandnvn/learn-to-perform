@@ -25,6 +25,8 @@ from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.utils import np_utils
 from keras.preprocessing.sequence import pad_sequences
 
+TRAIN, DEV, TEST = 'TRAIN', 'DEV', 'TEST'
+
 class DataSample(object):
     """
     To store data for each sample
@@ -271,7 +273,8 @@ def test_find_objects( find_objects , sample_index, step_index, datatype = TRAIN
             for note in sample['notes'][i]['notes']:
                 # Handle a special case
                 note = process(note)
-                                no_of_notes += 1
+                
+                no_of_notes += 1
                 cand_obj, locative_objects, text_form = find_objects(note, decoration)
                 
 
@@ -308,7 +311,7 @@ def test_find_objects_one_set( find_objects , datatype = TRAIN) :
 a = 'adidas, bmw, burger king, coca cola, esso, heineken, hp, mcdonalds, mercedes benz, nvidia, pepsi, shell, sri, starbucks, stella artois, target, texaco, toyota, twitter, ups'
 logos = a.split(', ')
 
-TRAIN, DEV, TEST = 'TRAIN', 'DEV', 'TEST'
+
 files = { TRAIN: 'trainset.json', DEV: 'devset.json', TEST : 'testset.json'}
 
 sets = defaultdict(list)
@@ -361,6 +364,10 @@ for datatype in [TRAIN, DEV, TEST]:
     all_data[datatype] = get_data_samples ( datatype )
     print ('Size of data samples for %s is %d' % (datatype, len(all_data[datatype])))
 
+for datatype in [TRAIN, DEV, TEST]:
+    for sample in all_data[datatype]:
+        sample.preprocess()
+
 all_text = []
 max_len = -1
 for sample in all_data[TRAIN]:
@@ -373,6 +380,13 @@ raw_text = ' '.join(all_text)
 
 chars = sorted(list(set(raw_text)))
 char_to_int = dict((c, i) for i, c in enumerate(chars))
+
+n_chars = len(raw_text)
+n_vocab = len(chars)
+print("Total Characters: ", n_chars)
+print("Total Vocab: ", n_vocab)
+print("Max sequence len = ", max_len)
+
 
 """
 Model 1:
