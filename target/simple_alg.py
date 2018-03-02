@@ -411,7 +411,7 @@ c = Add()([y2, c1])
 m1 = Model(inputs = [Note, Coordinates], outputs = c)
 
 print (m1.summary())
-m1.compile(loss='mean_squared_error', optimizer='adam')
+m1.compile(loss='mean_squared_error', optimizer='rmsprop')
 
 def step_decay(epoch):
     initial_lrate = 0.001
@@ -470,7 +470,7 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-filepath="weights-improvement-2-{epoch:02d}-{val_loss:.3f}.hdf5"
+filepath="weights-improvement-rmsprop-{epoch:02d}-{val_loss:.3f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
 mode='min')
 
@@ -487,4 +487,4 @@ callbacks_list = [checkpoint, lrate]
 
 m1.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
 
-m1.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
+m1.predict([X_1[TEST], X_2[TEST] ], Y[TEST], batch_size=32)
