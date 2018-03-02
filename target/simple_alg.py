@@ -27,6 +27,8 @@ from keras.preprocessing.sequence import pad_sequences
 
 TRAIN, DEV, TEST = 'TRAIN', 'DEV', 'TEST'
 
+
+
 class DataSample(object):
     """
     To store data for each sample
@@ -394,9 +396,9 @@ We only select the first target to predict
 """
 sequence_length = 320
 Note = Input(shape=(sequence_length, n_vocab))
-y = LSTM(100, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
+y = LSTM(200, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
 y = Dropout(0.2) (y)
-y = LSTM(100) (y)
+y = LSTM(200) (y)
 y = Dropout(0.2) (y)
 # Two weights, two bias
 # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
@@ -468,4 +470,21 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-m1.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=20, batch_size=128, verbose = 1)
+filepath="weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True,
+mode='max')
+
+
+def step_decay(epoch):
+    initial_lrate = 0.001
+    drop = 0.5
+    epochs_drop = 10.0
+    lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
+    return lrate
+lrate = LearningRateScheduler(step_decay)
+
+callbacks_list = [checkpoint, lrate]
+
+m1.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
+
+m2.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
