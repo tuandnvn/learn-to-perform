@@ -17,6 +17,7 @@ if module_path not in sys.path:
 
 from simulator.utils import Cube2D, Transform2D
 
+import keras
 from keras.layers import Input
 from keras.layers import Lambda, Multiply, Add
 from keras.models import Model
@@ -408,7 +409,7 @@ def step_decay(epoch):
     return lrate
 
 def create_model_1():
-    Note = Input(shape=(sequence_length, n_vocab))
+    Note = Input(shape=(sequence_length, n_vocab), dtype = 'float32')
     y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
     y = Dropout(0.4) (y)
     y = LSTM(400) (y)
@@ -418,7 +419,9 @@ def create_model_1():
     # Result would be 
     y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
     y2 = Dense(2, activation = 'linear') (y)
-    Coordinates = Input(shape= (2, ))
+    Coordinates = Input(shape= (2, ), dtype = 'float32')
+    print (keras.backend.shape(y1))
+    print (keras.backend.shape(Coordinates))
     c1 = Multiply()([y1, Coordinates])
     c = Add()([y2, c1])
     m = Model(inputs = [Note, Coordinates], outputs = c)
@@ -429,7 +432,7 @@ def create_model_1():
     return m
 
 def create_model_2():
-    Note = Input(shape=(sequence_length, n_vocab))
+    Note = Input(shape=(sequence_length, n_vocab), dtype = 'float32')
     y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
     y = Dropout(0.4) (y)
     y = LSTM(400) (y)
@@ -440,9 +443,11 @@ def create_model_2():
     y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
     y2 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
     y3 = Dense(2, activation = 'linear') (y)
-    Coordinates = Input(shape= (4, ))
-    c1 = Multiply()([y1, Lambda(lambda x: x[:2])(Coordinates)])
-    c2 = Multiply()([y2, Lambda(lambda x: x[2:4])(Coordinates)])
+    Coordinates = Input(shape= (4, ), dtype = 'float32')
+    q1 = Lambda(lambda x: x[:, :2], output_shape=(2,))(Coordinates)
+    c1 = Multiply()([y1, q1])
+    q2 = Lambda(lambda x: x[:, 2:4], output_shape=(2,))(Coordinates)
+    c2 = Multiply()([y2, q2])
     c = Add()([y3, c1, c2])
     m = Model(inputs = [Note, Coordinates], outputs = c)
 
