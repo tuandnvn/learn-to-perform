@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 import matplotlib as mpl
-import pylab as pl
+#import pylab as pl
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import collections as mc
