@@ -396,9 +396,9 @@ We only select the first target to predict
 """
 sequence_length = 320
 Note = Input(shape=(sequence_length, n_vocab))
-y = LSTM(200, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
+y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
 y = Dropout(0.2) (y)
-y = LSTM(200) (y)
+y = LSTM(400) (y)
 y = Dropout(0.2) (y)
 # Two weights, two bias
 # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
@@ -470,9 +470,9 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-filepath="weights-improvement-{epoch:02d}-{loss:.2f}.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True,
-mode='max')
+filepath="weights-improvement-{epoch:02d}-{val_loss:.3f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
+mode='min')
 
 
 def step_decay(epoch):
