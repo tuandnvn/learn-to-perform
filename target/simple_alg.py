@@ -403,7 +403,7 @@ y = Dropout(0.4) (y)
 # Two weights, two bias
 # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
 # Result would be 
-y1 = Dense(2, activation = 'linear') (y)
+y1 = Dense(2, activation = 'tanh') (y)
 y2 = Dense(2, activation = 'linear') (y)
 Coordinates = Input(shape= (2, ))
 c1 = Multiply()([y1, Coordinates])
@@ -411,7 +411,7 @@ c = Add()([y2, c1])
 m1 = Model(inputs = [Note, Coordinates], outputs = c)
 
 print (m1.summary())
-m1.compile(loss='mean_squared_error', optimizer='rmsprop')
+m1.compile(loss='mean_squared_error', optimizer='adam')
 
 def step_decay(epoch):
     initial_lrate = 0.001
@@ -470,7 +470,7 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-filepath="weights-improvement-rmsprop-{epoch:02d}-{val_loss:.3f}.hdf5"
+filepath="weights-improvement-tanh-{epoch:02d}-{val_loss:.3f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
 mode='min')
 
