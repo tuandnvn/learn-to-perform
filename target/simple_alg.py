@@ -397,9 +397,9 @@ We only select the first target to predict
 sequence_length = 320
 Note = Input(shape=(sequence_length, n_vocab))
 y = LSTM(400, input_shape = (sequence_length, n_vocab), return_sequences = True ) (Note)
-y = Dropout(0.2) (y)
+y = Dropout(0.4) (y)
 y = LSTM(400) (y)
-y = Dropout(0.2) (y)
+y = Dropout(0.4) (y)
 # Two weights, two bias
 # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
 # Result would be 
@@ -470,7 +470,7 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-filepath="weights-improvement-{epoch:02d}-{val_loss:.3f}.hdf5"
+filepath="weights-improvement-2-{epoch:02d}-{val_loss:.3f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
 mode='min')
 
@@ -487,4 +487,4 @@ callbacks_list = [checkpoint, lrate]
 
 m1.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
 
-m2.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
+m1.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
