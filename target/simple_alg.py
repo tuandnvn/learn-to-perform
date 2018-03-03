@@ -25,6 +25,7 @@ from keras.layers import LSTM, Dense, Dropout
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.utils import np_utils
 from keras.preprocessing.sequence import pad_sequences
+import keras.backend as K
 
 TRAIN, DEV, TEST = 'TRAIN', 'DEV', 'TEST'
 
@@ -401,6 +402,9 @@ If there is only one target, we set the second input to be (0, 0)
 """
 sequence_length = 320
 
+def euclidean_distance(y_true, y_pred):
+    return K.norm(y_true - y_pred)
+
 def step_decay(epoch):
     initial_lrate = 0.001
     drop = 0.93
@@ -455,7 +459,7 @@ def create_model_2():
     m = Model(inputs = [Note, Coordinates], outputs = c)
 
     print (m.summary())
-    m.compile(loss='mean_squared_error', optimizer='adam')
+    m.compile(loss='mean_squared_error', optimizer='adam', metrics = ['mse', euclidean_distance])
 
     return m
 
