@@ -562,7 +562,7 @@ lrate = LearningRateScheduler(step_decay)
 
 callbacks_list = [checkpoint, lrate]
 
-# m = create_model_2()
+m = create_model_2()
 # m.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
 
 m.load_weights('weights-improvement-tanh-26-0.044.hdf5')
