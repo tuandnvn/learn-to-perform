@@ -440,8 +440,11 @@ def create_model_2():
     # Two weights, two bias
     # If coordinates of input is (X1, X2), and this layer is (Y1, Y2, Y3, Y4)
     # Result would be 
-    y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
-    y2 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+    # y1 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+    # y2 = Lambda(lambda x: x*2)( Dense(2, activation = 'tanh') (y) )
+
+    y1 = Dense(2, activation = 'linear') (y) 
+    y2 = Dense(2, activation = 'linear') (y)
     y3 = Dense(2, activation = 'linear') (y)
     Coordinates = Input(shape= (4, ), dtype = 'float32')
     q1 = Lambda(lambda x: x[:, :2], output_shape=(2,))(Coordinates)
@@ -544,7 +547,7 @@ for datatype in [TRAIN, DEV, TEST]:
     Y[datatype] = np.array(Y[datatype])
     print ('Y[%s].shape = %s' % (datatype, Y[datatype].shape) )
 
-filepath="weights-improvement-tanh-{epoch:02d}-{val_loss:.3f}.hdf5"
+filepath="weights-improvement-linear-2-{epoch:02d}-{val_loss:.3f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
 mode='min')
 
@@ -559,7 +562,8 @@ lrate = LearningRateScheduler(step_decay)
 
 callbacks_list = [checkpoint, lrate]
 
-m = create_model_2()
-m.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
+# m = create_model_2()
+# m.fit([X_1[TRAIN], X_2[TRAIN] ], Y[TRAIN], validation_data= ([X_1[DEV], X_2[DEV] ], Y[DEV]), epochs=40, batch_size=128, verbose = 1, callbacks=callbacks_list)
 
-m.predict([X_1[TEST], X_2[TEST] ], Y[TEST])
+m.load_weights('weights-improvement-tanh-26-0.044.hdf5')
+m.predict([X_1[TEST], X_2[TEST] ], Y[TEST], batch_size = 32)
