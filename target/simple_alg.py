@@ -403,7 +403,7 @@ If there is only one target, we set the second input to be (0, 0)
 sequence_length = 320
 
 def euclidean_distance(y_true, y_pred):
-    return K.norm(y_true - y_pred)
+    return K.sqrt(K.sum(K.square(y_true - y_pred), axis=-1, keepdims=True))
 
 def step_decay(epoch):
     initial_lrate = 0.001
