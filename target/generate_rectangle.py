@@ -1,6 +1,173 @@
 import random
 import numpy as np
 import math
+#from generate_shapes import check_in_frame, generate_rect_shape, \
+#    generate_triag_shape, generate_l_shape 
+
+def check_in_frame ( size, pos ):
+    """
+    Allow space around the shape
+    """
+    if 0 <= pos[0] < size and  0 <= pos[1] < size:
+        return True
+    return False
+
+def check_in_frame_with_space ( size, pos ):
+    """
+    Allow space around the shape
+    """
+    if 1 <= pos[0] < size - 1 and  1 <= pos[1] < size - 1:
+        return True
+    return False
+
+def generate_rect_shape(frame, position, height, width , color):
+    """
+    Parameters:
+    =====================
+    frame: squared frame
+    width: width of rectangle
+    height: height of rectangle
+    position: tuple of 2
+    color: (color the cells with this value)
+    
+    Returns:
+    =====================
+    - success: whether imposition successes or not
+    """
+    size = frame.shape[0]
+    other_corner = ( position[0] + height - 1, position[1] + width - 1 )
+    
+    if not check_in_frame ( size, position ) or not check_in_frame ( size, other_corner ):
+        return False
+    
+    frame[ position[0] : position[0] + height, 
+          position[1] : position[1] + width] = np.ones((height, width)) * color
+    
+    return True
+
+def generate_triag_shape(frame, position, side, direction, color):
+    """
+    Impose an triangle shape structure on the frame, position is where you start it (top-left corner of rectangle)
+    
+    This is a triangle with side = 4, direction = 0
+    
+    S
+    o o 
+    o o o
+    o o o o
+    
+    direction = 1
+    
+    S o o o
+    o o o 
+    o o
+    o 
+    
+    direction = 2
+    
+    S o o o
+      o o o 
+        o o
+          o 
+    
+    direction = 3
+    
+    S     o
+        o o 
+      o o o
+    o o o o
+    
+    Parameters:
+    =====================
+    frame: squared frame
+    side: length of the shorter side of triangle
+    direction: 
+    position: tuple of 2
+    color: (color the cells with this value)
+    
+    Returns:
+    =====================
+    - success: whether imposition successes or not
+    
+    """
+    size = frame.shape[0]
+    other_corner = ( position[0] + side - 1, position[1] + side - 1 )
+    
+    if not check_in_frame ( size, position) or not check_in_frame ( size, other_corner ):
+        return False
+    
+    inner_shape = np.tril(np.ones((side, side)) * color)
+    
+    # Generate for direction == 0, and rotate it to the correct direction
+    rotated_shape = np.rot90 ( inner_shape, -direction )
+    
+    
+    frame[ position[0] : position[0] + rotated_shape.shape[0], 
+          position[1] : position[1] + rotated_shape.shape[1] ] = rotated_shape
+    
+    return True
+
+def generate_l_shape(frame, position, height, width, direction, color):
+    """
+    Impose an triangle shape structure on the frame, position is where you start it (top-left corner of rectangle)
+    
+    This is a triangle with width = 4, height = 3, direction = 0
+    
+    S
+    o 
+    o o o o
+    
+    direction = 1
+    
+    S o o o
+    o 
+    o
+    
+    direction = 2
+    
+    S o o o
+          o 
+          o
+    
+    direction = 3
+    
+    S     o
+          o 
+    o o o o
+    
+    Parameters:
+    =====================
+    frame: squared frame
+    width: width of rectangle
+    height: height of rectangle
+    direction: 
+    position: tuple of 2
+    color: (color the cells with this value)
+    
+    Returns:
+    =====================
+    - success: whether imposition successes or not
+    
+    """
+    size = frame.shape[0]
+    other_corner = ( position[0] + height - 1, position[1] + width - 1 )
+    
+    if not check_in_frame ( size, position) or not check_in_frame ( size, other_corner ):
+        return False
+    
+    if direction == 0 or direction == 3:
+        frame[ position[0] + height - 1,  position[1] : position[1] + width ] = color
+    
+    if direction == 1 or direction == 2:
+        frame[ position[0]             ,  position[1] : position[1] + width ] = color
+        
+    if direction == 0 or direction == 1:
+        frame[ position[0]: position[0] + height,  position[1] ] = color
+        
+    if direction == 2 or direction == 3:
+        frame[ position[0]: position[0] + height,  position[1] + width - 1 ] = color
+    
+    return True
 
 def point_in_rect ( point , rect ):
     """
@@ -60,7 +227,7 @@ def generate_rectangles ( size, no_of_rect, no_of_square, rect_range, sqrs_range
 
     """
     rects = []
-    for _ in range(2 * no_of_rect):
+    for _ in range(5 * no_of_rect):
         height = random.randint( rect_range[0], rect_range[1] )
         width = random.randint( rect_range[0], rect_range[1] )
 
@@ -131,16 +298,20 @@ def generate_frame ( size, no_of_rect, no_of_l, no_of_trig, rect_range ):
     """
     rects, sqrs = generate_rectangles ( size, no_of_rect + no_of_l, \
         no_of_trig, rect_range, rect_range)
+    print (len(rects))
+    print (len(sqrs))
 
     frame = np.zeros((size, size))
 
     # Impose
     for i, rect in enumerate(rects[:no_of_rect]):
         pos_x, pos_y, height, width = rect
+        print (rect)
         frame[pos_x : pos_x + height, pos_y : pos_y + width] = i + 1
 
     for j, rect in enumerate(rects[no_of_rect:]):
         pos_x, pos_y, height, width = rect
+        print (rect)
         direction = random.randint(0, 3)
         generate_l_shape (frame, (pos_x, pos_y), height, width, direction, i + j + 2 )
 
@@ -167,24 +338,6 @@ def generate_src_target ( frame, threshold = None ):
         a, b, c, d = np.random.randint(0, size - 1, 4)
         if frame[a,b] == 0 and frame[c,d] == 0 and math.abs(a - c) + math.abs(b - d) >= threshold:
             return (a,b), (c,d)
-
-
-
-def check_in_frame ( size, pos ):
-    """
-    Allow space around the shape
-    """
-    if 0 <= pos[0] < size and  0 <= pos[1] < size:
-        return True
-    return False
-
-def check_in_frame_with_space ( size, pos ):
-    """
-    Allow space around the shape
-    """
-    if 1 <= pos[0] < size - 1 and  1 <= pos[1] < size - 1:
-        return True
-    return False
 
 def get_neighbors ( size, pos ):
     neighbors = []
