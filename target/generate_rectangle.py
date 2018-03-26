@@ -298,20 +298,16 @@ def generate_frame ( size, no_of_rect, no_of_l, no_of_trig, rect_range ):
     """
     rects, sqrs = generate_rectangles ( size, no_of_rect + no_of_l, \
         no_of_trig, rect_range, rect_range)
-    print (len(rects))
-    print (len(sqrs))
 
     frame = np.zeros((size, size))
 
     # Impose
     for i, rect in enumerate(rects[:no_of_rect]):
         pos_x, pos_y, height, width = rect
-        print (rect)
         frame[pos_x : pos_x + height, pos_y : pos_y + width] = i + 1
 
     for j, rect in enumerate(rects[no_of_rect:]):
         pos_x, pos_y, height, width = rect
-        print (rect)
         direction = random.randint(0, 3)
         generate_l_shape (frame, (pos_x, pos_y), height, width, direction, i + j + 2 )
 
@@ -336,7 +332,7 @@ def generate_src_target ( frame, threshold = None ):
 
     while True:
         a, b, c, d = np.random.randint(0, size - 1, 4)
-        if frame[a,b] == 0 and frame[c,d] == 0 and math.abs(a - c) + math.abs(b - d) >= threshold:
+        if frame[a,b] == 0 and frame[c,d] == 0 and abs(a - c) + abs(b - d) >= threshold:
             return (a,b), (c,d)
 
 def get_neighbors ( size, pos ):
@@ -349,9 +345,24 @@ def get_neighbors ( size, pos ):
                     neighbors.append(new_pos)
     return neighbors
 
-def generate_path ( frame, source, target, exception_vals = [] ) :
+def get_neighbors_random ( size, pos ):
+    neighbors = []
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            if (i == 0 or j == 0) and not i == j == 0:
+                new_pos = (pos[0] + i, pos[1] + j)
+                if check_in_frame ( size, new_pos ):
+                    neighbors.append(new_pos)
+
+    return [tuple(t) for t in np.random.permutation(neighbors)]
+
+def generate_path ( frame, source, target, exception_vals = [], neighbor_func = get_neighbors_random ) :
     """
     Generate path movement between a source and a target
+    This algorithm depends on neighbor_func
+    If neighbor_func is deterministic, it would be deterministic,
+    because there are multiple
+    shortest paths between two points. 
 
     Parameters
     ===========
@@ -360,10 +371,11 @@ def generate_path ( frame, source, target, exception_vals = [] ) :
     target:
     exceptions_vals: (optional) by default, we can only traverse through 0 cell,
         adding values into this list allow you to cut through shapes
+    get_neighbors: lambda (size, pos) -> list of neighbor pos
 
     Returns
     ===========
-
+    path: list of points, not including the source and target 
     """
     size = frame.shape[0]
     # Keep track of the previous cell that has been expanded to
@@ -382,7 +394,7 @@ def generate_path ( frame, source, target, exception_vals = [] ) :
             new_explore_list = []
 
             for pos in l:
-                for n in get_neighbors( size, pos ):
+                for n in neighbor_func( size, pos ):
                     if f[n] == -3:
                         # Found
                         parent[n] = pos
@@ -405,7 +417,9 @@ def generate_path ( frame, source, target, exception_vals = [] ) :
         cur = parent[cur]
     
     path.append(cur)
-    return path[::-1]
+
+    # Remove first and last state
+    return path[-2:0:-1]
 
 def shortest_path ( frame, shape1_index, shape2_index ):
     """
@@ -434,7 +448,8 @@ def shortest_path ( frame, shape1_index, shape2_index ):
     p1 = (shape1_indices[0][0], shape1_indices[1][0])
     p2 = (shape2_indices[0][0], shape2_indices[1][0])
 
-    path = generate_path (frame, p1, p2, exception_vals = [shape1_index, shape2_index])
+    path = generate_path (frame, p1, p2, exception_vals = [shape1_index, shape2_index],
+        neighbor_func = get_neighbors)
 
     # new_path is path that only keeps point outside of two shapes
     new_path = []
