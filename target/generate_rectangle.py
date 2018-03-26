@@ -375,7 +375,8 @@ def generate_path ( frame, source, target, exception_vals = [], neighbor_func = 
 
     Returns
     ===========
-    path: list of points, not including the source and target 
+    path: list of points, not including the source and target, 
+        if there is no path return None
     """
     size = frame.shape[0]
     # Keep track of the previous cell that has been expanded to
@@ -415,11 +416,13 @@ def generate_path ( frame, source, target, exception_vals = [], neighbor_func = 
     while cur in parent:
         path.append(cur)
         cur = parent[cur]
-    
-    path.append(cur)
+
+    if len(path) == 0:
+        # No path
+        return None
 
     # Remove first and last state
-    return path[-2:0:-1]
+    return path[-1:0:-1]
 
 def shortest_path ( frame, shape1_index, shape2_index ):
     """
