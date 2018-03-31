@@ -5,7 +5,7 @@ from gym import error, spaces
 from gym import utils
 from gym.utils import seeding
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.mlab as mlab
