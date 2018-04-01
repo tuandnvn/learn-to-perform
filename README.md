@@ -13,6 +13,17 @@ This is our paper at [AAAI Spring Symposium 2018](https://www.researchgate.net/p
 
 You can find our presentation at AAAI Spring Symposium 2018 [here](miscellanous/AAAI-SS-2018-jp-edits.pptx).
 
+In summary, we want to translate from observing recorded human demonstrations, and from descriptions of actions to executable plan for virtual agents to perform. 
+
+For example, from inputs:
+
+![Text input and video](miscellanous/inputs.PNG)
+
+To output:
+
+![Executed demonstration in simulator](miscellanous/slide_around_demo.gif)
+
+
 ## Install
 
 My code requires installation of tensorflow, and optionally keras. I use Anaconda python 3.6.2 distribution. Installation of tensorflow can be found [here](https://www.tensorflow.org/install/). Other required library could be installed as followings:
