@@ -15,7 +15,6 @@ from gym.wrappers import TimeLimit
 from gym.utils import seeding
 from importlib import reload
 import math
-reload(bme)
 
 def grid_random_action(c, no_of_actions = 1, verbose = False):
     """
