@@ -7,11 +7,11 @@ these actions. Using reinforcement learning, these observed sequences are used t
 
 ## Content
 
-This is a project to demonstrate the idea that we can teach robots to execute certain complex actions by allowing them to observe human experts to perform the same actions a number of times, and using planning with reinforcement learning to simulate the action.
+This is a project to demonstrate the idea that we can teach robots to execute certain complex actions by allowing them to observe human experts to perform the same actions a number of times, and using planning with reinforcement learning methods to simulate the action. While the method might be error-proned because of the number of small demonstrations, and the lacks of other competitive actions or negative samples of actions, we proved that 
 
-This is our position paper submitted to AAAI Spring Symposium 2018.
+This is our paper at [https://www.researchgate.net/profile/Tuan_Do14/publication/322836314_Teaching_Virtual_Agents_to_Perform_Complex_Spatial-Temporal_Activities/links/5a724463458515512075e396/Teaching-Virtual-Agents-to-Perform-Complex-Spatial-Temporal-Activities.pdf](AAAI Spring Symposium 2018). 
 
-https://github.com/tuandnvn/learn-to-perform/blob/master/miscellanous/Tuan_AAAI_2018%20November%204.pdf
+You can find our presentation at AAAI Spring Symposium 2018 [miscellanous/AAAI-SS-2018-jp-edits.pptx](here).
 
 ## Install
 
@@ -29,5 +29,9 @@ pip install scipy
 pip install pandas
 '''
 
-## Try it 
+## Try it
+
+You can try the python notebook at [demo/slide_around_demo.ipynb](slide_around_demo). This notebook demonstrate the difficulty in learning a complex temporal action like *Slide Around* by just observing positive demonstrations of the action. 
+
+The python notebook at [demo/slide_around_demo_with_feedback.ipynb](slide_around_demo_with_feedback). This notebook loads 30 different setups with generated demonstrations from the first method, and it also loades 30 scores given by  
 

@@ -13,8 +13,9 @@ import traceback
 
 from gym.wrappers import TimeLimit
 from gym.utils import seeding
-# from importlib import reload
+from importlib import reload
 import math
+reload(bme)
 
 def grid_random_action(c, no_of_actions = 1, verbose = False):
     """
@@ -138,9 +139,16 @@ class Discrete_ActionLearner_Search(object):
         rewards = [0]
 
         found_completed_act = False
+        
         # We do one action at a time for all exploration
-        for action_level in range(4):
+        # We keep the best exploration progress at best
+        best = 0
+
+        # Loop index
+        action_level = 0
+        while True:
             if verbose:
+                print ('==================================')
                 print ('action_level = %d' % action_level)
         
             # This would store a tuple of (exploration_index, accumulated_reward, action, action_means, action_stds)
@@ -163,17 +171,6 @@ class Discrete_ActionLearner_Search(object):
 
                 action_means, action_stds, actions = quantized_random_action(self.config, exploration, select_object, no_of_actions = no_of_search)
 
-                # tuple_actions = [(select_object, action, action_mean, action_std) for action_mean, action_std, action in zip(action_means, action_stds, actions)]
-                # legal_action_indices, all_progress = exploration.try_step_multi(tuple_actions)
-
-                # for index, progress in zip (legal_action_indices, all_progress):
-                #     tempo_rewards.append( (exploration_index, progress,
-                #         actions[index], action_means[index], action_stds[index]) )
-
-                #     if progress > self.config.progress_threshold:
-                #         print ("=== found_completed_act ===")
-                #         found_completed_act = True
-
                 for action_index, action in enumerate(actions):
                     _, reward, done, _ = exploration.step((select_object,action, action_means[action_index], action_stds[action_index]))
                     #print ((action, reward))
@@ -190,7 +187,15 @@ class Discrete_ActionLearner_Search(object):
             test = [(t[0], t[1]) for t in tempo_rewards]
 
             if verbose:
+                print ('=== Best explorations ===')
                 print (test[:keep_branching])
+
+            if test[0][1] == best:
+                print ("--- No more progress ---")
+                print ('Best progress value = %.3f' % best)
+                break 
+
+            best = test[0][1]
 
             new_explorations = []
             rewards = []
@@ -205,5 +210,7 @@ class Discrete_ActionLearner_Search(object):
             if found_completed_act:
                 # Stop increase action_level
                 break
+
+            action_level += 1
 
         return explorations
