@@ -7,7 +7,7 @@ these actions. Using reinforcement learning, these observed sequences are used t
 
 ## Content
 
-This is a project to demonstrate the idea that we can teach robots to execute certain complex actions by allowing them to observe human experts to perform the same actions a number of times, and using planning with reinforcement learning methods to simulate the action. While the method might be error-proned because of the number of small demonstrations, and the lacks of other competitive actions or negative samples of actions, we proved that 
+This is a project to demonstrate the idea that we can teach robots to execute certain complex actions by allowing them to observe human experts to perform the same actions a number of times, and using planning with reinforcement learning methods to simulate the action.
 
 This is our paper at [AAAI Spring Symposium 2018](https://www.researchgate.net/profile/Tuan_Do14/publication/322836314_Teaching_Virtual_Agents_to_Perform_Complex_Spatial-Temporal_Activities/links/5a724463458515512075e396/Teaching-Virtual-Agents-to-Perform-Complex-Spatial-Temporal-Activities.pdf). 
 
@@ -32,6 +32,4 @@ pip install pandas
 ## Try it
 
 You can try the python notebook at [slide_around_demo](demo/slide_around_demo.ipynb). This notebook demonstrate the difficulty in learning a complex temporal action like *Slide Around* by just observing positive demonstrations of the action. 
-
-The python notebook at [slide_around_demo_with_feedback](demo/slide_around_demo_with_feedback.ipynb). This notebook loads 30 different setups with generated demonstrations from the first method, and it also loades 30 scores given by two annotators. It then retrained the learning model, and perform the action with better result.  
 
