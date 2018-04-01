@@ -9,15 +9,15 @@ these actions. Using reinforcement learning, these observed sequences are used t
 
 This is a project to demonstrate the idea that we can teach robots to execute certain complex actions by allowing them to observe human experts to perform the same actions a number of times, and using planning with reinforcement learning methods to simulate the action. While the method might be error-proned because of the number of small demonstrations, and the lacks of other competitive actions or negative samples of actions, we proved that 
 
-This is our paper at [https://www.researchgate.net/profile/Tuan_Do14/publication/322836314_Teaching_Virtual_Agents_to_Perform_Complex_Spatial-Temporal_Activities/links/5a724463458515512075e396/Teaching-Virtual-Agents-to-Perform-Complex-Spatial-Temporal-Activities.pdf](AAAI Spring Symposium 2018). 
+This is our paper at [AAAI Spring Symposium 2018](https://www.researchgate.net/profile/Tuan_Do14/publication/322836314_Teaching_Virtual_Agents_to_Perform_Complex_Spatial-Temporal_Activities/links/5a724463458515512075e396/Teaching-Virtual-Agents-to-Perform-Complex-Spatial-Temporal-Activities.pdf). 
 
-You can find our presentation at AAAI Spring Symposium 2018 [miscellanous/AAAI-SS-2018-jp-edits.pptx](here).
+You can find our presentation at AAAI Spring Symposium 2018 [here](miscellanous/AAAI-SS-2018-jp-edits.pptx).
 
 ## Install
 
-My code requires installation of tensorflow, and optionally keras. I use Anaconda python 3.6.2 distribution. Installation of tensorflow can be found [https://www.tensorflow.org/install/](here). Other required library could be installed as followings:
+My code requires installation of tensorflow, and optionally keras. I use Anaconda python 3.6.2 distribution. Installation of tensorflow can be found [here](https://www.tensorflow.org/install/). Other required library could be installed as followings:
 
-'''
+```
 conda install -c anaconda html5lib
 
 pip install gym==0.9.4
@@ -27,11 +27,11 @@ pip install matplotlib
 pip install scipy
 
 pip install pandas
-'''
+```
 
 ## Try it
 
-You can try the python notebook at [demo/slide_around_demo.ipynb](slide_around_demo). This notebook demonstrate the difficulty in learning a complex temporal action like *Slide Around* by just observing positive demonstrations of the action. 
+You can try the python notebook at [slide_around_demo](demo/slide_around_demo.ipynb). This notebook demonstrate the difficulty in learning a complex temporal action like *Slide Around* by just observing positive demonstrations of the action. 
 
-The python notebook at [demo/slide_around_demo_with_feedback.ipynb](slide_around_demo_with_feedback). This notebook loads 30 different setups with generated demonstrations from the first method, and it also loades 30 scores given by  
+The python notebook at [slide_around_demo_with_feedback](demo/slide_around_demo_with_feedback.ipynb). This notebook loads 30 different setups with generated demonstrations from the first method, and it also loades 30 scores given by two annotators. It then retrained the learning model, and perform the action with better result.  
 
