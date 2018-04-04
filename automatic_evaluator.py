@@ -19,7 +19,19 @@ def determinant(v,w):
     return v[0]*w[1]-v[1]*w[0]
 
 def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """ Returns the angle in radians between vectors 'v1' and 'v2':
+
+    >>> angle_between((0,1), (1,0))
+    1.5707963267948966
+    >>> angle_between( (1,0), (0,1))
+    1.5707963267948966
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def p_angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2':
 
     >>> angle_between((0,1), (1,0))
     -1.5707963267948966
@@ -51,8 +63,7 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 	==============
 	env: BlockMovementEnv
 	"""
-	moving_object = None
-	static_pos = None
+	static_object = None
 
 	accumulated_angle = 0
 
@@ -60,14 +71,13 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 		if not success:
 			continue
 
-		if moving_object is None:
-			moving_object = object_index
-			static_pos = self.e.objects[1 - moving_object].transform.position
+		if static_object is None:
+			static_object = self.e.objects[1 - object_index].transform
 
-		v1 = prev_transform.position - static_pos
-		v2 = next_transform.position - static_pos
+		v1 = prev_transform.position - static_object.position
+		v2 = next_transform.position - static_object.position
 
-		angle = angle_between(v1, v2)
+		angle = p_angle_between(v1, v2)
 		accumulated_angle += angle
 
 	accumulated_angle = abs(accumulated_angle)
@@ -98,16 +108,17 @@ def test_slide_close ( env, threshold = 2 * block_size):
 	==============
 	env: BlockMovementEnv
 	"""
+	static_object = None
+
 	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage:
 		if not success:
 			continue
 
-		if moving_object is None:
-			moving_object = object_index
-			static_pos = self.e.objects[1 - moving_object].transform.position
+		if static_object is None:
+			static_object = self.e.objects[1 - object_index].transform
 
-		v1 = prev_transform.position - static_pos
-		v2 = next_transform.position - static_pos
+		v1 = prev_transform.position - static_object.position
+		v2 = next_transform.position - static_object.position
 
 		if (np.linalg.norm(v1) < np.linalg.norm(v2)):
 			return 0
@@ -117,7 +128,7 @@ def test_slide_close ( env, threshold = 2 * block_size):
 
 	return 1
 
-def test_slide_nextto ():
+def test_slide_nextto (env, angle_diff = np.pi/9, threshold = 1.3 * block_size ):
 	"""
 	This test uses a very simple interpretation for Slide Next To
 	
@@ -135,9 +146,34 @@ def test_slide_nextto ():
 	==============
 	env: BlockMovementEnv 
 	"""
-	pass
+	static_object = None
 
-def test_slide_past ():
+	# Run reverse to find the last successful action step
+	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage[::-1]:
+		if not success:
+			continue
+
+		if static_object is None:
+			static_object = self.e.objects[1 - object_index].transform
+
+		v_end = next_transform.position - static_object.position
+
+		if v_end > threshold:
+			return 0
+
+		# 0 <= next_transform.rotation, static_object.rotation <= pi/2
+		# -pi/2 <= rot <= pi/2
+		rot = next_transform.rotation - static_object.rotation
+		rot = abs(rot)
+		if rot > np.pi/4:
+			rot = np.pi/2 - rot
+
+		if rot > angle_diff:
+			return 0
+
+		return 1
+
+def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 	"""
 	This is a very simple interpretation for Slide Past
 
@@ -151,13 +187,59 @@ def test_slide_past ():
 	is the one between beginning postion and end positon. Also the angles next to
 	this edge need to be smaller than a threshold angle (a hyper-parameter). 
 
+	We also need to avoid the case that a Slide Around might be recognized as Slide Past,
+	so we calculate test_slide_around, if it is Slide Around, return 0
+
 	Parameters:
 	==============
 	env: BlockMovementEnv
 	"""
-	pass
+	t = test_slide_around ( env )
+	if t != 0:
+		return 0
 
-def test_slide_away ():
+	static_object = None
+	v_start = None
+
+	# Run reverse to find the last successful action step
+	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage[::-1]:
+		if not success:
+			continue
+
+		if static_object is None:
+			static_object = self.e.objects[1 - object_index].transform
+
+		v1 = prev_transform.position - static_object.position
+		v2 = next_transform.position - static_object.position
+
+		if v_start is None:
+			v_start = v1
+			l_max = np.linalg.norm(v_start)
+
+		if np.linalg.norm(v2) > l_max:
+			l_max = np.linalg.norm(v2)
+
+	# Condition for longest distance
+	if l_max > max ( np.linalg.norm(v2), np.linalg.norm(v_start) ):
+		return 0
+
+	# Check condition for the triangle
+	v_other = v2 - v_start
+	if np.linalg.norm(v2) > np.linalg.norm(v_other):
+		return 0
+
+	if np.linalg.norm(v_start) > np.linalg.norm(v_other):
+		return 0
+
+	if angle_between(v_other, -v_start) >= angle_threshold:
+		return 0
+
+	if angle_between(v_other, v2) >= angle_threshold:
+		return 0
+
+	return 1
+
+def test_slide_away ( env, ratio_threshold = 1.5):
 	"""
 	This is a very simple test for Slide Away
 
@@ -176,4 +258,25 @@ def test_slide_away ():
 	==============
 	env: BlockMovementEnv
 	"""
-	pass
+	static_object = None
+	v_start = None
+	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage:
+		if not success:
+			continue
+
+		if static_object is None:
+			static_object = self.e.objects[1 - object_index].transform
+
+		v1 = prev_transform.position - static_object.position
+		v2 = next_transform.position - static_object.position
+
+		if v_start is None:
+			v_start = v1
+
+		if (np.linalg.norm(v1) > np.linalg.norm(v2)):
+			return 0
+
+	if np.linalg.norm(v2)/np.linalg.norm(v_start) < threshold:
+		return 0
+
+	return 1
