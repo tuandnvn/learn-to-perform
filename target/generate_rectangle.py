@@ -227,7 +227,7 @@ def generate_rectangles ( size, no_of_rect, no_of_square, rect_range, sqrs_range
 
     """
     rects = []
-    for _ in range(5 * no_of_rect):
+    for _ in range(10 * no_of_rect):
         height = random.randint( rect_range[0], rect_range[1] )
         width = random.randint( rect_range[0], rect_range[1] )
 
@@ -237,13 +237,155 @@ def generate_rectangles ( size, no_of_rect, no_of_square, rect_range, sqrs_range
         new_rect = (pos_x, pos_y, height, width)
 
         for r in rects:
-            if overlapping(r, new_rect) :
+            if distance (new_rect, r) == 0:
                 break
+            # if overlapping(r, new_rect) :
+            #     break
         else:
             rects.append(new_rect)
 
         if len(rects) == no_of_rect:
             break
+
+    sqrs_rects = []
+    sqrs = []
+    for _ in range(10 * no_of_square):
+        sqr_size = random.randint( sqrs_range[0], sqrs_range[1] )
+        pos_x = random.randint( 0, size - sqr_size )
+        pos_y = random.randint( 0, size - sqr_size )
+
+        new_rect = (pos_x, pos_y, sqr_size, sqr_size)
+        new_sqr = (pos_x, pos_y, sqr_size)
+
+        for r in rects:
+            if distance (new_rect, r) == 0:
+                break
+            # if overlapping(r, new_rect) :
+            #     break
+        else:
+            for r in sqrs_rects:
+                if distance (new_rect, r) == 0:
+                    break
+                # if overlapping(r, new_rect) :
+                #     break
+            else:
+                sqrs_rects.append(new_rect)
+                sqrs.append(new_sqr)
+
+        if len(sqrs) ==  no_of_square:
+            break
+
+    return (rects, sqrs)
+
+def distance ( rect1 , rect2 ):
+    """
+    rect1 and rect2 have the following forms (pos_x, pos_y, height, width)
+    """
+    pos_x_1, pos_y_1, height_1, width_1 = rect1
+    pos_x_2, pos_y_2, height_2, width_2 = rect2
+    
+    center_1 = (pos_x_1 + height_1/2, pos_y_1 + width_1/2)
+    center_2 = (pos_x_2 + height_2/2, pos_y_2 + width_2/2)
+    
+    diff = (abs(center_1[0] - center_2[0]), abs(center_1[1] - center_2[1]))
+    
+    # min ( max (0,x_diff), max (0,y_diff))
+    distance =  max (0, diff[0] - height_1/2 - height_2/2 ) + max (0, diff[1] - width_1/2 - width_2/2 )
+    
+    return distance
+
+def distance_to_edge ( rect, width, height ):
+    pos_x_1, pos_y_1, height_1, width_1 = rect
+    
+    center_1 = (pos_x_1 + height_1/2, pos_y_1 + width_1/2)
+    
+    diff = max (0, np.min ([ pos_x_1, pos_y_1, height - pos_x_1 - height_1, width - pos_y_1 - width_1 ]))
+    
+    return diff
+
+def generate_rectangles_sparse ( size, no_of_rect, no_of_square, rect_range, sqrs_range ):
+    """
+    On a frame of size x size
+
+    Generate non-overlapping no_of_rect rectangles and no_of_square squares
+
+    Returns a list of rectangles: (pos_x, pos_y, height, width)
+    and list of squares: (pos_x, pos_y, size)
+
+    This algorithm is not an exact algorithm, it might generate less than the
+    intended number of rects and squares.
+
+    Parameters:
+    ===============
+    size: 
+    no_of_rect: 
+    no_of_square:
+    rect_range: (a, b) -> a <= rect size <= b
+    sqrs_range: (a, b) -> a <= rect size <= b
+
+    Returns:
+    ===============
+    results: 
+      - results[0] = [ (pos_x, pos_y, height, width) ]
+      - results[1] = [ (pos_x, pos_y, size ) ]
+
+    """
+    rects = []
+    
+    # Let's call t[shape_index] is the sum of the mean distance to the closest shape + distance to the edge 
+    #        of frame
+    # This is a qualitative value measuring how sparse a shape is in regards to other shapes
+    t = np.zeros(no_of_rect + no_of_square)
+    
+    for _ in range(5 * no_of_rect):
+        height = random.randint( rect_range[0], rect_range[1] )
+        width = random.randint( rect_range[0], rect_range[1] )
+
+        pos_x = random.randint( 0, size - height )
+        pos_y = random.randint( 0, size - width )
+
+        new_rect = (pos_x, pos_y, height, width)
+        
+        if len(rects) < no_of_rect:
+            for r in rects:
+                if overlapping(r, new_rect) :
+                    break
+            else:
+                rect_index = len(rects)
+                # Calculate t[rect_index]
+
+                de = distance_to_edge(new_rect, size, size) 
+                de = 0
+
+                if rect_index == 0:
+                    t[rect_index] = de
+                else:
+                    t[rect_index] = np.min([distance (new_rect, r) for r in rects]) + de
+                
+                # Recalculate t[r]
+                for rect_index, r in enumerate(rects):
+                    de = distance_to_edge(r, size, size)
+                    de = 0
+                    t[rect_index] = min(t[rect_index], distance (new_rect, r) + de)
+                
+                rects.append(new_rect)
+        elif len(rects) == no_of_rect:
+            print (t[:no_of_rect])
+            """
+            We try to replace one of the previous rect if this rect makes a sparser maze
+            
+            We want one that has distance to the closest rect larger, but we don't want the 
+            shapes to be all on the edges.
+            """
+            ds = [distance (new_rect, r) for r in rects]
+            de = distance_to_edge(new_rect, size, size)
+            de = 0
+            for r_index in range(no_of_rect):
+                u = np.min([d for i, d in enumerate(ds) if i != r_index]) + de
+                if u > t[r_index]:
+                    t[r_index] = u
+                    rects[r_index] = new_rect
+                    break
 
     sqrs_rects = []
     sqrs = []

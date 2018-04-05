@@ -26,7 +26,7 @@ To output:
 
 ## Install
 
-My code requires installation of tensorflow, and optionally keras. I use Anaconda python 3.6.2 distribution. Installation of tensorflow can be found [here](https://www.tensorflow.org/install/). Other required library could be installed as followings:
+My code requires installation of tensorflow, and optionally keras. I use Anaconda python 3.6.2 distribution. Installation of Tensorflow can be found [here](https://www.tensorflow.org/install/) (tested with Tensorflow 1.2.1, but higher version should also work). Other required library could be installed as followings:
 
 ```
 conda install -c anaconda html5lib
@@ -38,6 +38,8 @@ pip install matplotlib
 pip install scipy
 
 pip install pandas
+
+pip install pyyaml
 ```
 
 ## Try it
