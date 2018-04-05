@@ -79,7 +79,7 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 		v1 = prev_transform.position - static_object.position
 		v2 = next_transform.position - static_object.position
 
-		angle = p_angle_between(v1, v2)
+		angle = p_angle_between(v1.flatten(), v2.flatten())
 		accumulated_angle += angle
 
 	accumulated_angle = abs(accumulated_angle)
@@ -278,7 +278,7 @@ def test_slide_away ( env, ratio_threshold = 1.5):
 		if (np.linalg.norm(v1) > np.linalg.norm(v2)):
 			return 0
 
-	if np.linalg.norm(v2)/np.linalg.norm(v_start) < threshold:
+	if np.linalg.norm(v2)/np.linalg.norm(v_start) < ratio_threshold:
 		return 0
 
 	return 1
