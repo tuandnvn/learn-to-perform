@@ -81,8 +81,10 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 
 		angle = p_angle_between(v1.flatten(), v2.flatten())
 		accumulated_angle += angle
+		#print (angle)
 
 	accumulated_angle = abs(accumulated_angle)
+	#print (accumulated_angle)
 
 	if accumulated_angle < alpha_1:
 		return 0
