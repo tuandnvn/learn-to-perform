@@ -9,7 +9,9 @@ automatic methods to evaluate my set of actions
 """
 
 import numpy as np
-from config import block_size
+from config import Config
+
+c = Config()
 
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
@@ -72,7 +74,7 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 			continue
 
 		if static_object is None:
-			static_object = self.e.objects[1 - object_index].transform
+			static_object = env.e.objects[1 - object_index].transform
 
 		v1 = prev_transform.position - static_object.position
 		v2 = next_transform.position - static_object.position
@@ -90,11 +92,11 @@ def test_slide_around ( env, alpha_1 = np.pi / 2, alpha_2 = 3 * np.pi / 4 ):
 
 	return 1
 
-def test_slide_close ( env, threshold = 2 * block_size):
+def test_slide_close ( env, threshold = 2 * c.block_size):
 	"""
 	This test uses a simple interpretation for Slide Close
 
-	Slide closer means that for all the steps taken in the environment,
+	Slide closer means that for all the steps taken in the env.eironment,
 	the moving object needs to get closer and closer to the target object.
 
 	The algorithm is as followings:
@@ -115,7 +117,7 @@ def test_slide_close ( env, threshold = 2 * block_size):
 			continue
 
 		if static_object is None:
-			static_object = self.e.objects[1 - object_index].transform
+			static_object = env.e.objects[1 - object_index].transform
 
 		v1 = prev_transform.position - static_object.position
 		v2 = next_transform.position - static_object.position
@@ -128,7 +130,7 @@ def test_slide_close ( env, threshold = 2 * block_size):
 
 	return 1
 
-def test_slide_nextto (env, angle_diff = np.pi/9, threshold = 1.3 * block_size ):
+def test_slide_nextto ( env, angle_diff = np.pi/9, threshold = 1.3 * c.block_size ):
 	"""
 	This test uses a very simple interpretation for Slide Next To
 	
@@ -154,7 +156,7 @@ def test_slide_nextto (env, angle_diff = np.pi/9, threshold = 1.3 * block_size )
 			continue
 
 		if static_object is None:
-			static_object = self.e.objects[1 - object_index].transform
+			static_object = env.e.objects[1 - object_index].transform
 
 		v_end = next_transform.position - static_object.position
 
@@ -207,7 +209,7 @@ def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 			continue
 
 		if static_object is None:
-			static_object = self.e.objects[1 - object_index].transform
+			static_object = env.e.objects[1 - object_index].transform
 
 		v1 = prev_transform.position - static_object.position
 		v2 = next_transform.position - static_object.position
@@ -243,7 +245,7 @@ def test_slide_away ( env, ratio_threshold = 1.5):
 	"""
 	This is a very simple test for Slide Away
 
-	Slide away means that for all the steps taken in the environment,
+	Slide away means that for all the steps taken in the env.eironment,
 	the moving object needs to get further and further to the target object.
 
 	The algorithm is as followings:
@@ -265,7 +267,7 @@ def test_slide_away ( env, ratio_threshold = 1.5):
 			continue
 
 		if static_object is None:
-			static_object = self.e.objects[1 - object_index].transform
+			static_object = env.e.objects[1 - object_index].transform
 
 		v1 = prev_transform.position - static_object.position
 		v2 = next_transform.position - static_object.position

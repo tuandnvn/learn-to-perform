@@ -32,9 +32,9 @@ colors = [ (1, 0, 0, 1), (0,1,0,1), (0,0,1,1),
          (0.7, 0.3, 0, 1), (0,0.7, 0.3,1), (0.7, 0, 0.3,1),
          (0.3, 0.7, 0, 1), (0,0.3, 0.7,1), (0.3, 0, 0.7,1)]
 
-# from importlib import reload
+from importlib import reload
 # reload (simulator2d)
-# reload(feature_utils)
+reload(feature_utils)
 
 SPEED = 'SPEED'
 WHOLE = 'WHOLE'
@@ -481,7 +481,7 @@ class BlockMovementEnv(gym.Env):
             session[SESSION_FEAT] : np.array (# frames, # features)
         """
         feature_utils.qsr_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
-        feature_utils.standardize_simple(session)
+        feature_utils.standardize_simple(session, self.config)
 
         # feature_utils.marker_feature_extractor( session, get_location_objects = feature_utils.get_location_objects_most_active )
 

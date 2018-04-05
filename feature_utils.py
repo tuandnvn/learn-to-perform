@@ -394,7 +394,7 @@ def standardize(session):
     session[SESSION_FEAT] = standardized
 
 
-def standardize_simple(session):
+def standardize_simple(session, conf):
     """
     The qualitative features sometimes doesn't seem to work very well
     so we need a mechanism to standarize them.
@@ -443,7 +443,10 @@ def standardize_simple(session):
 
         f11 /= 2
 
-        standardized.append([f3, f4, f5, f6, f7, f8, f11])
+        if conf.n_input == 7:
+            standardized.append([f3, f4, f5, f6, f7, f8, f11])
+        elif conf.n_input == 8:
+            standardized.append([f2, f3, f4, f5, f6, f7, f8, f11])
 
 
     session[SESSION_FEAT] = np.array(standardized)
