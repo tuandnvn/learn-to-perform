@@ -162,7 +162,7 @@ def test_slide_nextto ( env, angle_diff = np.pi/9, threshold = 1.3 * c.block_siz
 
 		v_end = next_transform.position - static_object.position
 
-		if v_end > threshold:
+		if np.linalg.norm(v_end) > threshold:
 			return 0
 
 		# 0 <= next_transform.rotation, static_object.rotation <= pi/2
@@ -198,7 +198,7 @@ def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 	==============
 	env: BlockMovementEnv
 	"""
-	t = test_slide_around ( env )
+	t = test_slide_around ( env,  alpha_1 = 1.1 * np.pi, alpha_2 = 1.7 * np.pi )
 	if t != 0:
 		return 0
 
@@ -227,6 +227,8 @@ def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 	if l_max > max ( np.linalg.norm(v2), np.linalg.norm(v_start) ):
 		return 0
 
+	v2 = v2.flatten()
+	v_start = v_start.flatten()
 	# Check condition for the triangle
 	v_other = v2 - v_start
 	if np.linalg.norm(v2) > np.linalg.norm(v_other):
