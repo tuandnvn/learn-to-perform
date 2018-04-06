@@ -177,7 +177,7 @@ def test_slide_nextto ( env, angle_diff = np.pi/9, threshold = 1.3 * c.block_siz
 
 		return 1
 
-def test_slide_past ( env, angle_threshold = .4 * np.pi ):
+def test_slide_past ( env, side_ratio = 1, angle_threshold = .4 * np.pi ):
 	"""
 	This is a very simple interpretation for Slide Past
 
@@ -206,7 +206,9 @@ def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 	v_start = None
 
 	# Run reverse to find the last successful action step
-	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage[::-1]:
+	for object_index, prev_transform, next_transform, _, _, success, _, _ in env.action_storage:
+		#print (str(prev_transform) + ' ' + str(next_transform) + ' ' + str(success))
+		
 		if not success:
 			continue
 
@@ -229,12 +231,13 @@ def test_slide_past ( env, angle_threshold = .4 * np.pi ):
 
 	v2 = v2.flatten()
 	v_start = v_start.flatten()
+	
 	# Check condition for the triangle
 	v_other = v2 - v_start
-	if np.linalg.norm(v2) > np.linalg.norm(v_other):
+	if np.linalg.norm(v2) > side_ratio * np.linalg.norm(v_other):
 		return 0
 
-	if np.linalg.norm(v_start) > np.linalg.norm(v_other):
+	if np.linalg.norm(v_start) > side_ratio * np.linalg.norm(v_other):
 		return 0
 
 	if angle_between(v_other, -v_start) >= angle_threshold:
