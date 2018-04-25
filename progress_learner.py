@@ -1,3 +1,4 @@
+import os
 import time
 import numpy as np
 import tensorflow as tf
@@ -203,8 +204,8 @@ class EventProgressEstimator(object):
         
         feed_dict = {self._input_data: inputs, self._targets: outputs}
         
-        if not initial_state is None:
-            feed_dict[self.initial_state] = initial_state
+        # if not initial_state is None:
+        #     feed_dict[self.initial_state] = initial_state
 
         if weights is None:
             weights = np.ones(batch_size, dtype=np.float32)
@@ -293,7 +294,7 @@ def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load("slidenext_project.proj")
+    p = Project.load(os.path.join('learned_models', "slidearound_raw.proj"))
     
     config = Config()
     
@@ -328,7 +329,7 @@ if __name__ == "__main__":
 
             print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
             
-            indices = np.arange(p.training_data.shape[0])
+            indices = np.arange(p.training_data.shape[0] // 4)
 
             if config.epoch_shuffle:
                 np.random.shuffle(indices)

@@ -1,6 +1,10 @@
 import numpy as np
 
+
 class Config (object):
+	QUAN = 'QUANTITATIVE'
+	QUAL = 'QUALITATIVE'
+
 	# For reinforce learning
 	playground_x = [-1,-1, 0]
 	playground_dim = [2, 2, np.pi/2]
@@ -10,7 +14,8 @@ class Config (object):
 	progress_threshold = 0.85
 
 	num_steps = 20
-	n_input = 7
+	n_input = 40
+	input_type = QUAN
 	
 	state_dimension = 3
 	action_dimension = 3

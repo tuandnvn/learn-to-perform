@@ -90,10 +90,11 @@ class Project(Data):
         for session in self.sessions:
             self.feature_size = feature_extractor(session,  get_location_objects = feature_utils.get_location_objects_most_active)
             
-            # Rescale feature
-            # Here we can do 
-            # Selecting only features we like, or make some modification on the feature
-            feature_utils.standardize_simple(session)
+            if self.config == self.config.QUAL:
+                # Rescale feature
+                # Here we can do 
+                # Selecting only features we like, or make some modification on the feature
+                feature_utils.standardize_simple(session, self.config)
 
     def generate_data(self, linear_progress_lbl_func = 
            generate_utils.linear_progress_lbl_generator):
@@ -197,7 +198,7 @@ if __name__ == "__main__":
             p.generate_data()
             p.save(project_name.lower() + "_project.proj")
 
-    create_projects()
+    # create_projects()
 
 
     # p_data = ProjectData("SlideAround", ["Session1", "Session2"])
@@ -206,11 +207,11 @@ if __name__ == "__main__":
     # p_data.preprocess()
     # p_data.save("slidearound_p2.proj")
      
-    # p_data = ProjectData.load("slidearound_p2.proj")
-    # p = Project(p_data)
-    # p.standardize(feature_utils.marker_feature_extractor) 
-    # p.generate_data()
-    # p.save("slidearound_raw.proj")
+    p_data = ProjectData.load(os.path.join('learned_models', "slidearound_p2.proj"))
+    p = Project(p_data)
+    p.standardize(feature_utils.marker_feature_extractor) 
+    p.generate_data()
+    p.save(os.path.join('learned_models', "slidearound_raw.proj"))
 
     # p = Project.load("slidearound_p2.proj")
 
