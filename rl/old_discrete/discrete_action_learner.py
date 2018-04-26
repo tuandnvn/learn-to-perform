@@ -18,12 +18,68 @@ from gym.spaces import MultiDiscrete
 
 from .action_learner import random_action
 
-def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
-    action_probs = policy_estimator.predict(state, sess = session)
 
-    actions = np.random.choice(len(action_probs), size = no_of_actions, p = action_probs)
+class MultiDiscreteNoZero ( MultiDiscrete ) :
+    def __init__(self, array_of_param_array, no_zero_range):
+        """
+        Range of indices that don't allow 0
+        """
+        MultiDiscrete.__init__(self, array_of_param_array)
+        self.no_zero_range = no_zero_range
 
-    return None, None, actions
+    def sample(self):
+        while True:
+            s = MultiDiscrete.sample(self)
+            b = np.array(s[self.no_zero_range[0] : self.no_zero_range[1]])
+            if len(b[b == 0]) == 0:
+                return s
+
+
+def epsilon_greedy_action_2( state, policy_estimator, uniform_space, no_of_actions = 1, verbose = False, session = None, epsilon_1 = 0.5, epsilon_2 = 0.3):
+    """
+    In epsilon_1 -amount of time, use the mode value only, and ignoring the Gaussian distribution
+    In epsilon_2 -
+    In (1- epsilon_1 - epsilon_1)-amount of time, just use uniform_space instead of policy_estimator
+
+    Notice that these actions values would still need to be processed into discretized values
+    """
+    """When action_choice == 0, do the greedy action; when action choice == 1, random an action"""
+    action_means, action_stds = policy_estimator.predict(state, sess = session)
+
+    variances = action_stds ** 2
+
+    action_choices = np.random.choice(3, no_of_actions, p = [epsilon_1, epsilon_2, 1 - epsilon_1 - epsilon_2])
+
+    no_greedy = len(action_choices[action_choices == 0])
+    no_gaussian = len(action_choices[action_choices == 1])
+    no_random = len(action_choices[action_choices == 2])
+
+    if verbose:
+        print ((action_means, variances))
+
+    if no_greedy == 0:
+        greedy_actions = np.zeros((0, len(action_means)))
+    else:
+        greedy_actions = [action_means for i in range (no_greedy)]
+
+    if no_gaussian == 0:
+        gaussian_actions = np.zeros((0, len(action_means)))
+    else:
+        gaussian_actions = np.random.multivariate_normal(action_means,np.diag(variances), size = no_gaussian) 
+
+    if no_random == 0:
+        random_actions = np.zeros((0, len(action_means)))
+    else:
+        random_actions = []
+        for i in range(no_random):
+            random_actions.append(uniform_space.sample())
+
+    actions = np.concatenate([greedy_actions, gaussian_actions, random_actions], axis = 0)
+
+    if verbose:
+        print (actions)
+
+    return action_means, action_stds, actions
 
 def realize_action( env, select_object, action, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8):
     """

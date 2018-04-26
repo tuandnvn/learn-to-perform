@@ -112,9 +112,6 @@ class EventProgressEstimator(object):
             
             print ("output.shape = %s after LSTM" % str(output.shape))
             
-            # we will pass the hidden state to next run of lstm
-            self._final_state = output_and_state[1]
-            
             with tf.variable_scope("output_linear"):
                 weight = tf.get_variable("weight", [size, 1])
                 bias = tf.get_variable("bias", [1])
@@ -294,7 +291,7 @@ def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load(os.path.join('learned_models', "slidearound_raw.proj"))
+    p = Project.load(os.path.join('learned_models', "slidearound_project.proj"))
     
     config = Config()
     

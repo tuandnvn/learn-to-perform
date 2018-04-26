@@ -11,13 +11,20 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
     The prediction value would be converted to discretized values
     """
     def __init__(self, config, scope="policy_estimator", reuse = False): 
-        # This state dimension would be of size 162
+        # This state dimension would be 6
+        # Current discretized transform of moving object + Discretized form of velocity vector
+        # For example, state of a block just north of the static block, and straightly align
+        # with the static block would be (0, 1, 0)
+        # straightly south, and rotate 45 degree would be (0, -1, 2)
         state_dimension = config.state_dimension
 
-        # Action dimension would be of size 9
+        # Moving-to discretized transform of moving object 
         action_dimension =  config.action_dimension
 
         self.lr = tf.Variable(0.0, trainable=False)
+
+        self.sigma_layer = tf.Variable([1,1,1], dtype = tf.float32, trainable=False)
+        hidden_size = config.value_estimator_hidden_size
 
         with tf.variable_scope(scope, reuse): 
             "Declare all placeholders"
@@ -32,7 +39,7 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
             
             "Placeholder for Monte Carlo action"
-            self.action = tf.placeholder(shape=[1], name="action", dtype = tf.float32)
+            self.action = tf.placeholder(shape=[action_dimension], name="action", dtype = tf.float32)
             
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
@@ -45,15 +52,30 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             Currently the whole problem is that a linear function might not be helpful to learn 
             this kind of problem
             """
-            self.output_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+            hidden_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=tf.expand_dims(self.state, 0),
+                num_outputs=hidden_size,
+                activation_fn=tf.nn.sigmoid,
+                weights_initializer=tf.random_uniform_initializer(minval=-2.0, maxval=2.0)))
+
+            self.mu_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+                inputs=tf.expand_dims(hidden_layer, 0),
                 num_outputs=action_dimension,
-                activation_fn=None))
+                activation_fn=None,
+                weights_initializer=tf.zeros_initializer()))
+
+            # Using a mvn to predict action probability
+            mvn = tf.contrib.distributions.Normal(
+                loc=self.mu_layer,
+                scale=self.sigma_layer)
+
+            # (action_dimension)
+            self.picked_action_prob = mvn.prob(self.action)
 
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
             # so we minimize the negative log-prob function instead
-            self.loss = -tf.nn.sparse_softmax_cross_entropy_with_logits(logits = output_layer, labels = self.action) * self.target
+            self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target
             
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
@@ -74,10 +96,3 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
         _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.action: action, self.target: target})
         
         return loss
-
-    def predict(self, state, sess=None):
-        """
-        In prediction, just need to produce the multivariate distribution
-        """
-        sess = sess or tf.get_default_session()
-        return sess.run([self.output_layer], {self.state: state})

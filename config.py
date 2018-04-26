@@ -14,8 +14,8 @@ class Config (object):
 	progress_threshold = 0.85
 
 	num_steps = 20
-	n_input = 40
-	input_type = QUAN
+	n_input = 7
+	input_type = QUAL
 	
 	state_dimension = 3
 	action_dimension = 3
@@ -33,7 +33,7 @@ class Config (object):
 	# Progress learner hyper-parameters
 	s2s = False
 	# Use keep_prob or not
-	keep_prob_bool = False
+	keep_prob_bool = True
 	# Typical value for LSTM
 	keep_prob = 0.6
 	hidden_size = 200
@@ -88,3 +88,6 @@ class Next_Frame_Config (object):
 	n_input = 3
 	n_output = 3
 
+class Qual_Plan_Config (Config):
+	state_dimension = 162 # = 3 * 6 * 9
+	action_dimension = 9

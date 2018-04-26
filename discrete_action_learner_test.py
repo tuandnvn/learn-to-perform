@@ -32,14 +32,14 @@ from rl import discrete_action_learner as dal
 
 
 ### RELOAD modules here
-reload(config)
-reload(value_estimator)
-reload(config)
-reload(block_movement_env)
-reload(action_learner_search)
-reload(progress_learner)
-reload(dal)
-reload(dve)
+# reload(config)
+# reload(value_estimator)
+# reload(config)
+# reload(block_movement_env)
+# reload(action_learner_search)
+# reload(progress_learner)
+# reload(dal)
+# reload(dve)
 
 
 ### AUXILIARY CODE
