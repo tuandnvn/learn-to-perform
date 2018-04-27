@@ -451,6 +451,11 @@ class BlockMovementEnv(gym.Env):
         Observation is calculated from the last positions (last two frames) of most salient objects
         
         # just return position and rotation
+
+        Returns:
+        --------
+
+        features = flattened array of size 12: [moving_object_prev, moving_object_cur, static_object_prev, static_object_cur]
         """
         object_data = session[SESSION_OBJ_2D]
         sess_len = session[SESSION_LEN]

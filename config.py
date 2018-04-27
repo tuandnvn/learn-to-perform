@@ -89,5 +89,5 @@ class Next_Frame_Config (object):
 	n_output = 3
 
 class Qual_Plan_Config (Config):
-	state_dimension = 162 # = 3 * 6 * 9
-	action_dimension = 9
+	state_dimension = 150 # = 5 () * 6 () * 5 ()
+	action_dimension = 5

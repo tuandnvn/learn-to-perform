@@ -25,72 +25,6 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
 
     return None, None, actions
 
-def realize_action( env, select_object, action, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8):
-    """
-    Translate an action, could be of continuous, or discretized form (but relative to a static object), to a real tranform for action
-    For example: if the static object is (0.5, 0.5, 0.5)
-    Notice the rotation is modulo 90 degree
-
-    action is (1, 1, 1) -> real action postion = ( 0.5 + 1 * 0.18, 0.5 + 1 * .18, ( 0.5 + 1 * np.pi/8 ) % (np.pi/2) )
-    
-    action is (0.8, 0.8, 0.8) -> quantize to (1, 1, 1)  -> same real action position
-
-    However, we don't quantize to (0,0,0) as that would violate overlaping constraint
-    We also only quantize down to values <= len(discretized_space)
-
-    action is (0.1, 0.1, 0.1) -> quantize to (1, 1, 0)  
-
-    action is (5, 5, 1) -> quantize to (3, 3, 1)  
-
-    Return a real position of action
-    """
-    if select_object == 0:
-        static_object = 1
-    else:
-        static_object = 0
-
-    static_object_transform = env.e.objects[static_object].transform
-    pos = static_object_transform.position
-    theta = static_object_transform.rotation
-
-    c, s = np.cos(theta), np.sin(theta)
-    R = np.array([[c, -s], [s, c]])
-
-    # Clone
-    discrete_action = np.array(action)
-
-    for i in range(3):
-        discrete_action[i] = round(discrete_action[i])
-
-    for i in range(2):
-        if discrete_action[i] == 0:
-            if action[i] > 0:
-                discrete_action[i] = 1
-            elif action[i] < 0:
-                discrete_action[i] = -1
-            else:
-                discrete_action[i] = [1, -1] [np.random.choice(2)]
-
-
-        if math.fabs(discrete_action[i]) > len(discretized_space):
-            discrete_action[i] = math.copysign( len(discretized_space),  discrete_action[i])
-
-    # print (discrete_action)
-
-    # Just position without rotation
-    values = [ math.copysign( discretized_space[int(math.fabs(discrete_action[i])) - 1], discrete_action[i]) for i in range(2) ]
-
-    # print (values)
-    # Rotated without translation
-    location = R.dot( np.array( [[values[0]], [values[1]]]) )
-    # print (location)
-    # Real loation
-    location = location.flatten() + np.reshape( pos, [2])
-
-    rotation = ( theta + discretized_rotation * discrete_action[2] ) % (np.pi/2)
-
-    return np.concatenate( [location, [rotation] ] )
-
 def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8 ):
     """
     Translate position of the select_object into a quantized form in relative to the static object
@@ -106,10 +40,57 @@ def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.7
     moving_object_transform = env.e.objects[select_object].transform
     return quantize_feat ( moving_object_transform.get_feat(), static_object_transform.get_feat(), discretized_space, discretized_rotation)
 
-def quantize_feat ( moving_object, static_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8, zero_tolerance = 0 ):
+def calculate_angle ( vector, discretize_angle = 8 ):
     """
+    discretize_angle is an even number of regions that we will split our 2*pi angle
+    
+    We will name the regions from 0 to discretize_angle - 1
+    """
+    angle = np.arctan2(vector[1], vector[0])
+    if angle < 0:
+        angle = 2 * np.pi + angle
+    angle += np.pi / discretize_angle
+
+    # Discretize
+    region = angle // (2 * np.pi / discretize_angle)
+
+    region = region % discretize_angle
+
+    return region
+
+def quantize_feat ( moving_object, static_object, discretized_space = [0.25, 0.5, 1], zero_tolerance = 0.05 ):
+    """
+    Quantize from the positions of two objects moving_object and static_object into the relative position 
+    of moving_object w.r.t static_object
+
+    We treat the relative positions of moving object the same if the angle make with the static object
+    is 0, 90, 180, 270 degree (because the rectangle shape is 4 way symmetric)
+
+    We will quantize the block on the same row as 1, 2, 3
+     ____     ____
+    |    |   |    |
+    |____|   |____|
+     
+    We will quantize the block diagonal to each other as 4, 5, 6
+    
+     ____ 
+    |    | 
+    |____|
+           ____ 
+          |    | 
+          |____|
+
+    So in total we have 6 different positions for a relative block 
+
+    Parameters:
+    =============
     moving_object : array of 3
     static_object : array of 3
+
+    Return:
+    =============
+    value: 1 to len(discretized_space)
+    region: 1 to 8
     """
     static_object_pos = static_object[:2] 
     moving_object_pos = moving_object[:2]
@@ -124,40 +105,189 @@ def quantize_feat ( moving_object, static_object, discretized_space = [0.18, 0.3
     distance = R.transpose().dot( distance )
 
     prev_margin = zero_tolerance
-    abs_distance = np.abs(distance)
-
-    values = np.zeros(3)
+    abs_distance = np.linalg.norm(distance)
 
     for d_i, d in enumerate(discretized_space):
         q = abs_distance / d
 
-        for i, v in enumerate(q):
-            if prev_margin <= abs_distance[i]:
-                if d_i < len(discretized_space) - 1:
-                    if v < 1.5:
-                        values[i] = math.copysign( d_i + 1, distance[i] )
-                else:
-                    values[i] = math.copysign( d_i + 1, distance[i] )
+        if prev_margin <= abs_distance:
+            if d_i < len(discretized_space) - 1:
+                if q < 1.5:
+                    value = d_i + 1
+                    break
+            else:
+                value = d_i + 1
+                break
 
         prev_margin = d * 1.5
 
-    rotation_diff = moving_object[2] - static_object[2]
-    if rotation_diff < 0:
-        rotation_diff += np.pi / 2
+    region = calculate_angle (distance) 
 
-    values[2] = rotation_diff // discretized_rotation
-    return values
+    return value, region
 
+def get_quantized_state ( moving_object, static_object, discretized_space = [0.25, 0.5, 1], zero_tolerance = 0.05 ):
+    value, region = quantize_feat (distance)
 
-def quantize_state ( state ):
+    if region % 2 == 1:
+        value += len(discretized_space)
+
+    return value
+
+def _test_quantize_feat ():
+    print (get_quantized_state(np.array([0,0.25,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([0.25,0,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([0.25,0.25,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([.5,.5,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([1,1,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([1,0,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([0,1,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([-1,-1,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([-1,1,1]), np.array([0,0,0])))
+    print (get_quantized_state(np.array([1,-1,1]), np.array([0,0,0])))
+
+def quantize_movement ( prev, cur, static ):
+    """
+    Produce the previous action that moves the moving object from prev to cur
+    """
+    prev_pos = quantize_feat ( prev, static )
+    cur_pos = quantize_feat ( cur, static )
+
+    return get_action_from_quantized_states(prev_pos, cur_pos)
+
+def get_action_from_quantized_states ( prev, cur ):
+    """
+    Parameter
+    ============
+    prev, cur: quantized (value, region) of relative positions of moving object 
+            value: 1 to 3
+            region: 0 to 7
+
+    Return
+    ============
+    action: A value from 0 to 4 (0 means no movement, 1 to 4 means UP, RIGHT, DOWN, LEFT)
+    """
+    if prev == cur:
+        return 0
+
+    if prev[0] % 3 == cur[0] % 3:
+        if prev[1] == (cur[1] + 1) % 8:
+            return 2
+        if (prev[1] + 1) % 8 == cur[1]:
+            return 4
+
+    if prev[1] == cur[1]:
+        if prev[0] == cur[0] - 1:
+            return 1
+        if prev[0] == cur[0] + 1:
+            return 3
+
+    raise ValueError('The action from %s to %s is illegal' % (prev, cur))
+
+def _test_get_action_from_quantized_states():
+    for j in range(3):
+        for i in range(1, 4):
+            try:
+                print ('The action %d from %s to %s' % (get_action_from_quantized_states((2,1), (i,j)), (2,1), (i,j)))
+            except ValueError as e:
+                print (e)
+
+def get_next_from_action ( prev, action ):
+    """
+    Parameter
+    ============
+    prev: quantized (value, region) of relative positions of moving object 
+            value: 1 to 3
+            region: 0 to 7
+    action: A value from 0 to 4
+
+    Return
+    ============
+    cur: quantized (value, region) of relative positions of moving object 
+            value: 1 to 3
+            region: 0 to 7
+    if action is illegal, we stop immediately for return of 0
+    """
+    if action == 0:
+        return prev
+
+    if action == 1:
+        return min(3, prev[0] + 1), prev[1]
+
+    if action == 3:
+        return max(1, prev[0] - 1), prev[1]
+
+    if action == 2:
+        return prev[0], (prev[1] + 7) % 8
+
+    if action == 4:
+        return prev[0], (prev[1] + 1) % 8
+
+def realize_action( env, select_object, action, discretized_space = [0.25, 0.5, 1]):
+    moving_object = env.objects[select_object].transform.get_feat()
+    static_object = env.objects[1 - select_object].transform.get_feat()
+    return _realize_action ( moving_object, static_object, action, discretized_space )
+
+def _realize_action( moving_object, static_object, action, discretized_space = [0.25, 0.5, 1]):
+    """
+    Translate an action, could be of continuous, or discretized form (but relative to a static object), to a real tranform for action
+    For example: if the static object is (0.5, 0.5, 0.5)
+    Notice the rotation is modulo 90 degree
+
+    action is from 0 to 4
+
+    Return a real position of action
+    """
+
+    static_object_pos = static_object[:2] 
+    moving_object_pos = moving_object[:2]
+    
+    theta = static_object[2]
+
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
+
+    prev = quantize_feat ( moving_object, static_object )
+
+    print ('prev', prev)
+
+    cur = get_next_from_action ( prev, action )
+
+    print ('cur', cur)
+
+    # copy value from action
+    alpha = cur[1] * np.pi / 4
+    Q = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]])
+
+    vals = np.expand_dims([discretized_space[int(cur[0]) - 1], 0], axis =1 )  
+
+    # print (values)
+    # Rotated without translation
+    location = R.dot( Q.dot( vals ))
+    # print (location)
+    # Real loation
+    location = location.flatten() + np.reshape( static_object_pos, [2])
+
+    return np.concatenate( [location, [theta] ] )
+
+def _test_realize_action():
+    moving_object = np.array([0.7, 0.7, 0.5])
+    static_object = np.array([0.3, 0.4, 0])
+    print ('quantized', quantize_feat(moving_object, static_object))
+
+    for i in range(5):
+        action = _realize_action ( moving_object, static_object, i)
+        print ('action', action)
+
+        print ('requantized', quantize_feat(action, static_object))
+
+def quantize_state ( state, progress ):
     """
     State from the block environment is features of moving and static objects
     Discretize for the moving object
     """
-
-    # Get relative
-    pos = quantize_feat ( state[3:6], state[9:12] )
-    velocity = quantize_feat ( state[3:6], state[:3], zero_tolerance = 0.05 )
+    # Get relative position between two objects
+    pos = get_quantized_state ( state[3:6], state[9:12] )
+    action = quantize_movement ( state[:3], state[3:6], state[9:12], zero_tolerance = 0.05 )
 
     return np.concatenate([pos, velocity])
 
@@ -207,12 +337,7 @@ class DiscreteActionLearner(object):
 
         self.session = session
 
-        self.np_random, _ = seeding.np_random(None)
-
-        playground_x = [self.config.block_size-1,self.config.block_size-1, 0]
-        playground_dim = [2-2*self.config.block_size, 2-2*self.config.block_size, np.pi/2]
-
-        
+        self.np_random, _ = seeding.np_random(None)        
 
     def policy_learn( self , action_policy, depth = 1, breadth = 1, 
             verbose = False, choice = REINFORCE, default = False):
