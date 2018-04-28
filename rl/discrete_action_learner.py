@@ -309,7 +309,7 @@ def quantize_state ( state, progress ):
     pos = get_quantized_state ( state[3:6], state[9:12] ) # 6 values
     action = quantize_movement ( state[:3], state[3:6], state[9:12] ) # 5 values
 
-    quantized_progress = ( progress // 0.2 ) % 5 # 5 values
+    quantized_progress = int( progress // 0.2 ) % 5 # 5 values
 
     one_hot = np.zeros(150)
     index = int(pos * 25 + action * 5 + quantized_progress)
@@ -472,7 +472,7 @@ class DiscreteActionLearner(object):
                     progress += reward
                     
                     if verbose:
-                        print ('best_action = ' + str((best_action, reward, done)))
+                        print ('best_action = ' + str((best_quantized_action, best_action, reward, done)))
 
                     if choice == REINFORCE:
                         transition = Transition(state=quantized_state, action=best_quantized_action, reward=reward, next_state=quantized_next_state, done=done)
