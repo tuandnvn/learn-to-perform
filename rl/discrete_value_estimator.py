@@ -32,7 +32,7 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
             
             "Placeholder for Monte Carlo action"
-            self.action = tf.placeholder(shape=[1], name="action", dtype = tf.float32)
+            self.action = tf.placeholder(shape=[], name="action", dtype = tf.int32)
             
             "Placeholder for target"
             self.target = tf.placeholder(name="target", dtype = tf.float32)
@@ -45,20 +45,22 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             Currently the whole problem is that a linear function might not be helpful to learn 
             this kind of problem
             """
-            self.output_layer = tf.squeeze(tf.contrib.layers.fully_connected(
+            self.logits = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=tf.expand_dims(self.state, 0),
                 num_outputs=action_dimension,
                 activation_fn=None))
 
+            self.probs = tf.nn.softmax(self.logits)
+
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
             # so we minimize the negative log-prob function instead
-            self.loss = -tf.nn.sparse_softmax_cross_entropy_with_logits(logits = output_layer, labels = self.action) * self.target
+            self.loss = -tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) * self.target
             
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
-                self.loss, global_step=tf.contrib.framework.get_global_step())
+                self.loss, global_step=tf.train.get_global_step())
 
 
     def update(self, state, target, action, sess=None):
@@ -80,4 +82,66 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
         In prediction, just need to produce the multivariate distribution
         """
         sess = sess or tf.get_default_session()
-        return sess.run([self.output_layer], {self.state: state})
+        probs = sess.run(self.probs, {self.state: state})
+        return probs
+
+class ValueEstimator():
+    """
+    Value Function approximator.
+    
+    This is to calculate the baseline, otherwise Policy Estimator is enough
+    
+    We need another set of parameter w for state-value approximator.
+    
+    Target is (discounted) return
+    
+    Just use a very simple linear fully connected layer between state and output
+    """
+    def __init__(self, config, scope="value_estimator", reuse = False):
+        state_dimension = config.state_dimension
+
+        self.lr = tf.Variable(0.0, trainable=False)
+
+        with tf.variable_scope(scope, reuse): 
+            # No batch
+            self.state = tf.placeholder(shape=[state_dimension], name="state", dtype = tf.float32)
+            
+            "Placeholder for target"
+            self.target = tf.placeholder(name="target", dtype = tf.float32)
+            
+            """
+            Using a tanh output activation, because it predicts a value between -1 and 1
+            """
+            self.output_layer = tf.contrib.layers.fully_connected(
+                tf.expand_dims(self.state,0),
+                1,
+                activation_fn=None,
+                weights_initializer=tf.zeros_initializer)
+            
+            self.value = tf.squeeze(self.output_layer)
+            
+            self.loss = tf.squared_difference(self.value, self.target) 
+            
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+            
+            self.train_op = self.optimizer.minimize(
+                self.loss, global_step=tf.contrib.framework.get_global_step())
+    
+    def predict(self, state, sess=None):
+        """
+        """
+        sess = sess or tf.get_default_session()
+        return sess.run(self.value, {self.state: state})
+
+    def update(self, state, target, sess=None):
+        """
+        """
+        sess = sess or tf.get_default_session()
+        _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.target: target})
+        
+        return loss
+
+    def assign_lr(self, lr_value, sess=None):
+        sess = sess or tf.get_default_session()
+        
+        sess.run(tf.assign(self.lr, lr_value))

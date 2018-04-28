@@ -137,7 +137,14 @@ class BlockMovementEnv(gym.Env):
         """
 
         # action is generated from the action_policy (external to the environment)
-        object_index, new_location, action_means, action_stds = action
+        if len(action) == 4:
+            object_index, new_location, action_means, action_stds = action
+        if len(action) == 2:
+            """
+            Action is not generated from a Gaussian distribution
+            """
+            object_index, new_location = action
+            action_means = action_stds = None
         
         position = new_location[:2]
         rotation = new_location[2]

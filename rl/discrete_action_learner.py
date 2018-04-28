@@ -18,14 +18,17 @@ from gym.spaces import MultiDiscrete
 
 from .action_learner import random_action
 
+DISCRETE_STEPS = [0.25, 0.5, 0.75]
+
 def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
     action_probs = policy_estimator.predict(state, sess = session)
+    print ('action_probs', action_probs)
 
     actions = np.random.choice(len(action_probs), size = no_of_actions, p = action_probs)
 
-    return None, None, actions
+    return actions
 
-def quantize_position ( env, select_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8 ):
+def quantize_position ( env, select_object, discretized_space = DISCRETE_STEPS, discretized_rotation = np.pi/8 ):
     """
     Translate position of the select_object into a quantized form in relative to the static object
 
@@ -58,7 +61,7 @@ def calculate_angle ( vector, discretize_angle = 8 ):
 
     return region
 
-def quantize_feat ( moving_object, static_object, discretized_space = [0.25, 0.5, 1], zero_tolerance = 0.05 ):
+def quantize_feat ( moving_object, static_object, discretized_space = DISCRETE_STEPS, zero_tolerance = 0.05 ):
     """
     Quantize from the positions of two objects moving_object and static_object into the relative position 
     of moving_object w.r.t static_object
@@ -89,8 +92,8 @@ def quantize_feat ( moving_object, static_object, discretized_space = [0.25, 0.5
 
     Return:
     =============
-    value: 1 to len(discretized_space)
-    region: 1 to 8
+    value: 0 to len(discretized_space) - 1
+    region: 0 to 7
     """
     static_object_pos = static_object[:2] 
     moving_object_pos = moving_object[:2]
@@ -113,10 +116,10 @@ def quantize_feat ( moving_object, static_object, discretized_space = [0.25, 0.5
         if prev_margin <= abs_distance:
             if d_i < len(discretized_space) - 1:
                 if q < 1.5:
-                    value = d_i + 1
+                    value = d_i
                     break
             else:
-                value = d_i + 1
+                value = d_i
                 break
 
         prev_margin = d * 1.5
@@ -125,8 +128,11 @@ def quantize_feat ( moving_object, static_object, discretized_space = [0.25, 0.5
 
     return value, region
 
-def get_quantized_state ( moving_object, static_object, discretized_space = [0.25, 0.5, 1], zero_tolerance = 0.05 ):
-    value, region = quantize_feat (distance)
+def get_quantized_state ( moving_object, static_object, discretized_space = DISCRETE_STEPS, zero_tolerance = 0.05 ):
+    """
+    Return a value from 0 to 2 * len(discretized_space) - 1
+    """
+    value, region = quantize_feat ( moving_object, static_object )
 
     if region % 2 == 1:
         value += len(discretized_space)
@@ -211,10 +217,14 @@ def get_next_from_action ( prev, action ):
         return prev
 
     if action == 1:
-        return min(3, prev[0] + 1), prev[1]
+        if prev[0] == 2:
+            raise ValueError('action is illegal')
+        return prev[0] + 1, prev[1]
 
     if action == 3:
-        return max(1, prev[0] - 1), prev[1]
+        if prev[0] == 0:
+            raise ValueError('action is illegal')
+        return prev[0] - 1, prev[1]
 
     if action == 2:
         return prev[0], (prev[1] + 7) % 8
@@ -222,12 +232,24 @@ def get_next_from_action ( prev, action ):
     if action == 4:
         return prev[0], (prev[1] + 1) % 8
 
-def realize_action( env, select_object, action, discretized_space = [0.25, 0.5, 1]):
+def realize_action( env, select_object, action, discretized_space = DISCRETE_STEPS):
+    """
+    Return the next location of select_object, given an action 
+    Parameter
+    ============
+    env: simulator2d.Environment
+    select_object: 0 or 1
+    action: 0 to 4
+
+    Return
+    ============
+    transform: np.array of size 3 or None if the action is illegal
+    """
     moving_object = env.objects[select_object].transform.get_feat()
     static_object = env.objects[1 - select_object].transform.get_feat()
     return _realize_action ( moving_object, static_object, action, discretized_space )
 
-def _realize_action( moving_object, static_object, action, discretized_space = [0.25, 0.5, 1]):
+def _realize_action( moving_object, static_object, action, discretized_space = DISCRETE_STEPS):
     """
     Translate an action, could be of continuous, or discretized form (but relative to a static object), to a real tranform for action
     For example: if the static object is (0.5, 0.5, 0.5)
@@ -237,7 +259,6 @@ def _realize_action( moving_object, static_object, action, discretized_space = [
 
     Return a real position of action
     """
-
     static_object_pos = static_object[:2] 
     moving_object_pos = moving_object[:2]
     
@@ -248,11 +269,10 @@ def _realize_action( moving_object, static_object, action, discretized_space = [
 
     prev = quantize_feat ( moving_object, static_object )
 
-    print ('prev', prev)
-
-    cur = get_next_from_action ( prev, action )
-
-    print ('cur', cur)
+    try:
+        cur = get_next_from_action ( prev, action )
+    except ValueError:
+        return None
 
     # copy value from action
     alpha = cur[1] * np.pi / 4
@@ -286,10 +306,16 @@ def quantize_state ( state, progress ):
     Discretize for the moving object
     """
     # Get relative position between two objects
-    pos = get_quantized_state ( state[3:6], state[9:12] )
-    action = quantize_movement ( state[:3], state[3:6], state[9:12], zero_tolerance = 0.05 )
+    pos = get_quantized_state ( state[3:6], state[9:12] ) # 6 values
+    action = quantize_movement ( state[:3], state[3:6], state[9:12] ) # 5 values
 
-    return np.concatenate([pos, velocity])
+    quantized_progress = ( progress // 0.2 ) % 5 # 5 values
+
+    one_hot = np.zeros(150)
+    index = int(pos * 25 + action * 5 + quantized_progress)
+    print (pos, action, quantized_progress, index)
+    one_hot[index] = 1
+    return one_hot
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
@@ -307,10 +333,13 @@ class DiscreteActionLearner(object):
         that have a model be load from a project file path
     - It stores a policy_estimator and a value_estimator
     - It is a REINFORCE or ACTOR_CRITIC RL learner
+
+    For a DiscreteActionLearner, it do the following:
+    - 
     """
 
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, value_estimator, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.pi/8, limit_step = 20, session = None):
+            policy_estimator, value_estimator, discretized_space = DISCRETE_STEPS, discretized_rotation = np.pi/8, limit_step = 20, session = None):
         """
         Parameters:
         -----------
@@ -392,64 +421,61 @@ class DiscreteActionLearner(object):
                 else:
                     state = self.env.reset()
 
-                quantized_state = quantize_state(state)
-                
                 episode = []
                 
+                progress = 0
+                quantized_state = quantize_state( state, progress )
+
                 # One step in the self.environment
                 for t in itertools.count():
                     best_action = None
                     best_reward = -1
 
-                    action_means, action_stds, actions = action_policy(quantized_state, self.policy_estimator,
+                    quantized_actions = action_policy(quantized_state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
-                    actions = [realize_action( self.env.env, select_object, action ) for action in actions]
+                    # This code really violates encapsulation because we have accessed a deeply nested object
+                    actions = [realize_action( self.env.env.e, select_object, quantized_action ) for quantized_action in quantized_actions]
 
-                    if verbose:
+                    for b_step in range(breadth):
+                        action = actions[b_step]
 
-                        print ((action_means, action_stds))
+                        if action is None:
+                            # illegal action
+                            # We stop immediately
+                            reward, done = -0.1, True
+                        else:
+                            _, reward, done, _ = self.env.step((select_object,action))
 
-                    for breadth_step in range(breadth):
-                        action = actions[breadth_step]
+                            if verbose:
+                                print ('action = %s' % str((action, reward)))
+                            self.env.env.back()
 
-                        _, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
-
-                        if verbose:
-                            print ('action = %s' % str((action, reward)))
-                        self.env.env.back()
-
-                        if done:
+                        if reward > best_reward:
                             best_reward = reward
                             best_action = action
-                            break
-                        else:
-                            if reward > best_reward:
-                                best_reward = reward
-                                best_action = action
-
-                    # if best_reward < 0:
-                    #     # This action is not worth taking
-                    #     break
+                            best_quantized_action = quantized_actions[b_step]
 
                     if verbose:
                         print ('best reward = %.2f' % best_reward)
 
-                    translated_action_means = action_means + state[9:12]
                     # At this point, best_action corresponds to the best reward
                     # really do the action
-                    next_state, reward, done, _ = self.env.step((select_object,best_action, translated_action_means, action_stds))
+                    if best_action is None:
+                        quantized_next_state = quantized_state
+                        reward = best_reward
+                    else:
+                        """ Best reward is just recalculated here """
+                        next_state, reward, done, _ = self.env.step((select_object, best_action))
+                        quantized_next_state = quantize_state(next_state, progress)
 
-                    quantized_next_state = quantize_state(next_state)
-
-                    # if abs(reward - best_reward) > 0.01:
-                    #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
+                    progress += reward
                     
                     if verbose:
                         print ('best_action = ' + str((best_action, reward, done)))
 
                     if choice == REINFORCE:
-                        transition = Transition(state=quantized_state, action=action, reward=reward, next_state=quantized_next_state, done=done)
+                        transition = Transition(state=quantized_state, action=best_quantized_action, reward=reward, next_state=quantized_next_state, done=done)
                         # Keep track of the transition
                         episode.append(transition)
                     
@@ -470,7 +496,7 @@ class DiscreteActionLearner(object):
                         """
                         We handle update right here
                         """
-                        predicted_next_state_value = self.value_estimator.predict(quantized_next_state, sess= self.session)
+                        predicted_next_state_value = self.value_estimator.predict(quantized_next_state, sess = self.session)
                         td_target = reward + discount_factor * predicted_next_state_value
                         self.value_estimator.update(quantized_state, td_target, sess= self.session)
                         
@@ -487,7 +513,7 @@ class DiscreteActionLearner(object):
                                 % (td_target, predicted_target, advantage) )
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
-                        loss = self.policy_estimator.update(quantized_state, advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(quantized_state, advantage, best_quantized_action, sess= self.session)
                         #print ('loss = %.2f' % loss)
                     if done:
                         break
