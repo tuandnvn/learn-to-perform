@@ -17,14 +17,17 @@ class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training, name=None, config = Config()):
+    def __init__(self, is_training, is_dropout = True, name=None, config = Config()):
         self.config = config
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
         self.size = size = config.hidden_size
         # This is an option, if self.s2s = True -> Use all progress values
         # otherwise just use the last progress value
-        self.s2s = config.s2s 
+        self.s2s = config.s2s
+
+        if is_training:
+            self.dropout = True
         
         with tf.variable_scope(name):
             "Declare all placeholders"
@@ -51,21 +54,17 @@ class EventProgressEstimator(object):
                 
             
             if is_training:
-                self.lr = tf.Variable(0.0, trainable=False)
+                self.lr = tf.Variable(initial_value=0.0, trainable=False)
             
             lstm_cell = BasicLSTMCell(size, forget_bias = 1.0, state_is_tuple=True)
             
-            if config.keep_prob_bool and config.keep_prob < 1:
+            if is_dropout and config.keep_prob < 1:
                 lstm_cell = DropoutWrapper(lstm_cell, output_keep_prob=config.keep_prob)
                 
             multi_lstm_cell = MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
-            
-            # multi_lstm_cell.state_size = config.num_layers * 2 * size
-            # ( batch_size x cell.state_size )
-            if is_training:
-                self.initial_state = multi_lstm_cell.zero_state(config.batch_size, tf.float32)
-            else:
-                self.initial_state = multi_lstm_cell.zero_state(config.batch_size, tf.float32)
+
+            # Create variable wrapper for self.initial_state
+            self.create_state( multi_lstm_cell )
                 
             # Initial states of the cells
             # cell.state_size = config.num_layers * 2 * size
@@ -87,8 +86,6 @@ class EventProgressEstimator(object):
             inputs = tf.reshape(inputs, (-1, num_steps, size)) # (batch_size, num_steps, size)
             
             print ("self.inputs.shape = %s " % str(inputs.shape) + " after linear layer")
-            
-            
                          
             # (output, state)
             # output is of size:  ( batch_size, num_steps, size )
@@ -96,6 +93,8 @@ class EventProgressEstimator(object):
             with tf.variable_scope("lstm"):
                 output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32,
                                                      initial_state = self.initial_state)
+                # output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32)
+                # output_and_state = tf.nn.dynamic_rnn(multi_lstm_cell, inputs, dtype=tf.float32)
             
             self.final_state = output_and_state[1]
             
@@ -230,18 +229,58 @@ class EventProgressEstimator(object):
             self.checkOutputs(outputs, batch_size)
         
         sess = sess or tf.get_default_session()
+        # self.reset_state(sess = sess)
         
         if weights is None:
             weights = np.ones(batch_size, dtype=np.float32)
 
+        feed_dict = {self._input_data: inputs}
+
         if not outputs is None:
-            predicted, loss = sess.run([self.output, self.loss],
-                    {self._input_data: inputs, self._targets: outputs, self._weights: weights})
+            # You can use self.initial_state: tf.zeros_like(self.initial_state)
+            feed_dict [self._targets] = outputs
+            feed_dict [self._weights] = weights
+
+            predicted, loss = sess.run([self.output, self.loss], feed_dict)
             return (predicted, loss)
         else:
             predicted = sess.run(self.output,
-                    {self._input_data: inputs})
+                    feed_dict)
+
             return predicted
+
+    def create_state( self, cell ):
+        # multi_lstm_cell.state_size = config.num_layers * 2 * size
+        # ( batch_size x cell.state_size )
+        # This initial state will not be updateable because it is not a variable, we have to create a variable wrapper
+        self.initial_state = cell.zero_state(self.config.batch_size, tf.float32)
+
+        # # We create variable wrapper here
+        # state_variables = []
+        # with tf.variable_scope('state'):
+        #     for state_c, state_h in self.initial_state:
+        #         state_variables.append(tf.contrib.rnn.LSTMStateTuple(
+        #             tf.Variable(state_c, trainable=False),
+        #             tf.Variable(state_h, trainable=False)))
+        # # Return as a tuple, so that it can be fed to dynamic_rnn as an initial state
+        # self.state = tuple(state_variables)
+
+    # def reset_state ( self, sess=None ) :
+    #     sess = sess or tf.get_default_session()
+
+    #     # Define an op to reset the hidden state to zeros
+    #     update_ops = []
+
+    #     # Loop through each layer
+    #     for state_variable in self.state:
+    #         # Assign the new state to the state variables on this layer
+    #         # state_variable[0] is h
+    #         # state_variable[1] is c
+    #         print (state_variable)
+    #         update_ops.extend([state_variable[0].assign(tf.zeros_like(state_variable[0])),
+    #                            state_variable[1].assign(tf.zeros_like(state_variable[1]))])
+
+    #     sess.run(tuple(update_ops))
         
     def assign_lr(self, lr_value, sess=None):
         sess = sess or tf.get_default_session()

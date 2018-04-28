@@ -295,9 +295,6 @@ class BlockMovementEnv(gym.Env):
         # inputs: np.array (config.batch_size, self.num_steps, n_input)
         inputs = np.repeat(np.expand_dims(inputs, axis = 0), self.config.batch_size, axis = 0)
         current_progress = self.progress_estimator.predict(inputs, sess = self.session)
-        print ('current_progress', current_progress)
-        current_progress = self.progress_estimator.predict(inputs, sess = self.session)
-        print ('current_progress', current_progress)
 
         progress = current_progress[0]
         # print ('progress = %.2f' % progress)

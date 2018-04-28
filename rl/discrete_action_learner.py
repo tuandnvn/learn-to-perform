@@ -133,6 +133,7 @@ def get_quantized_state ( moving_object, static_object, discretized_space = DISC
     Return a value from 0 to 2 * len(discretized_space) - 1
     """
     value, region = quantize_feat ( moving_object, static_object )
+    print ('value = %d, region = %d' %( value, region) )
 
     if region % 2 == 1:
         value += len(discretized_space)
@@ -165,7 +166,7 @@ def get_action_from_quantized_states ( prev, cur ):
     Parameter
     ============
     prev, cur: quantized (value, region) of relative positions of moving object 
-            value: 1 to 3
+            value: 0 to 2
             region: 0 to 7
 
     Return
@@ -202,7 +203,7 @@ def get_next_from_action ( prev, action ):
     Parameter
     ============
     prev: quantized (value, region) of relative positions of moving object 
-            value: 1 to 3
+            value: 0 to 2
             region: 0 to 7
     action: A value from 0 to 4
 
@@ -271,6 +272,7 @@ def _realize_action( moving_object, static_object, action, discretized_space = D
 
     try:
         cur = get_next_from_action ( prev, action )
+        print ('Debug', prev, action, cur)
     except ValueError:
         return None
 
@@ -278,7 +280,7 @@ def _realize_action( moving_object, static_object, action, discretized_space = D
     alpha = cur[1] * np.pi / 4
     Q = np.array([[np.cos(alpha), -np.sin(alpha)], [np.sin(alpha), np.cos(alpha)]])
 
-    vals = np.expand_dims([discretized_space[int(cur[0]) - 1], 0], axis =1 )  
+    vals = np.expand_dims([discretized_space[int(cur[0])], 0], axis =1 )  
 
     # print (values)
     # Rotated without translation
@@ -438,12 +440,18 @@ class DiscreteActionLearner(object):
                     actions = [realize_action( self.env.env.e, select_object, quantized_action ) for quantized_action in quantized_actions]
 
                     for b_step in range(breadth):
+                        quantized_action = quantized_actions[b_step]
                         action = actions[b_step]
 
                         if action is None:
                             # illegal action
                             # We stop immediately
                             reward, done = -0.1, True
+                        elif quantized_action == 0 and t > 0:
+                            """
+                            If action 0 is taken when we have started, we stop immediately
+                            """
+                            reward, done = 0, True
                         else:
                             _, reward, done, _ = self.env.step((select_object,action))
 
@@ -454,7 +462,7 @@ class DiscreteActionLearner(object):
                         if reward > best_reward:
                             best_reward = reward
                             best_action = action
-                            best_quantized_action = quantized_actions[b_step]
+                            best_quantized_action = quantized_action
 
                     if verbose:
                         print ('best reward = %.2f' % best_reward)

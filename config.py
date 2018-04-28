@@ -32,8 +32,6 @@ class Config (object):
 	
 	# Progress learner hyper-parameters
 	s2s = False
-	# Use keep_prob or not
-	keep_prob_bool = True
 	# Typical value for LSTM
 	keep_prob = 0.6
 	hidden_size = 200
