@@ -79,7 +79,7 @@ class BlockMovementEnv(gym.Env):
         - progress_threshold: condition for an episode to end
         """
         self.default_boundary = Cube2D(
-            transform = Transform2D(position=[0.0, 0.0], rotation=0.0, scale = 1.0))
+            transform = Transform2D(position=[0.0, 0.0], rotation=0.0, scale = 1.2))
         self.e = simulator2d.Environment( boundary = self.default_boundary)
         self.config = config
         self.progress_estimator = progress_estimator

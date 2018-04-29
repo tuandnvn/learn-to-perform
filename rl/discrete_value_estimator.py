@@ -48,16 +48,18 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
             self.logits = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=tf.expand_dims(self.state, 0),
                 num_outputs=action_dimension,
-                activation_fn=None))
+                activation_fn=None,
+                biases_initializer = None))
 
             self.probs = tf.nn.softmax(self.logits)
 
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
-            # so we minimize the negative log-prob function instead
-            self.loss = -tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) * self.target
+            self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) * self.target
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+            # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+
+            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.train.get_global_step())

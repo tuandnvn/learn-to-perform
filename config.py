@@ -49,9 +49,9 @@ class Config (object):
 
 	# value estimator
 	weight_regularizer_scale = 0.1
-	policy_learning_rate = 0.01
-	policy_decay = 1
-	value_learning_rate = 0.001
+	policy_learning_rate = 0.2
+	policy_decay = 0.999
+	value_learning_rate = 0.1
 	value_decay = 0.98
 	value_estimator_hidden_size = 20
 	# Set policy decay and value_decay to 1 makes nan values?

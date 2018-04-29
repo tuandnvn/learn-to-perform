@@ -22,11 +22,16 @@ DISCRETE_STEPS = [0.25, 0.5, 0.75]
 
 def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None):
     action_probs = policy_estimator.predict(state, sess = session)
-    print ('action_probs', action_probs)
+    # print ('action_probs', action_probs)
 
     actions = np.random.choice(len(action_probs), size = no_of_actions, p = action_probs)
 
     return actions
+
+def get_prob(policy_estimator, state, action, sess = None):
+    action_probs = policy_estimator.predict(state, sess = sess)
+
+    return action_probs[action]
 
 def quantize_position ( env, select_object, discretized_space = DISCRETE_STEPS, discretized_rotation = np.pi/8 ):
     """
@@ -133,7 +138,7 @@ def get_quantized_state ( moving_object, static_object, discretized_space = DISC
     Return a value from 0 to 2 * len(discretized_space) - 1
     """
     value, region = quantize_feat ( moving_object, static_object )
-    print ('value = %d, region = %d' %( value, region) )
+    # print ('value = %d, region = %d' %( value, region) )
 
     if region % 2 == 1:
         value += len(discretized_space)
@@ -272,7 +277,7 @@ def _realize_action( moving_object, static_object, action, discretized_space = D
 
     try:
         cur = get_next_from_action ( prev, action )
-        print ('Debug', prev, action, cur)
+        # print ('Debug', prev, action, cur)
     except ValueError:
         return None
 
@@ -315,9 +320,14 @@ def quantize_state ( state, progress ):
 
     one_hot = np.zeros(150)
     index = int(pos * 25 + action * 5 + quantized_progress)
-    print (pos, action, quantized_progress, index)
+    #print (pos, action, quantized_progress, index)
     one_hot[index] = 1
     return one_hot
+
+def reverse_quantize_state ( quantized_state ):
+    index = np.argwhere(quantized_state)[0][0]
+
+    return index // 25, (index -  index // 25 * 25) // 5, index % 5
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
@@ -430,6 +440,8 @@ class DiscreteActionLearner(object):
 
                 # One step in the self.environment
                 for t in itertools.count():
+                    if verbose:
+                        print ('====== At time %d ====' %t )
                     best_action = None
                     best_reward = -1
 
@@ -456,7 +468,7 @@ class DiscreteActionLearner(object):
                             _, reward, done, _ = self.env.step((select_object,action))
 
                             if verbose:
-                                print ('action = %s' % str((action, reward)))
+                                print ('quantized_action = %d, action = %s, reward= %.2f' % (quantized_action, action, reward))
                             self.env.env.back()
 
                         if reward > best_reward:
@@ -464,14 +476,16 @@ class DiscreteActionLearner(object):
                             best_action = action
                             best_quantized_action = quantized_action
 
-                    if verbose:
-                        print ('best reward = %.2f' % best_reward)
-
                     # At this point, best_action corresponds to the best reward
                     # really do the action
                     if best_action is None:
                         quantized_next_state = quantized_state
-                        reward = best_reward
+                        reward, done = -0.1, True
+                    elif best_quantized_action == 0 and t > 0:
+                        """
+                        If action 0 is taken when we have started, we stop immediately
+                        """
+                        reward, done = 0, True
                     else:
                         """ Best reward is just recalculated here """
                         next_state, reward, done, _ = self.env.step((select_object, best_action))
@@ -480,7 +494,7 @@ class DiscreteActionLearner(object):
                     progress += reward
                     
                     if verbose:
-                        print ('best_action = ' + str((best_quantized_action, best_action, reward, done)))
+                        print ('best_quantized_action = %d, best_action = %s, best_reward= %.2f, done = %s' % (best_quantized_action, best_action, reward, done))
 
                     if choice == REINFORCE:
                         transition = Transition(state=quantized_state, action=best_quantized_action, reward=reward, next_state=quantized_next_state, done=done)
@@ -517,11 +531,16 @@ class DiscreteActionLearner(object):
                         advantage = td_target - predicted_target
 
                         if verbose:
-                            print ('td_target = %.2f, predicted_target = %.2f, advantage = %.2f' 
-                                % (td_target, predicted_target, advantage) )
+                            print ('Update')
+                            print ('quantized_state = %s, action = %d, td_target = %.2f, predicted_target = %.2f, advantage = %.2f, progress = %.2f' 
+                                % (reverse_quantize_state(quantized_state), best_quantized_action, td_target, predicted_target, advantage, progress) )
+                            print ('BEFORE update, action prob = %.4f' % get_prob(self.policy_estimator, quantized_state, best_quantized_action, sess= self.session))
                         
                         # To be correct this would be discount_factor ** # of steps * advantage
                         loss = self.policy_estimator.update(quantized_state, advantage, best_quantized_action, sess= self.session)
+
+                        if verbose:
+                            print ('AFTER update, action prob = %.4f' % get_prob(self.policy_estimator, quantized_state, best_quantized_action, sess= self.session))
                         #print ('loss = %.2f' % loss)
                     if done:
                         break
