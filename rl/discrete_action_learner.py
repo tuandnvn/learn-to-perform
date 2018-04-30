@@ -419,10 +419,10 @@ class DiscreteActionLearner(object):
 
             self.env = TimeLimit(bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                 progress_estimator = self.progress_estimator, session = self.session), max_episode_steps=self.limit_step)
-            policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** i_episode
+            policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** (i_episode // self.config.policy_decay_every )
             self.policy_estimator.assign_lr( policy_rate, sess= self.session )
 
-            value_rate = self.config.value_learning_rate * self.config.value_decay ** i_episode
+            value_rate = self.config.value_learning_rate * self.config.value_decay ** (i_episode // self.config.value_decay_every )
             self.value_estimator.assign_lr( value_rate, sess= self.session )
 
             try:
