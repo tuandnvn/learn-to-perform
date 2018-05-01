@@ -128,7 +128,14 @@ if __name__ == '__main__':
 
     breadth = int(args.breadth)
     num_episodes = int(args.episode)
-    progress_state = bool(args.progress_state)
+    if args.progress_state == 'True':
+        progress_state = True
+    else:
+        progress_state = False
+
+
+    print (progress_state)
+
     model_type = args.model
 
     if model_type not in ['ACTOR_CRITIC', 'REINFORCE']:
@@ -139,6 +146,12 @@ if __name__ == '__main__':
     tf.reset_default_graph()
 
     c = config.Qual_Plan_Config()
+
+    
+    if progress_state:
+        c.state_dimension = 150
+    else:
+        c.state_dimension = 30
 
     global_step = tf.Variable(0, name="global_step", trainable=False)
 
@@ -182,11 +195,6 @@ if __name__ == '__main__':
     start_time = time.time()
 
     c.num_episodes = num_episodes
-
-    if progress_state:
-        c.state_dimension = 150
-    else:
-        c.state_dimension = 30
 
     action_ln = dal.DiscreteActionLearner(c, projects['SlideAround'], progress_estimators['SlideAround'], 
                                    policy_est, value_est, session = sess, limit_step = 12, progress_state = progress_state)
