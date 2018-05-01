@@ -314,10 +314,28 @@ def quantize_state ( state, action, progress ):
     one_hot[index] = 1
     return one_hot
 
+def quantize_state_no_progress ( state, action, progress ):
+    """
+    State from the block environment is features of moving and static objects
+    Discretize for the moving object
+    """
+    # Get relative position between two objects
+    pos = get_quantized_state ( state[3:6], state[9:12] ) # 6 values
+
+    one_hot = np.zeros(30)
+    index = int(pos * 5 + action)
+    one_hot[index] = 1
+    return one_hot
+
 def reverse_quantize_state ( quantized_state ):
     index = np.argwhere(quantized_state)[0][0]
 
     return index // 25, (index -  index // 25 * 25) // 5, index % 5
+
+def reverse_quantize_state_no_progress ( quantized_state ):
+    index = np.argwhere(quantized_state)[0][0]
+
+    return index // 5, index % 5
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
@@ -341,7 +359,9 @@ class DiscreteActionLearner(object):
     """
 
     def __init__(self, config, project, progress_estimator, 
-            policy_estimator, value_estimator, discretized_space = DISCRETE_STEPS, discretized_rotation = np.pi/8, limit_step = 20, session = None):
+            policy_estimator, value_estimator, 
+            discretized_space = DISCRETE_STEPS, discretized_rotation = np.pi/8, 
+            limit_step = 20, session = None, progress_state = True):
         """
         Parameters:
         -----------
@@ -368,7 +388,14 @@ class DiscreteActionLearner(object):
 
         self.session = session
 
-        self.np_random, _ = seeding.np_random(None)        
+        self.np_random, _ = seeding.np_random(None)
+
+        if progress_state:
+            self.quantize_function = quantize_state
+            self.reverse_quantize_function = reverse_quantize_state
+        else:
+            self.quantize_function = quantize_state_no_progress
+            self.reverse_quantize_function = reverse_quantize_state_no_progress
 
     def policy_learn( self , action_policy, depth = 1, breadth = 1, 
             verbose = False, choice = REINFORCE, default = False):
@@ -432,7 +459,7 @@ class DiscreteActionLearner(object):
                 episode = []
                 
                 progress = 0
-                quantized_state = quantize_state( state, 0, progress )
+                quantized_state = self.quantize_function( state, 0, progress )
 
                 # One step in the self.environment
                 for t in itertools.count():
@@ -485,7 +512,7 @@ class DiscreteActionLearner(object):
                     else:
                         """ Best reward is just recalculated here """
                         next_state, reward, done, _ = self.env.step((select_object, best_action))
-                        quantized_next_state = quantize_state(next_state, best_quantized_action, progress)
+                        quantized_next_state = self.quantize_function(next_state, best_quantized_action, progress)
 
                     progress += reward
                     
@@ -533,7 +560,7 @@ class DiscreteActionLearner(object):
                         if verbose:
                             print ('Update')
                             print ('quantized_state = %s, action = %d, td_target = %.2f, predicted_target = %.2f, advantage = %.2f, progress = %.2f' 
-                                % (reverse_quantize_state(quantized_state), best_quantized_action, td_target, predicted_target, advantage, progress) )
+                                % (self.reverse_quantize_function(quantized_state), best_quantized_action, td_target, predicted_target, advantage, progress) )
                             print ('BEFORE update, action prob = %.4f' % get_prob(self.policy_estimator, quantized_state, best_quantized_action, sess= self.session))
                         
                         # To be correct this would be discount_factor ** # of steps * advantage

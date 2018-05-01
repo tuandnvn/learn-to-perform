@@ -27,8 +27,29 @@ from rl import block_movement_env
 from rl import discrete_value_estimator as  dve
 from rl import discrete_action_learner as dal
 
-def print_action_prob(policy_est):
-    for progress in range(5):
+def print_action_prob(policy_est, progress_state = True):
+    if progress_state:
+        for progress in range(5):
+            for pos in range(6):
+                for prev_action in range(5):
+                    if (pos == 0 or pos == 3) and prev_action == 1:
+                        # Illegal
+                        continue
+
+                    if (pos == 2 or pos == 5) and prev_action == 3:
+                        # Illegal
+                        continue
+
+                    state = np.zeros(150)
+                    index = int(pos * 25 + prev_action * 5 + progress)
+
+                    state[index] = 1
+
+                    probs = policy_est.predict(state, sess = sess)
+
+                    best_action = np.argmax(probs)
+                    print ('%d & %d & %d & %s & %d' % (pos, prev_action, progress, ','.join(('%.3f' % p) for p in probs), best_action) )
+    else:
         for pos in range(6):
             for prev_action in range(5):
                 if (pos == 0 or pos == 3) and prev_action == 1:
@@ -39,19 +60,37 @@ def print_action_prob(policy_est):
                     # Illegal
                     continue
 
-
-                state = np.zeros(150)
-                index = int(pos * 25 + prev_action * 5 + progress)
+                state = np.zeros(30)
+                index = int(pos * 5 + prev_action)
 
                 state[index] = 1
 
                 probs = policy_est.predict(state, sess = sess)
 
                 best_action = np.argmax(probs)
-                print ('%d & %d & %d & %s & %d' % (pos, prev_action, progress, ','.join(('%.3f' % p) for p in probs), best_action) )
+                print ('%d & %d & %s & %d' % (pos, prev_action, ','.join(('%.3f' % p) for p in probs), best_action) )
 
-def print_value_est(value_est):
-    for progress in range(5):
+def print_value_est(value_est, progress_state = True):
+    if progress_state:
+        for progress in range(5):
+            for pos in range(6):
+                for prev_action in range(5):
+                    if (pos == 0 or pos == 3) and prev_action == 1:
+                        # Illegal
+                        continue
+
+                    if (pos == 2 or pos == 5) and prev_action == 3:
+                        # Illegal
+                        continue
+                    
+                    state = np.zeros(150)
+                    index = int(pos * 25 + prev_action * 5 + progress)
+
+                    state[index] = 1
+
+                    val = value_est.predict(state, sess = sess)
+                    print ('pos = %d, prev_action = %d, progress = %d, val = %.2f' % (pos, prev_action, progress, val) )
+    else:
         for pos in range(6):
             for prev_action in range(5):
                 if (pos == 0 or pos == 3) and prev_action == 1:
@@ -62,13 +101,13 @@ def print_value_est(value_est):
                     # Illegal
                     continue
                 
-                state = np.zeros(150)
-                index = int(pos * 25 + prev_action * 5 + progress)
+                state = np.zeros(30)
+                index = int(pos * 5 + prev_action)
 
                 state[index] = 1
 
                 val = value_est.predict(state, sess = sess)
-                print ('pos = %d, prev_action = %d, progress = %d, val = %.2f' % (pos, prev_action, progress, val) )
+                print ('pos = %d, prev_action = %d, val = %.2f' % (pos, prev_action, val) )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test discrete action learner.')
@@ -76,12 +115,20 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--episode', action='store', metavar = ('EPISODE'),
                                 help = "Number of episodes." )
 
-    parser.add_argument('-m', '--model', action='store', metavar = ('MODEL'),
+    parser.add_argument('-m', '--model', action='store', metavar = ('MODEL'), default = 'ACTOR_CRITIC',
                                 help = "Model type. Choose ACTOR_CRITIC or REINFORCE. Default is ACTOR_CRITIC" )
+
+    parser.add_argument('-b', '--breadth', action='store', metavar = ('BREADTH'), default = 1,
+                                help = "Breadth. Number of actions generated at each step. Default is 1" )
+
+    parser.add_argument('-p', '--progress_state', action='store', default = True,
+                                help = "Whether to keep progress as state component. Default is True." )
 
     args = parser.parse_args()
 
+    breadth = int(args.breadth)
     num_episodes = int(args.episode)
+    progress_state = bool(args.progress_state)
     model_type = args.model
 
     if model_type not in ['ACTOR_CRITIC', 'REINFORCE']:
@@ -106,7 +153,6 @@ if __name__ == '__main__':
     projects = {}
     progress_estimators = {}
 
-    # action_types = ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]
     action_types = ["SlideAround"]
 
     for project_name in action_types:
@@ -137,17 +183,22 @@ if __name__ == '__main__':
 
     c.num_episodes = num_episodes
 
-    action_ln = dal.DiscreteActionLearner(c, projects['SlideAround'], progress_estimators['SlideAround'], 
-                                   policy_est, value_est, session = sess, limit_step = 12)
+    if progress_state:
+        c.state_dimension = 150
+    else:
+        c.state_dimension = 30
 
-    past_envs, stats, es_stats = action_ln.policy_learn(dal.random_action, breadth = 1, verbose = False,
+    action_ln = dal.DiscreteActionLearner(c, projects['SlideAround'], progress_estimators['SlideAround'], 
+                                   policy_est, value_est, session = sess, limit_step = 12, progress_state = progress_state)
+
+    past_envs, stats, es_stats = action_ln.policy_learn(dal.random_action, breadth = breadth, verbose = False,
                                               choice = model_type, default = False)
 
 
     print ('Run finish after %d' % (time.time() -start_time))
 
-    print_action_prob(policy_est)
+    print_action_prob(policy_est, progress_state = progress_state)
 
-    print_value_est(value_est)
+    print_value_est(value_est, progress_state = progress_state)
 
     plotting.plot_episode_stats(stats, smoothing_window=50)
