@@ -129,7 +129,7 @@ def quantize_feat ( moving_object, static_object, discretized_space = DISCRETE_S
 
         prev_margin = d * 1.5
 
-    region = calculate_angle (distance) 
+    region = int(calculate_angle (distance) )
 
     return value, region
 
@@ -156,15 +156,6 @@ def _test_quantize_feat ():
     print (get_quantized_state(np.array([-1,-1,1]), np.array([0,0,0])))
     print (get_quantized_state(np.array([-1,1,1]), np.array([0,0,0])))
     print (get_quantized_state(np.array([1,-1,1]), np.array([0,0,0])))
-
-def quantize_movement ( prev, cur, static ):
-    """
-    Produce the previous action that moves the moving object from prev to cur
-    """
-    prev_pos = quantize_feat ( prev, static )
-    cur_pos = quantize_feat ( cur, static )
-
-    return get_action_from_quantized_states(prev_pos, cur_pos)
 
 def get_action_from_quantized_states ( prev, cur ):
     """
@@ -307,14 +298,13 @@ def _test_realize_action():
 
         print ('requantized', quantize_feat(action, static_object))
 
-def quantize_state ( state, progress ):
+def quantize_state ( state, action, progress ):
     """
     State from the block environment is features of moving and static objects
     Discretize for the moving object
     """
     # Get relative position between two objects
     pos = get_quantized_state ( state[3:6], state[9:12] ) # 6 values
-    action = quantize_movement ( state[:3], state[3:6], state[9:12] ) # 5 values
 
     quantized_progress = int( progress // 0.2 ) % 5 # 5 values
 
@@ -397,7 +387,8 @@ class DiscreteActionLearner(object):
         
         Returns:
         =========
-            An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
+            stats: An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
+            es_stats: An early stopping EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards (best progress so far)
         """
 
         num_episodes = self.config.num_episodes
@@ -405,6 +396,11 @@ class DiscreteActionLearner(object):
 
         # Keeps track of useful statistics
         stats = plotting.EpisodeStats(
+            episode_lengths=np.zeros(num_episodes),
+            episode_rewards=np.zeros(num_episodes))
+
+        # Early stopping stats
+        es_stats = plotting.EpisodeStats(
             episode_lengths=np.zeros(num_episodes),
             episode_rewards=np.zeros(num_episodes))
         
@@ -436,7 +432,7 @@ class DiscreteActionLearner(object):
                 episode = []
                 
                 progress = 0
-                quantized_state = quantize_state( state, progress )
+                quantized_state = quantize_state( state, 0, progress )
 
                 # One step in the self.environment
                 for t in itertools.count():
@@ -489,7 +485,7 @@ class DiscreteActionLearner(object):
                     else:
                         """ Best reward is just recalculated here """
                         next_state, reward, done, _ = self.env.step((select_object, best_action))
-                        quantized_next_state = quantize_state(next_state, progress)
+                        quantized_next_state = quantize_state(next_state, best_quantized_action, progress)
 
                     progress += reward
                     
@@ -502,8 +498,12 @@ class DiscreteActionLearner(object):
                         episode.append(transition)
                     
                     # Update statistics
-                    stats.episode_rewards[i_episode] += reward
+                    stats.episode_rewards[i_episode] = progress
                     stats.episode_lengths[i_episode] = t
+
+                    if i_episode not in es_stats.episode_rewards or progress > es_stats.episode_rewards[i_episode]:
+                        es_stats.episode_rewards[i_episode] = progress
+                        es_stats.episode_lengths[i_episode] = t
                     
                     # Print out which step we're on, useful for debugging.
                     if verbose:
@@ -609,5 +609,5 @@ class DiscreteActionLearner(object):
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)
                 traceback.print_exc()
-        return (past_envs, stats)
+        return (past_envs, stats, es_stats)
 

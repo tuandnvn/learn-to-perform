@@ -124,7 +124,7 @@ class ValueEstimator():
             
             self.loss = tf.squared_difference(self.value, self.target) 
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())
