@@ -55,7 +55,13 @@ class DiscretePolicyEstimator ( PolicyEstimator ):
 
             # The action probability is the product of component probabilities
             # Notice that the formula for REINFORCE update is (+) gradient of log-prob function
-            self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) * self.target
+
+
+            # Previous formula, doesn't take into account other labels, just use the correct label
+            # self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) * self.target
+
+            self.loss = (tf.nn.sparse_softmax_cross_entropy_with_logits(logits = self.logits, labels = self.action) - tf.reduce_sum(self.probs * self.logits)) * self.target \
+                             # This second term takes into account other actions
             
             # self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
 
