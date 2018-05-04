@@ -106,6 +106,8 @@ class InteractiveLearner ( object ):
         Returns:
         --------
         """
+        self.online = False
+
         with open(demo_file, 'rb') as fh:
             # need this encoding 
             if sys.version_info >= (3,0):
@@ -117,6 +119,11 @@ class InteractiveLearner ( object ):
             self.searcher.env = block_movement_env.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                     progress_estimator = self.pe, session = self.sess)
             self.searcher.env.reset_env_to_state(stored_config['start_config'], [])
+
+            self.action_storage =  [(object_index, next_transform, action_means, action_stds) 
+                                for object_index, _, next_transform, _, _, success, action_means, action_stds in stored_config['action_storage'] if success]
+
+            self.next_action = 0
 
             self.progress = [0]
 
@@ -133,6 +140,8 @@ class InteractiveLearner ( object ):
     def search_next( self ):
         """
         Given the current state, search for the next action
+
+        Online mode
         """
         exploration = self.searcher.env
         tempo_rewards = []
@@ -167,6 +176,22 @@ class InteractiveLearner ( object ):
         else:
             print ("==========No action========== ")
             return None
+
+    def move_next( self ):
+        """
+        Offline mode
+        """
+        if self.next_action < len(self.action_storage):
+            object_index, action, action_means, action_stds = self.action_storage[self.next_action]
+            action = action.get_feat()
+            _, reward, _, _ = self.searcher.env.step((object_index, action, action_means, action_stds))
+
+            self.progress.append(self.progress[-1] + reward)
+            self.next_action += 1
+        else:
+            action = None
+
+        return action
 
     def visualize ( self ):
         """
@@ -210,6 +235,8 @@ class InteractiveLearner ( object ):
             def next(self, event):
                 if self.outer.online:
                     action = self.outer.search_next()
+                else:
+                    action = self.outer.move_next()
 
                 if action is not None:
                     self.index += 1
@@ -229,6 +256,7 @@ class InteractiveLearner ( object ):
                 if self.index > 0:
                     self.outer.searcher.env.back()
                     self.index -= 1
+                    self.outer.next_action -= 1
                     self.set_title()
 
                     self.lcs[-1].remove()
@@ -243,7 +271,6 @@ class InteractiveLearner ( object ):
                 self.outer.new_demo()
                 self.ax.clear()
                 self.__init__(self.outer, self.fig, self.ax)
-                #self.outer.searcher.env._render(fig = fig, ax = ax, show = True)
 
 
         fig = plt.figure()  # a new figure window 
@@ -266,8 +293,7 @@ class InteractiveLearner ( object ):
 
         plt.show()
 
-        # self.searcher.env._render(fig = fig, ax = ax, show = True)
-
 if __name__ == '__main__':
     il = InteractiveLearner(discrete = False, online = True)
+    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '1.dat'))
     il.visualize()
