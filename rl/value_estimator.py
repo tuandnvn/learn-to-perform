@@ -138,7 +138,7 @@ class PolicyEstimator():
             # so we minimize the negative log-prob function instead
             self.loss = -tf.reduce_sum(tf.log(self.picked_action_prob)) * self.target  # + config.constraint_sigma * self.sigma_constraint
             
-            self.optimizer = tf.train.SGD(learning_rate=self.lr)
+            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())

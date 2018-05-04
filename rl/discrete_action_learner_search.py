@@ -49,7 +49,7 @@ def grid_random_action(c, no_of_actions = 1, verbose = False):
     return action_means[:no_of_actions], action_stds, actions[:no_of_actions]
 
 
-def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.36, 0.72], discretized_rotation = np.linspace(0, np.pi/2, 5)[:4] , no_of_actions = 1, verbose = False, constraint_function = lambda a : True):
+def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.36, 0.72], no_of_actions = 1, verbose = False, constraint_function = lambda a : True):
     """
     Random actions in the slot around the grid point
     with the grid point being the ones that takes into 
@@ -99,7 +99,6 @@ class Discrete_ActionLearner_Search(object):
     def __init__(self, config, project, progress_estimator, limit_step = 10, session = None, env = None):
         self.config = config
 
-        # All of these components should be 
         # This should belong to class Project
         # We assume that the data put in the project here has been preprocessed
         self.project = project
@@ -157,7 +156,6 @@ class Discrete_ActionLearner_Search(object):
             for exploration_index, exploration in enumerate(explorations):
                 if verbose:
                     print ('exploration_index = %d' % exploration_index)
-
 
                 if action_level == 0:
                     no_of_search = branching

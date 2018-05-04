@@ -690,12 +690,6 @@ class BlockMovementEnv(gym.Env):
 
         self.graph_size = prev_graph_size
 
-    def animate(self):
-        """
-        For debugging purpose, we want to replay the session
-        """
-        pass
-
     def _render(self, mode='human', close=False, action_means = None, action_stds = None):
         if close:
             return
