@@ -90,7 +90,7 @@ class ActionLearner_Search(object):
     - When the number of actions need to search doesn't improve at a step
     
     """
-    def __init__(self, config, project, progress_estimator, limit_step = 10, session = None, env = None):
+    def __init__(self, config, project, progress_estimator, session = None, env = None):
         self.config = config
 
         # All of these components should be 
@@ -106,8 +106,6 @@ class ActionLearner_Search(object):
         # with tf.variable_scope("search", reuse = True) as scope:
         #     self.policy_estimator = PolicyEstimator(self.config)
 
-        self.limit_step = limit_step
-
         self.session = session
 
         self.np_random, _ = seeding.np_random(None)
@@ -121,10 +119,16 @@ class ActionLearner_Search(object):
 
         self.action_policy = action_policy(self.config)
 
-    def learn_one_setup( self, select_object = 0, verbose = False):
-        # sigma = self.config.start_sigma
-        # self.policy_estimator.assign_sigma( sigma, sess= self.session )
+    def _get_actions(self, select_object, exploration, no_of_search) :
+        # Simply use the static object as means
+        means = exploration.e.objects[1 - select_object].transform.get_feat()
 
+        action_means, action_stds, actions = self.action_policy(state = None, action_means = means, action_stds = self.config.start_sigma,
+            verbose = verbose, no_of_actions = no_of_search, session = self.session)
+
+        return action_means, action_stds, actions
+
+    def learn_one_setup( self, select_object = 0, verbose = False):
         # Every action_level, we would search for keep_branching * branching new positions
         # keep_branching is the number of explorations keep from the previous step
         # For the first action_level, keep_branching = 1
@@ -142,7 +146,10 @@ class ActionLearner_Search(object):
 
         found_completed_act = False
         # We do one action at a time for all exploration
-        for action_level in range(6):
+        # Loop index
+        action_level = 0
+
+        while True:
             if verbose:
                 print ('action_level = %d' % action_level)
         
@@ -163,16 +170,12 @@ class ActionLearner_Search(object):
                     state, _ = exploration.get_observation_and_progress()
                 #print ('state = ' + str(state))
 
-                # Simply use the static object as means
-                means = env.e.objects[1 - select_object].transform.get_feat()
-
-                action_means, action_stds, actions = self.action_policy(state = state, action_means = means, action_stds = self.config.start_sigma,
-                    verbose = verbose, no_of_actions = no_of_search, session = self.session)
+                action_means, action_stds, actions = self._get_actions(self, select_object, exploration, no_of_search)
 
                 #print (actions)
 
                 for action_index, action in enumerate(actions):
-                    _, reward, done, _ = exploration.step((select_object,action, action_means, action_stds))
+                    _, reward, done, _ = exploration.step((select_object, action, action_means, action_stds))
                     #print ((action, reward))
                     exploration.back()
 
@@ -183,22 +186,17 @@ class ActionLearner_Search(object):
                         print ("=== found_completed_act ===")
                         found_completed_act = True
 
-                # tuple_actions = [(select_object, action, action_means, action_stds) for action in actions]
-                # legal_action_indices, all_progress = exploration.try_step_multi(tuple_actions)
-
-                # for index, progress in zip (legal_action_indices, all_progress):
-                #     tempo_rewards.append( (exploration_index, progress,
-                #         actions[index], action_means, action_stds) )
-
-                #     if progress > self.config.progress_threshold:
-                #         print ("=== found_completed_act ===")
-                #         found_completed_act = True
-
             tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
             test = [(t[0], t[1]) for t in tempo_rewards]
 
             if verbose:
+                print ('=== Best explorations ===')
                 print (test[:keep_branching])
+
+            if test[0][1] == best:
+                print ("--- No more progress ---")
+                print ('Best progress value = %.3f' % best)
+                break 
 
             new_explorations = []
             rewards = []
@@ -213,5 +211,7 @@ class ActionLearner_Search(object):
             if found_completed_act:
                 # Stop increase action_level
                 break
+
+            action_level += 1
 
         return explorations

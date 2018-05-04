@@ -27,7 +27,7 @@ from rl import discrete_action_learner_search as dals
 from rl import block_movement_env
 
 class InteractiveLearner ( object ):
-    def __init__(self, c = None, action_type = "SlideAround"):
+    def __init__(self, c = None, action_type = "SlideAround", discrete = True):
         tf.reset_default_graph()
 
         if c is None:
@@ -69,6 +69,9 @@ class InteractiveLearner ( object ):
             saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + action_type))
 
             saver.restore(sess, os.path.join('learned_models', 'progress_' + action_type + '.mod.1'))
+
+        if discrete:
+            Discrete_ActionLearner_Search()
 
     def load_demo( self, demo_file ):
         """

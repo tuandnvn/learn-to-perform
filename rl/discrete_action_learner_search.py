@@ -8,6 +8,7 @@ import itertools
 
 from . import uniform_env_space
 from . import block_movement_env as bme
+from . import action_learner_search
 import plotting
 import traceback
 
@@ -92,122 +93,12 @@ def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.
 
     
 
-class Discrete_ActionLearner_Search(object):
+class Discrete_ActionLearner_Search(action_learner_search.ActionLearner_Search):
     """
 
     """
-    def __init__(self, config, project, progress_estimator, limit_step = 10, session = None, env = None):
-        self.config = config
+    def __init__(self, config, project, progress_estimator, session = None, env = None):
+        super().__init__(config, project, progress_estimator, session = session, env = env)
 
-        # This should belong to class Project
-        # We assume that the data put in the project here has been preprocessed
-        self.project = project
-
-        # This should be a kind of class EventProgressEstimator
-        # We assume that the progress_estimator put in the project has been learned
-        self.progress_estimator = progress_estimator
-
-        self.limit_step = limit_step
-
-        self.session = session
-
-        self.np_random, _ = seeding.np_random(None)
-
-        if env == None:
-            env = bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
-                progress_estimator = self.progress_estimator, session = self.session)
-            env.reset()
-        
-        self.env = env
-
-    def learn_one_setup( self, select_object = 0, verbose = False):
-        # Every action_level, we would search for keep_branching * branching new positions
-        # keep_branching is the number of explorations keep from the previous step
-        # For the first action_level, keep_branching = 1
-        #  branching is the number of new action explored for each exploration
-        # For the first action_level, keep_branching = keep_branching * branching
-        keep_branching = self.config.keep_branching
-        branching = self.config.branching
-        # shorten
-        env = self.env
-
-        explorations = [env.clone()]
-
-        # Each accumulated reward for each exploration
-        rewards = [0]
-
-        found_completed_act = False
-        
-        # We do one action at a time for all exploration
-        # We keep the best exploration progress at best
-        best = 0
-
-        # Loop index
-        action_level = 0
-        while True:
-            if verbose:
-                print ('==================================')
-                print ('action_level = %d' % action_level)
-        
-            # This would store a tuple of (exploration_index, accumulated_reward, action, action_means, action_stds)
-            # branching ** 2
-            tempo_rewards = []
-            
-            for exploration_index, exploration in enumerate(explorations):
-                if verbose:
-                    print ('exploration_index = %d' % exploration_index)
-
-                if action_level == 0:
-                    no_of_search = branching
-                    state = exploration.get_observation_start()
-                else:
-                    no_of_search = branching
-                    # State interpolated by WHOLE mode
-                    state, _ = exploration.get_observation_and_progress()
-                #print ('state = ' + str(state))
-
-                action_means, action_stds, actions = quantized_random_action(self.config, exploration, select_object, no_of_actions = no_of_search)
-
-                for action_index, action in enumerate(actions):
-                    _, reward, done, _ = exploration.step((select_object,action, action_means[action_index], action_stds[action_index]))
-                    #print ((action, reward))
-                    exploration.back()
-
-                    tempo_rewards.append( (exploration_index, rewards[exploration_index] + reward,
-                        action, action_means[action_index], action_stds[action_index]) )
-
-                    if done:
-                        print ("=== found_completed_act ===")
-                        found_completed_act = True
-
-            tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
-            test = [(t[0], t[1]) for t in tempo_rewards]
-
-            if verbose:
-                print ('=== Best explorations ===')
-                print (test[:keep_branching])
-
-            if test[0][1] == best:
-                print ("--- No more progress ---")
-                print ('Best progress value = %.3f' % best)
-                break 
-
-            best = test[0][1]
-
-            new_explorations = []
-            rewards = []
-            for exploration_index, acc_reward, action, action_mean, action_std in tempo_rewards[:keep_branching]:
-                env = explorations[exploration_index].clone()
-                env.step((select_object, action, action_mean, action_std))
-                new_explorations.append(env)
-                rewards.append(acc_reward)
-            
-            explorations = new_explorations
-
-            if found_completed_act:
-                # Stop increase action_level
-                break
-
-            action_level += 1
-
-        return explorations
+    def _get_actions(self, select_object, exploration, no_of_search) :
+        return quantized_random_action(self.config, exploration, select_object, no_of_actions = no_of_search)
