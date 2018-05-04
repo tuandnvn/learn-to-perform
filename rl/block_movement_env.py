@@ -690,7 +690,16 @@ class BlockMovementEnv(gym.Env):
 
         self.graph_size = prev_graph_size
 
+    def get_collection(self):
+        lc = mc.PolyCollection([self.e.objects[i].get_markers() for i in range(self.n_objects)], 
+                               edgecolors=['black' for i in range(self.n_objects)], 
+                               facecolors=[colors[i] for i in range(self.n_objects)], linewidths=[2,2])
+        return lc
+
     def _render(self, mode='human', close=False, action_means = None, action_stds = None, fig = None, ax = None, show = True):
+        """
+
+        """
         if close:
             return
         
@@ -710,7 +719,7 @@ class BlockMovementEnv(gym.Env):
                                 self.playground_x[1] + self.playground_dim[1])
         
         lc = mc.PolyCollection([self.e.objects[i].get_markers() for i in range(self.n_objects)], 
-                               edgecolors=[colors[i] for i in range(self.n_objects)], 
+                               edgecolors=['black' for i in range(self.n_objects)], 
                                facecolors=[colors[i] for i in range(self.n_objects)], linewidths=[2,2])
 
         ax.add_collection(lc)

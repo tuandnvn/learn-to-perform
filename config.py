@@ -6,11 +6,12 @@ class Config (object):
 	QUAL = 'QUALITATIVE'
 
 	# For reinforce learning
-	playground_x = [-1,-1, 0]
-	playground_dim = [2, 2, np.pi/2]
+	playground_x = [-1.1,-1.1, 0]
+	playground_dim = [2.2, 2.2, np.pi/2]
 
 	n_objects = 2 #
-	block_size = 0.15
+	# Real block_size = 0.15
+	block_size = 0.20
 	progress_threshold = 0.85
 
 	num_steps = 20

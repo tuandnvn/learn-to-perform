@@ -67,7 +67,7 @@ def action_policy(config):
         
         return True
     
-    def q(state, policy_estimator = None, action_means = None, action_stds = None, no_of_actions = 1, verbose = False, 
+    def q(state = None, policy_estimator = None, action_means = None, action_stds = None, no_of_actions = 1, verbose = False, 
        session = None):
         return random_action_constraint(state = state, policy_estimator = policy_estimator, action_means = action_means, action_stds = action_stds,
                     no_of_actions = no_of_actions, verbose = verbose, session = session, constraint_function = boundary_constraint)
