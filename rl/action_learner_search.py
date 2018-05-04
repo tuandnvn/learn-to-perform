@@ -119,14 +119,24 @@ class ActionLearner_Search(object):
 
         self.action_policy = action_policy(self.config)
 
-    def _get_actions(self, select_object, exploration, no_of_search) :
+    def _get_actions(self, select_object, exploration, no_of_search, verbose) :
         # Simply use the static object as means
         means = exploration.e.objects[1 - select_object].transform.get_feat()
 
-        action_means, action_stds, actions = self.action_policy(state = None, action_means = means, action_stds = self.config.start_sigma,
+        action_means, action_stds, actions = self.action_policy(action_means = means, action_stds = self.config.start_sigma,
             verbose = verbose, no_of_actions = no_of_search, session = self.session)
 
         return action_means, action_stds, actions
+
+    def _get_no_of_search(self, exploration, action_level):
+        if action_level == 0:
+            no_of_search = self.config.keep_branching * self.config.branching
+            state = exploration.get_observation_start()
+        else:
+            no_of_search = self.config.branching
+            state, _ = exploration.get_observation_and_progress()
+
+        return no_of_search, state
 
     def learn_one_setup( self, select_object = 0, verbose = False):
         # Every action_level, we would search for keep_branching * branching new positions
@@ -145,10 +155,14 @@ class ActionLearner_Search(object):
         rewards = [0]
 
         found_completed_act = False
+
+        # We do one action at a time for all exploration
+        # We keep the best exploration progress at best
+        best = 0
+
         # We do one action at a time for all exploration
         # Loop index
         action_level = 0
-
         while True:
             if verbose:
                 print ('action_level = %d' % action_level)
@@ -161,16 +175,11 @@ class ActionLearner_Search(object):
                 if verbose:
                     print ('exploration_index = %d' % exploration_index)
 
-                if action_level == 0:
-                    no_of_search = keep_branching * branching
-                    state = exploration.get_observation_start()
-                else:
-                    no_of_search = branching
-                    # State interpolated by WHOLE mode
-                    state, _ = exploration.get_observation_and_progress()
+                no_of_search, state = self._get_no_of_search( exploration, action_level )
+
                 #print ('state = ' + str(state))
 
-                action_means, action_stds, actions = self._get_actions(self, select_object, exploration, no_of_search)
+                action_means, action_stds, actions = self._get_actions(select_object, exploration, no_of_search, verbose)
 
                 #print (actions)
 
@@ -196,7 +205,9 @@ class ActionLearner_Search(object):
             if test[0][1] == best:
                 print ("--- No more progress ---")
                 print ('Best progress value = %.3f' % best)
-                break 
+                break
+
+            best = test[0][1]
 
             new_explorations = []
             rewards = []

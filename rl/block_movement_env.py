@@ -297,7 +297,7 @@ class BlockMovementEnv(gym.Env):
         current_progress = self.progress_estimator.predict(inputs, sess = self.session)
 
         progress = current_progress[0]
-        # print ('progress = %.2f' % progress)
+        #print ('progress = %.2f' % progress)
 
         return (observation, progress)
 
@@ -690,11 +690,13 @@ class BlockMovementEnv(gym.Env):
 
         self.graph_size = prev_graph_size
 
-    def _render(self, mode='human', close=False, action_means = None, action_stds = None):
+    def _render(self, mode='human', close=False, action_means = None, action_stds = None, fig = None, ax = None, show = True):
         if close:
             return
         
-        fig, ax = plt.subplots()
+        if fig is None:
+            fig, ax = plt.subplots()
+
         fig.set_size_inches(self.graph_size, self.graph_size)
         x_range = np.arange(self.playground_x[0], 
                                 self.playground_x[0] + self.playground_dim[0], 0.1)
@@ -722,7 +724,10 @@ class BlockMovementEnv(gym.Env):
         #         action_means[0], action_means[1])
         #    plt.contour(x_range, y_range, z, 10, alpha = 0.3)
 
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.draw()
 
     def save_visualization_to_file(self, file_name, length = 90):
         """

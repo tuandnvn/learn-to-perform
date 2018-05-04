@@ -72,8 +72,7 @@ def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.
     c, s = np.cos(theta), np.sin(theta)
     R = np.array([[c, -s], [s, c]])
 
-    action_means = []
-    action_stds = []
+
     actions = []
 
     while True:
@@ -85,13 +84,9 @@ def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.
                 action = np.concatenate( [location, np.array([theta])] )
 
                 if constraint_function(action):
-                    action_means.append(action)
-                    action_stds.append(np.ones(3))
                     actions.append(action)
                     if len(actions) >= no_of_actions:
-                        return action_means, action_stds, actions
-
-    
+                        return None, None, actions
 
 class Discrete_ActionLearner_Search(action_learner_search.ActionLearner_Search):
     """
@@ -100,5 +95,15 @@ class Discrete_ActionLearner_Search(action_learner_search.ActionLearner_Search):
     def __init__(self, config, project, progress_estimator, session = None, env = None):
         super().__init__(config, project, progress_estimator, session = session, env = env)
 
-    def _get_actions(self, select_object, exploration, no_of_search) :
+    def _get_actions(self, select_object, exploration, no_of_search, verbose) :
         return quantized_random_action(self.config, exploration, select_object, no_of_actions = no_of_search)
+
+    def _get_no_of_search(self, exploration, action_level):
+        if action_level == 0:
+            no_of_search = self.config.branching
+            state = exploration.get_observation_start()
+        else:
+            no_of_search = self.config.branching
+            state, _ = exploration.get_observation_and_progress()
+
+        return no_of_search, state

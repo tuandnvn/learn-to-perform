@@ -5,13 +5,12 @@ import tensorflow as tf
 from importlib import reload
 import pickle
 
-a = os.path.join("strands_qsr_lib", "qsr_lib ", "src3")
-
-sys.path.append(a)
+sys.path.append("strands_qsr_lib\qsr_lib\src3")
 
 ## PLOTTING 
 import matplotlib
 from matplotlib import pyplot as plt
+from matplotlib.widgets import Button
 import plotting
 
 
@@ -58,20 +57,25 @@ class InteractiveLearner ( object ):
             print('-------- Load progress model ---------')
             pe = progress_learner.EventProgressEstimator(is_training = False,
                                                         is_dropout = False, 
-                                                        name = p_name, 
+                                                        name = action_type, 
                                                         config = c)  
 
         # Print out all variables that would be restored
         for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
             print (variable.name)
+        
+        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + action_type))
 
-        for action_type in action_types:
-            saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + action_type))
-
-            saver.restore(sess, os.path.join('learned_models', 'progress_' + action_type + '.mod.1'))
+        saver.restore(sess, os.path.join('learned_models', 'progress_' + action_type + '.mod.1'))
 
         if discrete:
-            Discrete_ActionLearner_Search()
+            self.searcher = dals.Discrete_ActionLearner_Search(c, p, pe, self.sess )
+        else:
+            self.searcher = als.ActionLearner_Search(c, p, pe, self.sess )
+
+        self.select_object = 0
+        self.no_of_search = 24
+        self.progress = 0
 
     def load_demo( self, demo_file ):
         """
@@ -91,29 +95,78 @@ class InteractiveLearner ( object ):
             else:
                 stored_config = pickle.load(fh)
 
-            self.e = block_movement_env.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
+            # Reset environment in self.searcher
+            self.searcher.env = block_movement_env.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                     progress_estimator = p, session = self.session)
-            self.e.reset_env_to_state(stored_config['start_config'], [])
+            self.searcher.env.reset_env_to_state(stored_config['start_config'], [])
+
+            self.progress = 0
 
     def new_demo ( self ):
         """
         Create a new environment in self.e
         """
-        self.e = block_movement_env.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
+        self.searcher.env = block_movement_env.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                     progress_estimator = p, session = self.session)
-        self.e.reset()
+        self.searcher.env.reset()
+
+        self.progress = 0
+
+    def search_next( self ):
+        """
+        Given the current state, search for the next action
+        """
+        exploration = self.searcher.env
+        tempo_rewards = []
+        action_means, action_stds, actions = self.searcher._get_actions(self.select_object, exploration, self.no_of_search, verbose = False)
+
+        best_reward = -1
+        best_action = None
+
+        for action_index, action in enumerate(actions):
+
+            _, reward, done, _ = exploration.step((self.select_object, action, action_means, action_stds))
+            print (action, reward)
+            exploration.back()
+
+            if reward > best_reward:
+                best_reward = reward
+                best_action = action
+
+            if done:
+                print ("=== found_completed_act ===")
+                found_completed_act = True
+
+        print ("==========best action========== ", best_action)
+        exploration.step((self.select_object, best_action, action_means, action_stds))
+
+        self.progress += best_reward
+        print ("==========progress========== ", self.progress)
 
     def visualize ( self ):
         """
         """
         class Callback(object):
-            ind = 0
+            def __init__(self, outer, fig, ax ):
+                self.outer = outer
+                self.fig = fig
+                self.ax = ax
 
             def next(self, event):
-                self.ind += 1
-                plt.draw()
+                self.outer.search_next()
+                self.outer.searcher.env._render(fig = self.fig, ax = self.ax, show = False)
 
-        callback = Callback()
+        fig = plt.figure()  # a new figure window
+        ax = fig.add_subplot(1, 1, 1)  # specify (nrows, ncols, axnum)
+        plt.subplots_adjust(bottom=0.2)
+
+        callback = Callback( self, fig, ax )
         axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
         bnext = Button(axnext, 'Next')
         bnext.on_clicked(callback.next)
+
+        self.searcher.env._render(fig = fig, ax = ax, show = True)
+
+if __name__ == '__main__':
+    il = InteractiveLearner()
+    il.visualize()
