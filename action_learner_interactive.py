@@ -64,10 +64,9 @@ class InteractiveLearner ( object ):
         print ('Load for action type = ' + action_type)
         if project_path is None:
             p_name = action_type.lower() + "_project.proj"
+            self.project = p = project.Project.load(os.path.join('learned_models', p_name))
         else:
-            p_name = project_path
-
-        self.project = p = project.Project.load(os.path.join('learned_models', p_name))
+            self.project = p = project.Project.load(project_path)
 
         with tf.variable_scope("model") as scope:
             print('-------- Load progress model ---------')
@@ -83,7 +82,7 @@ class InteractiveLearner ( object ):
         saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + action_type))
 
         if progress_model_path is None:
-            progress_model_path = os.path.join('learned_models', 'progress_' + action_type + '.mod.1')
+            progress_model_path = os.path.join('learned_models', 'progress_' + action_type + '.mod')
         saver.restore(sess, progress_model_path)
 
         if discrete:
@@ -228,9 +227,9 @@ class InteractiveLearner ( object ):
 
             def set_title(self):
                 if self.index == 0:
-                    self.ax.set_title('Start')
+                    self.ax.set_title('Start', fontsize=18)
                 else:
-                    self.ax.set_title('At step %d, progress = %.3f' % (self.index, self.outer.progress[-1]) )
+                    self.ax.set_title('At step %d, progress = %.3f' % (self.index, self.outer.progress[-1]), fontsize=18 )
 
             def next(self, event):
                 if self.outer.online:
@@ -294,6 +293,13 @@ class InteractiveLearner ( object ):
         plt.show()
 
 if __name__ == '__main__':
-    il = InteractiveLearner(discrete = False, online = True)
-    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '1.dat'))
+    # I have used progress_SlideAround.mod for continuous search
+    # and progress_SlideAround.mod.1 for discrete search
+    # Couldn't remember for sure what is the difference
+
+    il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.1'))
+    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '9.dat'))
+
+    # il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod'))
+    # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'))
     il.visualize()
