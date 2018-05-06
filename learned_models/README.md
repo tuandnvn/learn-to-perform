@@ -1,10 +1,10 @@
 ## Models that has been saved in this directory
 
-To use the models here, you can use method from *utils.py*:
+To use the models here, you can use method from *test_all_searcher.py*:
 
-''
-utils.get_default_models (action_types)
-''
+```
+test_all_searcher.get_default_models (action_types)
+```
 
 where action types belong to:
 
@@ -18,7 +18,7 @@ SlideAround.mod 2: Update from SlideAround.mod
 
 The code to update is in *incorporate_feedback.ipynb*:
 
-Using demonstrations ("experiments\\human_evaluation_2d\\SlideAround") and grades ("experiments\\human_evaluation_2d\\slidearound.txt")
+Using demonstrations (experiments/human_evaluation_2d/SlideAround) and grades (experiments/human_evaluation_2d/slidearound.txt)
 
 SlideAround.mod 1: Using index 0 to 14
 

@@ -5,7 +5,6 @@ import pickle
 
 sys.path.append("strands_qsr_lib\qsr_lib\src3")
 
-import utils
 import project
 # Need to add this import to load class
 from project import Project
@@ -35,6 +34,44 @@ def reset():
     scores = []
     times = []
 
+def get_default_models( action_types, sess ):
+    import tensorflow as tf
+    import project
+    # Need to add this import to load class
+    from project import Project
+    import config
+    import progress_learner
+
+    projects = {}
+    progress_estimators = {}
+    configs = {}
+
+    for project_name in action_types:
+        configs[project_name] = config.Config()
+        if project_name == 'SlideNext':
+            configs[project_name].n_input = 8
+            
+        print ('========================================================')
+        print ('Load for action type = ' + project_name)
+        p_name = project_name.lower() + "_project.proj"
+
+        projects[project_name] = project.Project.load(os.path.join('learned_models', p_name))
+        
+        with tf.variable_scope("model") as scope:
+            print('-------- Load progress model ---------')
+            progress_estimators[project_name] = progress_learner.EventProgressEstimator(is_training=True, 
+                                                                                        is_dropout = False, 
+                                                                                        name = projects[project_name].name, 
+                                                                                        config = configs[project_name])  
+            
+    for project_name in action_types:
+        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
+
+        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.2'))
+
+    return configs, projects, progress_estimators
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test searcher.')
 
@@ -50,11 +87,7 @@ if __name__ == '__main__':
     tf.reset_default_graph()
     sess =  tf.Session()
 
-    projects = {}
-    progress_estimators = {}
-    configs = {}
-
-    configs, projects, progress_estimators = utils.get_default_models (action_types)
+    configs, projects, progress_estimators = get_default_models (action_types, sess)
 
 
     # Save it down so we can load it later
@@ -88,95 +121,97 @@ if __name__ == '__main__':
     averaged_scores = []
     averaged_times = []
 
-    test_function = test_functions[project_name]
-    print ('=====================')
-    print (project_name)
 
-    def add_stat (action_level, progress, exploration):
-        action_levels.append(action_level)
-        progresses.append(progress)
-        scores.append( test_function ( exploration ) )
+    for project_name in action_types:
+        test_function = test_functions[project_name]
+        print ('=====================')
+        print (project_name)
 
-    def summary_state ( ):
-        print ('Average action level = %.2f' % np.average(action_levels) )
-        print ('Average progress = %.2f' % np.average(progresses) )
-        print ('Average score = %.2f' % np.average(scores) )
-        print ('Average time = %.2f' % np.average(times) )
+        def add_stat (action_level, progress, exploration):
+            action_levels.append(action_level)
+            progresses.append(progress)
+            scores.append( test_function ( exploration ) )
 
-        averaged_action_levels.append(np.average(action_levels))
-        averaged_progress.append(np.average(progresses))
-        averaged_scores.append(np.average(scores))
-        averaged_times.append(np.average(times))
+        def summary_state ( ):
+            print ('Average action level = %.2f' % np.average(action_levels) )
+            print ('Average progress = %.2f' % np.average(progresses) )
+            print ('Average score = %.2f' % np.average(scores) )
+            print ('Average time = %.2f' % np.average(times) )
 
-    e = block_movement_env.BlockMovementEnv(configs[project_name], speed = projects[project_name].speed, 
-                                                progress_estimator = progress_estimators[project_name],
-                                                session = sess)
-    reset()
-    for i in range(size):
-        print (i)
-        start_time = time.time()
-        ## GREEDY
-        # ==================
-        e.reset_env_to_state(stored_envs[i], [])
-        searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
-                                            progress_estimators[project_name], session = sess, env = e)
-        action_level, progress, exploration = searcher.greedy(verbose = verbose)
-        add_stat (action_level, progress, exploration)
-        times.append(time.time() - start_time)
+            averaged_action_levels.append(np.average(action_levels))
+            averaged_progress.append(np.average(progresses))
+            averaged_scores.append(np.average(scores))
+            averaged_times.append(np.average(times))
 
-    print ('GREEDY CONTINUOUS')
-    summary_state()
-    
-    reset()
-    for i in range(size):
-        print (i)
-        start_time = time.time()
-        ## GREEDY    
-        # ==================
-        e.reset_env_to_state(stored_envs[i], [])
-        searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
-                                            progress_estimators[project_name], session = sess, env = e)
-        action_level, progress, exploration = searcher.greedy(verbose = verbose)
-        add_stat (action_level, progress, exploration)
-        times.append(time.time() - start_time)
+        e = block_movement_env.BlockMovementEnv(configs[project_name], speed = projects[project_name].speed, 
+                                                    progress_estimator = progress_estimators[project_name],
+                                                    session = sess)
+        reset()
+        for i in range(size):
+            print (i)
+            start_time = time.time()
+            ## GREEDY
+            # ==================
+            e.reset_env_to_state(stored_envs[i], [])
+            searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
+                                                progress_estimators[project_name], session = sess, env = e)
+            action_level, progress, exploration = searcher.greedy(verbose = verbose)
+            add_stat (action_level, progress, exploration)
+            times.append(time.time() - start_time)
 
-    print ('GREEDY DISCRETE')
-    summary_state()
-    
-    reset()
-    for i in range(size):
-        print (i)
-        start_time = time.time()
-        ## BACK UP SEARCH
-        # ==================
-        e.reset_env_to_state(stored_envs[i], [])
-        searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
-                                            progress_estimators[project_name], session = sess, env = e)
-        action_level, progress, exploration = searcher.back_up(verbose = verbose)
-        add_stat (action_level, progress, exploration)
-        times.append(time.time() - start_time)
+        print ('GREEDY CONTINUOUS')
+        summary_state()
+        
+        reset()
+        for i in range(size):
+            print (i)
+            start_time = time.time()
+            ## GREEDY    
+            # ==================
+            e.reset_env_to_state(stored_envs[i], [])
+            searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
+                                                progress_estimators[project_name], session = sess, env = e)
+            action_level, progress, exploration = searcher.greedy(verbose = verbose)
+            add_stat (action_level, progress, exploration)
+            times.append(time.time() - start_time)
 
-    print ('BACKUP CONTINUOUS')
-    summary_state()
-    
-    reset()
-    for i in range(size):
-        print (i)
-        start_time = time.time()
-        ## BACK UP SEARCH    
-        # ==================
-        e.reset_env_to_state(stored_envs[i], [])
-        searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
-                                            progress_estimators[project_name], session = sess, env = e)
-        action_level, progress, exploration = searcher.back_up(verbose = verbose)
-        add_stat (action_level, progress, exploration)
-        times.append(time.time() - start_time)
+        print ('GREEDY DISCRETE')
+        summary_state()
+        
+        reset()
+        for i in range(size):
+            print (i)
+            start_time = time.time()
+            ## BACK UP SEARCH
+            # ==================
+            e.reset_env_to_state(stored_envs[i], [])
+            searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
+                                                progress_estimators[project_name], session = sess, env = e)
+            action_level, progress, exploration = searcher.back_up(verbose = verbose)
+            add_stat (action_level, progress, exploration)
+            times.append(time.time() - start_time)
 
-    print ('BACKUP DISCRETE')
-    summary_state()
+        print ('BACKUP CONTINUOUS')
+        summary_state()
+        
+        reset()
+        for i in range(size):
+            print (i)
+            start_time = time.time()
+            ## BACK UP SEARCH    
+            # ==================
+            e.reset_env_to_state(stored_envs[i], [])
+            searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
+                                                progress_estimators[project_name], session = sess, env = e)
+            action_level, progress, exploration = searcher.back_up(verbose = verbose)
+            add_stat (action_level, progress, exploration)
+            times.append(time.time() - start_time)
 
-print ("=========================================================")
-print ('averaged_action_levels', averaged_action_levels)
-print ('averaged_progress', averaged_progress)
-print ('averaged_scores', averaged_scores)
-print ('averaged_times', averaged_times)
+        print ('BACKUP DISCRETE')
+        summary_state()
+
+    print ("=========================================================")
+    print ('averaged_action_levels', averaged_action_levels)
+    print ('averaged_progress', averaged_progress)
+    print ('averaged_scores', averaged_scores)
+    print ('averaged_times', averaged_times)
