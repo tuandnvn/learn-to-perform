@@ -18,8 +18,8 @@ class Config (object):
 	n_input = 7
 	input_type = QUAL
 	
-	state_dimension = 3
-	action_dimension = 3
+	state_dimension = 4
+	action_dimension = 2
 
 	num_episodes = 20
 	discount_factor = 1
@@ -50,19 +50,19 @@ class Config (object):
 
 	# value estimator
 	weight_regularizer_scale = 0.1
-	policy_learning_rate = 1
-	policy_decay = 0.98
+	policy_learning_rate = 0.1
+	policy_decay = 0.92
 	policy_decay_every = 100
 	value_learning_rate = 0.01
-	value_decay = 0.98
+	value_decay = 0.92
 	value_decay_every = 100
 	value_estimator_hidden_size = 20
 	# Set policy decay and value_decay to 1 makes nan values?
 
 	# values used for sigma
 	constraint_sigma = 0.0
-	start_sigma = np.array([2.0, 2.0, 0.5])
-	end_sigma = np.array([0.1, 0.1, 0.1])
+	start_sigma = np.array([2.0, 2.0])
+	end_sigma = np.array([1.0, 1.0])
 
 	# Fail action penalty
 	failed_action_penalty = 0.00

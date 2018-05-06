@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 import collections
 import itertools
+import scipy
 
 from . import uniform_env_space
 from . import block_movement_env as bme
@@ -60,19 +61,62 @@ def epsilon_greedy_action( state, policy_estimator, uniform_space, no_of_actions
 
     return action_means, action_stds, actions
 
+def _get_relative_transform ( moving_object, static_object ):
+    static_object_pos = static_object[:2] 
+    moving_object_pos = moving_object[:2]
     
+    theta = static_object[2]
 
-# def best_n_random_action(n):
-#     def best_random_action (state, policy_estimator, verbose = False):
-#         action_means, action_stds = self.policy_estimator.predict(state)
-                        
-#         action = np.random.normal(action_means,action_stds)
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
 
-#         if verbose:
-#             print ('action_means = ' + str(action_means) + ' ; action_stds = ' + str(action_stds))
-#         return action
+    rel_pos = np.reshape( moving_object_pos - static_object_pos, [2])
+    rel_pos = R.transpose().dot( rel_pos ).flatten()
 
-#     return best_random_action
+    relative_transform = np.array([rel_pos[0], rel_pos[1]])
+
+    return relative_transform
+
+def normalize_state ( state ):
+    moving_object, static_object = state[3:6], state[9:12]
+
+    current_pos = _get_relative_transform ( moving_object, static_object ) 
+
+    # Location of moving object in previous frame
+    prev_moving_object = state[:3]
+
+    prev_pos = _get_relative_transform ( prev_moving_object, static_object )
+
+    if  np.all(np.absolute(current_pos - prev_pos) < 0.001):
+        """
+        No movement yet
+        """
+        return np.concatenate((current_pos, np.zeros(2)))
+    else:
+        normalized_action = (current_pos - prev_pos) / np.linalg.norm(current_pos - prev_pos)
+        return np.concatenate((current_pos, normalized_action))
+
+def realize_action ( env, select_object, normalized_action ):
+    moving_object = env.objects[select_object].transform.get_feat()
+    static_object = env.objects[1 - select_object].transform.get_feat()
+
+    static_object_pos = static_object[:2] 
+    moving_object_pos = moving_object[:2]
+
+    theta = static_object[2]
+
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
+
+    location = R.dot(normalized_action[:2]).flatten() + static_object_pos
+
+    return np.concatenate( [location, [moving_object[2]]] )
+
+def get_pdf (policy_estimator, normalized_state, action, session):
+    action_means, action_stds = policy_estimator.predict(normalized_state, sess = session)
+    variances = action_stds ** 2
+
+    return action_means, scipy.stats.multivariate_normal(action_means, np.diag(variances)).pdf(action)
 
 REINFORCE = 'REINFORCE'
 ACTOR_CRITIC = 'ACTOR_CRITIC'
@@ -126,6 +170,7 @@ class ActionLearner(object):
 
         self.np_random, _ = seeding.np_random(None)
 
+        # This is to generate the original positions of the objects a little bit closer to the center
         playground_x = [self.config.block_size-1,self.config.block_size-1, 0]
         playground_dim = [2-2*self.config.block_size, 2-2*self.config.block_size, np.pi/2]
         self.uniform_space = uniform_env_space.Uniform(p = playground_x, 
@@ -173,11 +218,11 @@ class ActionLearner(object):
 
             self.env = TimeLimit(bme.BlockMovementEnv(self.config, self.project.speed, self.project.name, 
                 progress_estimator = self.progress_estimator, session = self.session), max_episode_steps=self.limit_step)
-            policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** i_episode
+            policy_rate = self.config.policy_learning_rate * self.config.policy_decay ** (i_episode // self.config.policy_decay_every )
             self.policy_estimator.assign_lr( policy_rate, sess= self.session )
             self.policy_estimator.assign_sigma( sigma, sess= self.session )
 
-            value_rate = self.config.value_learning_rate * self.config.value_decay ** i_episode
+            value_rate = self.config.value_learning_rate * self.config.value_decay ** (i_episode // self.config.value_decay_every )
             self.value_estimator.assign_lr( value_rate, sess= self.session )
 
             try:
@@ -195,7 +240,9 @@ class ActionLearner(object):
                     best_action = None
                     best_reward = -1
 
-                    action_means, action_stds, actions = action_policy(state, self.policy_estimator,
+                    normalized_state = normalize_state(state)
+
+                    action_means, action_stds, actions = action_policy(normalized_state, self.policy_estimator,
                         verbose = verbose, no_of_actions = breadth, session = self.session)
 
                     if verbose:
@@ -203,7 +250,9 @@ class ActionLearner(object):
 
                     for breadth_step in range(breadth):
                         action = actions[breadth_step]
-                        next_state, reward, done, _ = self.env.step((select_object,action, action_means, action_stds))
+                        realized_action = realize_action(self.env.env.e, select_object, action)
+                        realized_means = realize_action(self.env.env.e, select_object, action_means)
+                        next_state, reward, done, _ = self.env.step((select_object, realized_action, realized_means, action_stds))
 
                         if verbose:
                             print ('action = %s' % str((action, reward)))
@@ -222,21 +271,21 @@ class ActionLearner(object):
                     #     # This action is not worth taking
                     #     break
 
-                    if verbose:
-                        print ('best reward = %.2f' % best_reward)
-
                     # At this point, best_action corresponds to the best reward
                     # really do the action
-                    next_state, reward, done, _ = self.env.step((select_object,best_action, action_means, action_stds))
+                    best_realized_action = realize_action(self.env.env.e, select_object, best_action)
+                    next_state, reward, done, _ = self.env.step((select_object, best_realized_action, realized_means, action_stds))
+                    normalized_next_state = normalize_state(next_state)
 
                     # if abs(reward - best_reward) > 0.01:
                     #     print ('Damn wrong: reward = %.4f; best_reward = %.4f' % (reward, best_reward))
                     
                     if verbose:
-                        print ('best_action = ' + str((best_action, reward, done)))
+                        print ('best_action = %s; best_realized_action = %s, best_reward = %.3f ' % 
+                            (str(best_action), str(best_realized_action), reward))
 
                     if choice == REINFORCE:
-                        transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=done)
+                        transition = Transition(state=normalized_state, action=action, reward=reward, next_state=normalized_next_state, done=done)
                         # Keep track of the transition
                         episode.append(transition)
                     
@@ -257,11 +306,11 @@ class ActionLearner(object):
                         """
                         We handle update right here
                         """
-                        predicted_next_state_value = self.value_estimator.predict(next_state, sess= self.session)
+                        predicted_next_state_value = self.value_estimator.predict(normalized_state, sess= self.session)
                         td_target = reward + discount_factor * predicted_next_state_value
-                        self.value_estimator.update(state, td_target, sess= self.session)
+                        self.value_estimator.update(normalized_state, td_target, sess= self.session)
                         
-                        predicted_target = self.value_estimator.predict(state, sess= self.session)
+                        predicted_target = self.value_estimator.predict(normalized_state, sess= self.session)
                         
                         """
                         Implement update right away
@@ -273,8 +322,15 @@ class ActionLearner(object):
                             print ('td_target = %.2f, predicted_target = %.2f, advantage = %.2f' 
                                 % (td_target, predicted_target, advantage) )
                         
+                        before_mean, before_pdf = get_pdf(self.policy_estimator, normalized_state, best_action, self.session)
+
                         # To be correct this would be discount_factor ** # of steps * advantage
-                        loss, _ = self.policy_estimator.update(state, advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(normalized_state, advantage, best_action, sess= self.session)
+
+                        after_mean, after_pdf = get_pdf(self.policy_estimator, normalized_state, best_action, self.session)
+
+                        if verbose:
+                            print ('Before mean = %s, pdf = %.3f, After mean = %s, pdf = %.3f' % (before_mean, before_pdf, after_mean, after_pdf) )
                         #print ('loss = %.2f' % loss)
                     if done:
                         break
@@ -292,13 +348,7 @@ class ActionLearner(object):
                     # already_cut_negative_reward = False
                     # Go from backward
                     for t in range(len(episode)-1, -1, -1):
-                        state, action, reward, _, _ = episode[t]
-
-                        # if not already_cut_negative_reward:
-                        #     if reward < 0:
-                        #         continue
-                        #     else:
-                        #         already_cut_negative_reward = True
+                        normalized_state, action, reward, _, _ = episode[t]
                          
                         # G_t
                         accumulate_reward = accumulate_reward * discount_factor + reward
@@ -327,9 +377,9 @@ class ActionLearner(object):
                         
                         """
 
-                        self.value_estimator.update(state, accumulate_reward, sess= self.session)
+                        self.value_estimator.update(normalized_state, accumulate_reward, sess= self.session)
 
-                        predicted_reward = self.value_estimator.predict(state, sess= self.session)
+                        predicted_reward = self.value_estimator.predict(normalized_state, sess= self.session)
 
                         # advantage
                         advantage = accumulate_reward - predicted_reward
@@ -338,8 +388,14 @@ class ActionLearner(object):
                             print ("accumulate_reward = %.2f; predicted_reward = %.2f; advantage = %.2f" %\
                              (accumulate_reward, predicted_reward, advantage) )
                         
+                        before_mean, before_pdf = get_pdf(self.policy_estimator, normalized_state, best_action, self.session)
 
-                        loss, _ = self.policy_estimator.update(state, discount_factor ** t * advantage, action, sess= self.session)
+                        loss = self.policy_estimator.update(normalized_state, discount_factor ** t * advantage, action, sess= self.session)
+
+                        after_mean, after_pdf = get_pdf(self.policy_estimator, normalized_state, best_action, self.session)
+
+                        if verbose:
+                            print ('Before mean = %s, pdf = %.3f, After mean = %s, pdf = %.3f' % (before_mean, before_pdf, after_mean, after_pdf) )
                         #print ('loss = %.2f' % loss)
             except Exception as e:
                 print ('Exception in episode %d ' % i_episode)

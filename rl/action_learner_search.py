@@ -43,8 +43,8 @@ def random_action_constraint(state = None, policy_estimator = None, action_means
 
     actions = []
 
-    while True:
-        tempo = np.random.multivariate_normal(action_means,np.diag(variances), size = no_of_actions)
+    for _ in range(20):
+        tempo = np.random.multivariate_normal(action_means,np.diag(variances), size = 20 * no_of_actions)
 
         actions += [act for act in tempo if constraint_function(act)]
 
@@ -123,7 +123,7 @@ class ActionLearner_Search(object):
         # Simply use the static object as means
         means = exploration.e.objects[1 - select_object].transform.get_feat()
 
-        action_means, action_stds, actions = self.action_policy(action_means = means, action_stds = self.config.start_sigma,
+        action_means, action_stds, actions = self.action_policy(action_means = means, action_stds = np.array([2.0, 2.0, 0.5]),
             verbose = verbose, no_of_actions = no_of_search, session = self.session)
 
         return action_means, action_stds, actions
@@ -137,6 +137,65 @@ class ActionLearner_Search(object):
             state, _ = exploration.get_observation_and_progress()
 
         return no_of_search, state
+
+    def greedy ( self, select_object = 0, verbose = False ):
+        no_of_search = self.config.branching
+        env = self.env
+
+        action_level = 0
+        progress = 0
+
+        found_completed_act = False
+
+        while True:
+            if verbose:
+                print ('action_level = %d' % action_level)
+
+            action_means, action_stds, actions = self._get_actions(select_object, env, no_of_search, verbose)
+
+            best_reward = -1
+            best_action = None
+
+            for action_index, action in enumerate(actions):
+                _, reward, done, _ = env.step((select_object, action, action_means, action_stds))
+                env.back()
+
+                if reward > best_reward:
+                    best_reward = reward
+                    best_action = action
+
+                if done:
+                    if verbose:
+                        print ("=== found_completed_act ===")
+                    found_completed_act = True
+        
+
+            if best_reward > 0:
+                if verbose:
+                    print ("==========best action========== ", best_action)
+                env.step((select_object, best_action, action_means, action_stds))
+                action_level += 1
+
+                progress += best_reward
+
+                if verbose:
+                    print ("==========progress========== ", progress)
+
+                if found_completed_act :
+                     break
+            else:
+                break
+
+        return action_level, progress, env
+
+    def back_up ( self, select_object = 0, verbose = False ):
+        explorations = self.learn_one_setup(select_object, verbose)
+        best = explorations[0]
+
+        _, progress = best.get_observation_and_progress()
+        action_level = len(best.action_storage)
+
+        return action_level, progress, best
 
     def learn_one_setup( self, select_object = 0, verbose = False):
         # Every action_level, we would search for keep_branching * branching new positions
@@ -192,7 +251,8 @@ class ActionLearner_Search(object):
                         action, action_means, action_stds) )
 
                     if done:
-                        print ("=== found_completed_act ===")
+                        if verbose:
+                            print ("=== found_completed_act ===")
                         found_completed_act = True
 
             tempo_rewards = sorted(tempo_rewards, key = lambda t: t[1], reverse = True)
@@ -203,8 +263,9 @@ class ActionLearner_Search(object):
                 print (test[:keep_branching])
 
             if test[0][1] == best:
-                print ("--- No more progress ---")
-                print ('Best progress value = %.3f' % best)
+                if verbose:
+                    print ("--- No more progress ---")
+                    print ('Best progress value = %.3f' % best)
                 break
 
             best = test[0][1]

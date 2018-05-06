@@ -41,25 +41,25 @@ class PolicyEstimator():
         The code to declare your tensorflow graph comes here
         """
 
-        # This state dimension would probably be 12
-        # location + rotation of two most objects
+        # This state dimension would be 4
+        # location of the moving object
+        # 
         state_dimension = config.state_dimension
 
-        # This would be 3. 2 for locations, 1 for rotation
+        # This would be 2 for locations
         action_dimension =  config.action_dimension
 
         # sigma_dimension is simplified to 2
-        # in a full model, this value would be 9
+        # in a full model, this value would be 4
         # taking in all covariances between all variables
         # In this model, we simplify that to a diagonal matrix
         # which means we actually generate each value independently
-        # Covariance matrix  = [ sigma_1, 0, 0 ]
-        #                      [ 0, sigma_2, 0 ]
-        #                      [ 0, 0, sigma_3 ]
+        # Covariance matrix  = [ sigma_1, 0 ]
+        #                      [ 0, sigma_2 ]
         sigma_dimension = config.action_dimension
 
         # short for weight_regularizer_scale
-        wrs = config.weight_regularizer_scale
+        # wrs = config.weight_regularizer_scale
 
         self.lr = tf.Variable(0.0, trainable=False)
 
@@ -67,7 +67,7 @@ class PolicyEstimator():
         After trying to learn sigma value, we might want to give up a
         and just set it value for each episode
         """
-        self.sigma_layer = tf.Variable([1,1,1], dtype = tf.float32, trainable=False)
+        self.sigma_layer = tf.Variable([1,1], dtype = tf.float32, trainable=False)
 
         hidden_size = config.value_estimator_hidden_size
         
@@ -101,14 +101,14 @@ class PolicyEstimator():
             hidden_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=tf.expand_dims(self.state, 0),
                 num_outputs=hidden_size,
-                activation_fn=tf.nn.sigmoid,
-                weights_initializer=tf.random_uniform_initializer(minval=-2.0, maxval=2.0)))
+                activation_fn=tf.nn.tanh,
+                weights_initializer=tf.random_uniform_initializer(minval=-0.2, maxval=0.2)))
 
             self.mu_layer = tf.squeeze(tf.contrib.layers.fully_connected(
                 inputs=tf.expand_dims(hidden_layer, 0),
                 num_outputs=action_dimension,
                 activation_fn=None,
-                weights_initializer=tf.random_uniform_initializer(minval=-1.0, maxval=1.0)))
+                weights_initializer=tf.random_uniform_initializer(minval=-0.2, maxval=0.2)))
             
             """
             Using softplus so that the output would be > 0 but we also don't want 0
@@ -129,7 +129,7 @@ class PolicyEstimator():
             self.picked_action_prob = mvn.prob(self.action) 
             
             #print (tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-            self.regularizer_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+            # self.regularizer_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
             self.sigma_constraint = tf.norm(self.sigma_layer)
 
@@ -160,9 +160,9 @@ class PolicyEstimator():
         We also need to return its loss
         """
         sess = sess or tf.get_default_session()
-        _, loss, regularizer_loss = sess.run([self.train_op, self.loss, self.regularizer_loss], {self.state: state, self.action: action, self.target: target})
+        _, loss = sess.run([self.train_op, self.loss], {self.state: state, self.action: action, self.target: target})
         
-        return loss, regularizer_loss
+        return loss
 
     def assign_lr(self, lr_value, sess=None):
         sess = sess or tf.get_default_session()
@@ -213,7 +213,7 @@ class ValueEstimator():
             
             self.loss = tf.squared_difference(self.value, self.target) 
             
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
+            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
             
             self.train_op = self.optimizer.minimize(
                 self.loss, global_step=tf.contrib.framework.get_global_step())
