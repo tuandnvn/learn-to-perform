@@ -35,6 +35,9 @@ def reset():
     times = []
 
 def get_default_models( action_types, sess ):
+    """
+    Get all action progress learners with defaults loading 
+    """
     import tensorflow as tf
     import project
     # Need to add this import to load class
@@ -64,12 +67,48 @@ def get_default_models( action_types, sess ):
                                                                                         name = projects[project_name].name, 
                                                                                         config = configs[project_name])  
             
-    for project_name in action_types:
         saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
-        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.2'))
+        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.updated'))
 
     return configs, projects, progress_estimators
+
+def get_model ( project_name, sess, project_path = None, progress_path = None):
+    import tensorflow as tf
+    import project
+    # Need to add this import to load class
+    from project import Project
+    import config
+    import progress_learner
+
+    c = config.Config()
+    if project_name == 'SlideNext':
+        c.n_input = 8
+        
+    print ('========================================================')
+    print ('Load for action type = ' + project_name)
+
+    if project_path is None:
+        project_path = os.path.join('learned_models', project_name.lower() + "_project.proj")
+
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
+
+    p = project.Project.load(project_path)
+    
+    with tf.variable_scope("model") as scope:
+        print('-------- Load progress model ---------')
+        pe = progress_learner.EventProgressEstimator(is_training=True, 
+                                                    is_dropout = False, 
+                                                    name = p.name, 
+                                                    config = c)  
+    
+    for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
+        print (variable.name)
+    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
+    saver.restore(sess, progress_path)
+
+    return c, p, pe
 
 
 if __name__ == '__main__':
