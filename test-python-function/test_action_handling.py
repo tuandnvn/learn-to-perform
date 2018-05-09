@@ -5,6 +5,7 @@ the dataset that generated the mean and stddev
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 
 X = np.random.rand(100, 1000)
 xs = np.mean(X, axis=1)
@@ -35,7 +36,11 @@ def onpick(event):
     return True
 
 def onclick(event):
-    pass
+    if event.inaxes == ax:
+        print (event.xdata, event.ydata)
+
+axreset = plt.axes([0.59, 0.05, 0.1, 0.075])
+breset = Button(axreset, 'Reset')
 
 fig.canvas.mpl_connect('button_press_event', onclick)
 

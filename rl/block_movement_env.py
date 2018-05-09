@@ -156,6 +156,7 @@ class BlockMovementEnv(gym.Env):
         else:
             last_progress = 0
 
+        info = {}
         if self.e.act(object_index, Command(position, rotation)):
             # print ('Action accepted')
             cur_transform = self.e.objects[object_index].transform
@@ -163,6 +164,8 @@ class BlockMovementEnv(gym.Env):
             self.action_storage.append( [object_index, prev_transform, cur_transform, None, None, True, action_means, action_stds] )
             observation, progress = self.get_observation_and_progress()
             self.action_storage[-1][3:5] = [observation, progress]
+
+            info['action_accepted'] = True
         else:
             """
             Action failed
@@ -179,7 +182,8 @@ class BlockMovementEnv(gym.Env):
             
             self.action_storage.append( [object_index, prev_transform, prev_transform, observation, progress, False, action_means, action_stds] )
 
-        info = {}
+        
+            info['action_accepted'] = False
 
         # Typical threshold approach
         if progress > self.progress_threshold:

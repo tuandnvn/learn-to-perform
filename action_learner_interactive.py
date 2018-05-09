@@ -150,7 +150,6 @@ class InteractiveLearner ( object ):
         best_action = None
 
         for action_index, action in enumerate(actions):
-
             _, reward, done, _ = exploration.step((self.select_object, action, action_means, action_stds))
             print (action, reward)
             exploration.back()
@@ -222,11 +221,11 @@ class InteractiveLearner ( object ):
             self._draw_collection_from_env()
 
 
-        def set_title(self):
+        def set_title(self, additional = ''):
             if self.index == 0:
                 self.ax.set_title('Start', fontsize=18)
             else:
-                self.ax.set_title('At step %d, progress = %.3f' % (self.index, self.outer.progress[-1]), fontsize=18 )
+                self.ax.set_title('At step %d, progress = %.3f %s' % (self.index, self.outer.progress[-1], additional), fontsize=18 )
 
         def next(self, event):
             if self.outer.online:
@@ -258,7 +257,7 @@ class InteractiveLearner ( object ):
                 self.lcs[-1].remove()
                 del self.lcs[-1]
                 del self.outer.progress[-1]
-                self.tes.remove()
+                self.tes[-1].remove()
                 del self.tes[-1]
 
                 self.fig.canvas.draw()
@@ -276,7 +275,7 @@ class InteractiveLearner ( object ):
         ax = fig.add_subplot(1, 1, 1)  # specify (nrows, ncols, axnum)
         plt.subplots_adjust(bottom=0.2)
 
-        callback = Callback(self, fig, ax )
+        self.callback = callback = InteractiveLearner.Callback(self, fig, ax )
 
         axreset = plt.axes([0.59, 0.05, 0.1, 0.075])
         breset = Button(axreset, 'Reset')
