@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pickle
 
-sys.path.append("strands_qsr_lib\qsr_lib\src3")
+sys.path.append(os.path.join("strands_qsr_lib", "qsr_lib", "src3"))
 
 import project
 # Need to add this import to load class
@@ -50,26 +50,26 @@ def get_default_models( action_types, sess ):
     configs = {}
 
     for project_name in action_types:
-        configs[project_name] = config.Config()
+        progress_estimator.config = config.Config()
         if project_name == 'SlideNext':
-            configs[project_name].n_input = 8
+            progress_estimator.config.n_input = 8
             
         print ('========================================================')
         print ('Load for action type = ' + project_name)
         p_name = project_name.lower() + "_project.proj"
 
-        projects[project_name] = project.Project.load(os.path.join('learned_models', p_name))
+        p = project.Project.load(os.path.join('learned_models', p_name))
         
         with tf.variable_scope("model") as scope:
             print('-------- Load progress model ---------')
-            progress_estimators[project_name] = progress_learner.EventProgressEstimator(is_training=True, 
+            progress_estimator = progress_learner.EventProgressEstimator(is_training=True, 
                                                                                         is_dropout = False, 
-                                                                                        name = projects[project_name].name, 
-                                                                                        config = configs[project_name])  
+                                                                                        name = p.name, 
+                                                                                        config = progress_estimator.config)  
             
         saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
-        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.updated'))
+        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod'))
 
     return configs, projects, progress_estimators
 
@@ -108,25 +108,48 @@ def get_model ( project_name, sess, project_path = None, progress_path = None):
     saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
     saver.restore(sess, progress_path)
 
-    return c, p, pe
+    print ('Load progress learner from ' + progress_path)
 
+    return p, pe
+
+ALL = 'ALL'
+GREEDY = 'GREEDY'
+BACKUP = 'BACKUP'
+CONTINUOUS = 'CONTINUOUS'
+DISCRETE = 'DISCRETE'
+
+TEST_FUNCION = {
+    "SlideToward" : lambda exploration: automatic_evaluator.test_slide_close(exploration, threshold = 3.5 * config.Config().block_size),
+    "SlideAway" : lambda exploration: automatic_evaluator.test_slide_away(exploration, ratio_threshold = 2.3),
+    "SlideNext" : lambda exploration: automatic_evaluator.test_slide_nextto(exploration, angle_diff = 0.05 * np.pi, threshold = 1.7),
+    "SlidePast" : lambda exploration: automatic_evaluator.test_slide_past(exploration, side_ratio = 1.1, angle_threshold = np.pi / 2), 
+    "SlideAround" : lambda exploration: automatic_evaluator.test_slide_around(exploration, alpha_1 = 1.1 * np.pi, alpha_2 = 1.7 * np.pi)
+}
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser(description='Test searcher.')
 
-    parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'), nargs='+',
-                                help = "Action type(s). Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
+    parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
+                                help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
     parser.add_argument('-n', '--size', action='store', metavar = ('SIZE'),
                                 help = "Number of configurations " )
+    parser.add_argument('-l', '--algorithm', action='store', metavar = ('ALGORITHM'),
+                                help = "Choose one of the followings: ALL, GREEDY, BACKUP, CONTINUOUS, DISCRETE. Default is ALL" )
+    parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_' + project_name + '.mod'" )
+
     args = parser.parse_args()
     size = int(args.size)
-    action_types = args.action
+    project_name = args.action
+    algorithm = args.algorithm
+    progress_path = args.progress
 
     ### MAIN CODE
     tf.reset_default_graph()
     sess =  tf.Session()
 
-    configs, projects, progress_estimators = get_default_models (action_types, sess)
+    p, progress_estimator = get_model (project_name, sess, progress_path = progress_path)
 
 
     # Save it down so we can load it later
@@ -145,46 +168,38 @@ if __name__ == '__main__':
             stored_envs.append(e.start_config)
         pickle.dump( stored_envs, open( STORE_ENVS, "wb" ) )
 
-    test_functions = {
-        "SlideToward" : lambda exploration: automatic_evaluator.test_slide_close(exploration, threshold = 3.5 * config.Config().block_size),
-        "SlideAway" : lambda exploration: automatic_evaluator.test_slide_away(exploration, ratio_threshold = 2.3),
-        "SlideNext" : lambda exploration: automatic_evaluator.test_slide_nextto(exploration, angle_diff = 0.05 * np.pi, threshold = 1.7),
-        "SlidePast" : lambda exploration: automatic_evaluator.test_slide_past(exploration, side_ratio = 1.1, angle_threshold = np.pi / 2), 
-        "SlideAround" : lambda exploration: automatic_evaluator.test_slide_around(exploration, alpha_1 = 1.1 * np.pi, alpha_2 = 1.7 * np.pi)
-    }
-
     verbose = False
 
     averaged_action_levels = []
     averaged_progress = []
     averaged_scores = []
     averaged_times = []
+    
+    test_function = TEST_FUNCION[project_name]
+    print ('=====================')
+    print (project_name)
 
+    def add_stat (action_level, progress, exploration):
+        action_levels.append(action_level)
+        progresses.append(progress)
+        scores.append( test_function ( exploration ) )
 
-    for project_name in action_types:
-        test_function = test_functions[project_name]
-        print ('=====================')
-        print (project_name)
+    def summary_state ( ):
+        print ('Average action level = %.2f' % np.average(action_levels) )
+        print ('Average progress = %.2f' % np.average(progresses) )
+        print ('Average score = %.2f' % np.average(scores) )
+        print ('Average time = %.2f' % np.average(times) )
 
-        def add_stat (action_level, progress, exploration):
-            action_levels.append(action_level)
-            progresses.append(progress)
-            scores.append( test_function ( exploration ) )
+        averaged_action_levels.append(np.average(action_levels))
+        averaged_progress.append(np.average(progresses))
+        averaged_scores.append(np.average(scores))
+        averaged_times.append(np.average(times))
 
-        def summary_state ( ):
-            print ('Average action level = %.2f' % np.average(action_levels) )
-            print ('Average progress = %.2f' % np.average(progresses) )
-            print ('Average score = %.2f' % np.average(scores) )
-            print ('Average time = %.2f' % np.average(times) )
+    e = block_movement_env.BlockMovementEnv(progress_estimator.config, speed = p.speed, 
+                                                progress_estimator = progress_estimator,
+                                                session = sess)
 
-            averaged_action_levels.append(np.average(action_levels))
-            averaged_progress.append(np.average(progresses))
-            averaged_scores.append(np.average(scores))
-            averaged_times.append(np.average(times))
-
-        e = block_movement_env.BlockMovementEnv(configs[project_name], speed = projects[project_name].speed, 
-                                                    progress_estimator = progress_estimators[project_name],
-                                                    session = sess)
+    if algorithm in [ALL, GREEDY, CONTINUOUS]:
         reset()
         for i in range(size):
             print (i)
@@ -192,15 +207,16 @@ if __name__ == '__main__':
             ## GREEDY
             # ==================
             e.reset_env_to_state(stored_envs[i], [])
-            searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
-                                                progress_estimators[project_name], session = sess, env = e)
+            searcher = als.ActionLearner_Search(progress_estimator.config, p, 
+                                                progress_estimator, session = sess, env = e)
             action_level, progress, exploration = searcher.greedy(verbose = verbose)
             add_stat (action_level, progress, exploration)
             times.append(time.time() - start_time)
 
         print ('GREEDY CONTINUOUS')
         summary_state()
-        
+    
+    if algorithm in [ALL, GREEDY, DISCRETE]:
         reset()
         for i in range(size):
             print (i)
@@ -208,15 +224,16 @@ if __name__ == '__main__':
             ## GREEDY    
             # ==================
             e.reset_env_to_state(stored_envs[i], [])
-            searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
-                                                progress_estimators[project_name], session = sess, env = e)
+            searcher = dals.Discrete_ActionLearner_Search(progress_estimator.config, p, 
+                                                progress_estimator, session = sess, env = e)
             action_level, progress, exploration = searcher.greedy(verbose = verbose)
             add_stat (action_level, progress, exploration)
             times.append(time.time() - start_time)
 
         print ('GREEDY DISCRETE')
         summary_state()
-        
+    
+    if algorithm in [ALL, BACKUP, CONTINUOUS]:
         reset()
         for i in range(size):
             print (i)
@@ -224,15 +241,16 @@ if __name__ == '__main__':
             ## BACK UP SEARCH
             # ==================
             e.reset_env_to_state(stored_envs[i], [])
-            searcher = als.ActionLearner_Search(configs[project_name], projects[project_name], 
-                                                progress_estimators[project_name], session = sess, env = e)
+            searcher = als.ActionLearner_Search(progress_estimator.config, p, 
+                                                progress_estimator, session = sess, env = e)
             action_level, progress, exploration = searcher.back_up(verbose = verbose)
             add_stat (action_level, progress, exploration)
             times.append(time.time() - start_time)
 
         print ('BACKUP CONTINUOUS')
         summary_state()
-        
+    
+    if algorithm in [ALL, BACKUP, DISCRETE]:
         reset()
         for i in range(size):
             print (i)
@@ -240,17 +258,11 @@ if __name__ == '__main__':
             ## BACK UP SEARCH    
             # ==================
             e.reset_env_to_state(stored_envs[i], [])
-            searcher = dals.Discrete_ActionLearner_Search(configs[project_name], projects[project_name], 
-                                                progress_estimators[project_name], session = sess, env = e)
+            searcher = dals.Discrete_ActionLearner_Search(progress_estimator.config, p, 
+                                                progress_estimator, session = sess, env = e)
             action_level, progress, exploration = searcher.back_up(verbose = verbose)
             add_stat (action_level, progress, exploration)
             times.append(time.time() - start_time)
 
         print ('BACKUP DISCRETE')
         summary_state()
-
-    print ("=========================================================")
-    print ('averaged_action_levels', averaged_action_levels)
-    print ('averaged_progress', averaged_progress)
-    print ('averaged_scores', averaged_scores)
-    print ('averaged_times', averaged_times)

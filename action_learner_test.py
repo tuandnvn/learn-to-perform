@@ -119,6 +119,9 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--breadth', action='store', metavar = ('BREADTH'), default = 1,
                                 help = "Breadth. Number of actions generated at each step. Default is 1" )
 
+    parser.add_argument('-p', '--progress', action='store', metavar = ('BREADTH'), default = 1,
+                                help = "Breadth. Number of actions generated at each step. Default is 1" )
+
     args = parser.parse_args()
 
     breadth = int(args.breadth)

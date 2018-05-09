@@ -254,33 +254,6 @@ class EventProgressEstimator(object):
         # ( batch_size x cell.state_size )
         # This initial state will not be updateable because it is not a variable, we have to create a variable wrapper
         self.initial_state = cell.zero_state(self.config.batch_size, tf.float32)
-
-        # # We create variable wrapper here
-        # state_variables = []
-        # with tf.variable_scope('state'):
-        #     for state_c, state_h in self.initial_state:
-        #         state_variables.append(tf.contrib.rnn.LSTMStateTuple(
-        #             tf.Variable(state_c, trainable=False),
-        #             tf.Variable(state_h, trainable=False)))
-        # # Return as a tuple, so that it can be fed to dynamic_rnn as an initial state
-        # self.state = tuple(state_variables)
-
-    # def reset_state ( self, sess=None ) :
-    #     sess = sess or tf.get_default_session()
-
-    #     # Define an op to reset the hidden state to zeros
-    #     update_ops = []
-
-    #     # Loop through each layer
-    #     for state_variable in self.state:
-    #         # Assign the new state to the state variables on this layer
-    #         # state_variable[0] is h
-    #         # state_variable[1] is c
-    #         print (state_variable)
-    #         update_ops.extend([state_variable[0].assign(tf.zeros_like(state_variable[0])),
-    #                            state_variable[1].assign(tf.zeros_like(state_variable[1]))])
-
-    #     sess.run(tuple(update_ops))
         
     def assign_lr(self, lr_value, sess=None):
         sess = sess or tf.get_default_session()

@@ -1,0 +1,326 @@
+Run with updated model (update from score given from human evaluation)
+
+(tensorflow-cpu) D:\git\learn-to-perform>python test_all_searcher.py -a SlideAround -n 30
+2018-05-07 21:45:41.478748: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 21:45:41.485379: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 21:45:41.492615: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 21:45:41.498200: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 21:45:41.502874: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+========================================================
+Load for action type = SlideAround
+-------- Load progress model ---------
+self.inputs.shape = (?, 20, 200)  after linear layer
+output.shape = (30, 200) after LSTM
+self.output.shape = (30,) after linear
+self._targets.shape = (?,)
+Load stored_envs.dat
+=====================
+SlideAround
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+GREEDY CONTINUOUS
+Average action level = 3.37
+Average progress = 0.73
+Average score = 0.47
+Average time = 11.92
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+GREEDY DISCRETE
+Average action level = 2.33
+Average progress = 0.62
+Average score = 0.20
+Average time = 7.95
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+BACKUP CONTINUOUS
+Average action level = 3.37
+Average progress = 0.84
+Average score = 0.58
+Average time = 104.16
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+BACKUP DISCRETE
+Average action level = 2.93
+Average progress = 0.83
+Average score = 0.42
+Average time = 43.92
+=========================================================
+averaged_action_levels [3.3666666666666667, 2.3333333333333335, 3.3666666666666667, 2.9333333333333331]
+averaged_progress [0.73477157019078732, 0.61575802806764846, 0.84099311, 0.82623094]
+averaged_scores [0.46666666666666667, 0.20000000000000001, 0.58333333333333337, 0.41666666666666669]
+averaged_times [11.920446451505025, 7.9481467405955, 104.15952479839325, 43.921077775955197]
+
+
+(tensorflow-cpu) D:\git\learn-to-perform>python test_all_searcher.py -a SlideAway -n 30
+2018-05-07 22:54:56.759424: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 22:54:56.762723: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 22:54:56.765985: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 22:54:56.769225: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-07 22:54:56.773133: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+========================================================
+Load for action type = SlideAway
+-------- Load progress model ---------
+self.inputs.shape = (?, 20, 200)  after linear layer
+output.shape = (30, 200) after LSTM
+self.output.shape = (30,) after linear
+self._targets.shape = (?,)
+Load stored_envs.dat
+=====================
+SlideAway
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+GREEDY CONTINUOUS
+Average action level = 1.27
+Average progress = 0.84
+Average score = 0.43
+Average time = 5.88
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+GREEDY DISCRETE
+Average action level = 1.43
+Average progress = 0.79
+Average score = 0.27
+Average time = 5.89
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+BACKUP CONTINUOUS
+Average action level = 1.23
+Average progress = 0.90
+Average score = 0.37
+Average time = 37.64
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+BACKUP DISCRETE
+Average action level = 1.90
+Average progress = 0.86
+Average score = 0.30
+Average time = 20.67
+=========================================================
+averaged_action_levels [1.2666666666666666, 1.4333333333333333, 1.2333333333333334, 1.8999999999999999]
+averaged_progress [0.84123059511184695, 0.7915218750635783, 0.89563096, 0.86317521]
+averaged_scores [0.43333333333333335, 0.26666666666666666, 0.36666666666666664, 0.29999999999999999]
+averaged_times [5.8774667421976723, 5.8939009745915731, 37.644205959637958, 20.666216969490051]

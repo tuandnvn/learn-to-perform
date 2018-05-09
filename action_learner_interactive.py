@@ -297,8 +297,8 @@ if __name__ == '__main__':
     # and progress_SlideAround.mod.1 for discrete search
     # Couldn't remember for sure what is the difference
 
-    il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.1'))
-    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '9.dat'))
+    il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated'))
+    # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '9.dat'))
 
     # il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod'))
     # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'))
