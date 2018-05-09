@@ -9,4 +9,7 @@ class InteractiveLearnerHot ( InteractiveLearner ):
 	"""
 	def __init__(self, c = None, action_type = "SlideAround", online = True, project_path = None, progress_model_path = None):
 		super.__init__(self, c = c, action_type = action_type, discrete = False, online = online, 
-			project_path = project_path, progress_model_path = progress_model_path) 
+			project_path = project_path, progress_model_path = progress_model_path)
+
+    def onclick(event):
+        pass

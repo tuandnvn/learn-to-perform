@@ -268,8 +268,6 @@ class InteractiveLearner ( object ):
             self.ax.clear()
             self.__init__(self.outer, self.fig, self.ax)
 
-    def onclick(event):
-        pass
 
     def visualize ( self ):
         """
