@@ -51,6 +51,12 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         """
         self.history_storage =  HistoryStorage()
 
+    def new_demo ( self ):
+        """
+        """
+        super().new_demo()
+        self.history_storage =  HistoryStorage()
+
     def search_next( self ):
         """
         Given the current state, search for the next action
@@ -65,6 +71,8 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         best_reward = -1
         best_action = None
 
+        self.collected_sample = []
+
         for action_index, action in enumerate(actions):
             _, reward, done, info = exploration.step((self.select_object, action, action_means, action_stds))
 
@@ -72,7 +80,8 @@ class InteractiveLearnerHot ( InteractiveLearner ):
                 X = exploration.get_feature_only()
                 y = self.progress[-1] + reward
 
-                self.history_storage.add_sample(self.callback.index, X, y)
+                # We collect samples for later adding into self.history_storage
+                self.collected_sample.append((X, y))
 
             exploration.back()
 
@@ -113,6 +122,9 @@ class InteractiveLearnerHot ( InteractiveLearner ):
                 else:
                     self.callback.index += 1
 
+                for X, y in self.collected_sample:
+                    self.history_storage.add_sample(self.callback.index, X, y)
+
                 action = (p[0], p[1], 0)
                 new_action = (self.select_object, action)
                 _, reward, done, _ = exploration.step(new_action)
@@ -140,8 +152,12 @@ class InteractiveLearnerHot ( InteractiveLearner ):
             X, y = self.history_storage.corrected_samples[step]
             print ('step = %d, correct val = %.3f' % (step, y))
 
-    def collect_sample ( self ):
-        
+    def update ( self ):
+        """
+        Collect samples from self.history_storage
+        and update right away
+        """
+        pass
 
     def visualize (self):
         # super().visualize()

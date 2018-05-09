@@ -127,6 +127,22 @@ TEST_FUNCION = {
 }
 
 if __name__ == '__main__':
+    # stored_envs = []
+    # stored_config_prefix = os.path.join("experiments", "human_evaluation_2d" , 'SlideAround')
+    # STORE_ENVS = os.path.join('data', "stored_envs_1.dat")
+    # for index in range(30):
+    #     stored_config_file = os.path.join(stored_config_prefix, str(index) + ".dat")
+    #     try:
+    #         with open(stored_config_file, 'rb') as fh:
+    #             # need this encoding 
+    #             stored_config = pickle.load(fh, encoding='latin-1')
+        
+    #             stored_envs.append(stored_config['start_config'])
+
+    #     except FileNotFoundError as e:
+    #         print (e)
+
+    # pickle.dump( stored_envs, open( STORE_ENVS, "wb" ) )
 
     parser = argparse.ArgumentParser(description='Test searcher.')
 
@@ -145,6 +161,7 @@ if __name__ == '__main__':
     algorithm = args.algorithm
     progress_path = args.progress
 
+    
     ### MAIN CODE
     tf.reset_default_graph()
     sess =  tf.Session()
@@ -153,7 +170,7 @@ if __name__ == '__main__':
 
 
     # Save it down so we can load it later
-    STORE_ENVS = "stored_envs_2.dat"
+    STORE_ENVS = os.path.join('data', "stored_envs_2.dat")
     if os.path.isfile(STORE_ENVS):
         print ('Load ' + STORE_ENVS)
         stored_envs = pickle.load( open( STORE_ENVS, "rb" ) )
