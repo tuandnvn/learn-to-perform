@@ -34,6 +34,11 @@ def onpick(event):
     figi.show()
     return True
 
+def onclick(event):
+    pass
+
+fig.canvas.mpl_connect('button_press_event', onclick)
+
 fig.canvas.mpl_connect('pick_event', onpick)
 
 plt.show()

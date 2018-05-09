@@ -6,7 +6,7 @@ from importlib import reload
 import pickle
 import numpy as np
 
-sys.path.append("strands_qsr_lib\qsr_lib\src3")
+sys.path.append(os.path.join("strands_qsr_lib", "qsr_lib", "src3"))
 
 ## PLOTTING 
 import matplotlib
@@ -192,86 +192,88 @@ class InteractiveLearner ( object ):
 
         return action
 
+    class Callback(object):
+        def __init__(self, outer, fig, ax ):
+            self.outer = outer
+            self.fig = fig
+            self.ax = ax
+            self.index = 0
+            self.set_title()
+
+            self.env = self.outer.searcher.env
+
+            fig.set_size_inches(self.env.graph_size, self.env.graph_size)
+            x_range = np.arange(self.env.playground_x[0], 
+                                    self.env.playground_x[0] + self.env.playground_dim[0], 0.1)
+            y_range = np.arange(self.env.playground_x[1], 
+                                    self.env.playground_x[1] + self.env.playground_dim[1], 0.1)
+            ax.set_xticks(x_range)
+            ax.set_yticks(y_range)
+            ax.set_xlim(self.env.playground_x[0], 
+                                    self.env.playground_x[0] + self.env.playground_dim[0])
+            ax.set_ylim(self.env.playground_x[1], 
+                                    self.env.playground_x[1] + self.env.playground_dim[1])
+
+            # Storing block objects
+            self.lcs = []
+            # Storing text objects (action values written into block)
+            self.tes = []
+
+            self._draw_collection_from_env()
+
+
+        def set_title(self):
+            if self.index == 0:
+                self.ax.set_title('Start', fontsize=18)
+            else:
+                self.ax.set_title('At step %d, progress = %.3f' % (self.index, self.outer.progress[-1]), fontsize=18 )
+
+        def next(self, event):
+            if self.outer.online:
+                action = self.outer.search_next()
+            else:
+                action = self.outer.move_next()
+
+            if action is not None:
+                self.index += 1
+                te = self.ax.text(action[0]-0.02, action[1]-0.02, '%d' % self.index, fontsize=18)
+                self.tes.append(te)
+            self.set_title()
+
+            self._draw_collection_from_env()
+
+        def _draw_collection_from_env(self):
+            lc = self.outer.searcher.env.get_collection()
+            self.ax.add_collection(lc)
+            self.lcs.append(lc)
+            self.fig.canvas.draw()
+
+        def prev(self, event):
+            if self.index > 0:
+                self.outer.searcher.env.back()
+                self.index -= 1
+                self.outer.next_action -= 1
+                self.set_title()
+
+                self.lcs[-1].remove()
+                del self.lcs[-1]
+                del self.outer.progress[-1]
+                self.tes.remove()
+                del self.tes[-1]
+
+                self.fig.canvas.draw()
+
+        def reset(self, event):
+            self.outer.new_demo()
+            self.ax.clear()
+            self.__init__(self.outer, self.fig, self.ax)
+
+    def onclick(event):
+        pass
+
     def visualize ( self ):
         """
         """
-        class Callback(object):
-            def __init__(self, outer, fig, ax ):
-                self.outer = outer
-                self.fig = fig
-                self.ax = ax
-                self.index = 0
-                self.set_title()
-
-                self.env = self.outer.searcher.env
-
-                fig.set_size_inches(self.env.graph_size, self.env.graph_size)
-                x_range = np.arange(self.env.playground_x[0], 
-                                        self.env.playground_x[0] + self.env.playground_dim[0], 0.1)
-                y_range = np.arange(self.env.playground_x[1], 
-                                        self.env.playground_x[1] + self.env.playground_dim[1], 0.1)
-                ax.set_xticks(x_range)
-                ax.set_yticks(y_range)
-                ax.set_xlim(self.env.playground_x[0], 
-                                        self.env.playground_x[0] + self.env.playground_dim[0])
-                ax.set_ylim(self.env.playground_x[1], 
-                                        self.env.playground_x[1] + self.env.playground_dim[1])
-
-                # Storing block objects
-                self.lcs = []
-                # Storing text objects (action values written into block)
-                self.tes = []
-
-                self._draw_collection_from_env()
-
-
-            def set_title(self):
-                if self.index == 0:
-                    self.ax.set_title('Start', fontsize=18)
-                else:
-                    self.ax.set_title('At step %d, progress = %.3f' % (self.index, self.outer.progress[-1]), fontsize=18 )
-
-            def next(self, event):
-                if self.outer.online:
-                    action = self.outer.search_next()
-                else:
-                    action = self.outer.move_next()
-
-                if action is not None:
-                    self.index += 1
-                    te = self.ax.text(action[0]-0.02, action[1]-0.02, '%d' % self.index, fontsize=18)
-                    self.tes.append(te)
-                self.set_title()
-
-                self._draw_collection_from_env()
-
-            def _draw_collection_from_env(self):
-                lc = self.outer.searcher.env.get_collection()
-                self.ax.add_collection(lc)
-                self.lcs.append(lc)
-                self.fig.canvas.draw()
-
-            def prev(self, event):
-                if self.index > 0:
-                    self.outer.searcher.env.back()
-                    self.index -= 1
-                    self.outer.next_action -= 1
-                    self.set_title()
-
-                    self.lcs[-1].remove()
-                    del self.lcs[-1]
-                    del self.outer.progress[-1]
-                    self.tes.remove()
-                    del self.tes[-1]
-
-                    self.fig.canvas.draw()
-
-            def reset(self, event):
-                self.outer.new_demo()
-                self.ax.clear()
-                self.__init__(self.outer, self.fig, self.ax)
-
-
         fig = plt.figure()  # a new figure window 
         ax = fig.add_subplot(1, 1, 1)  # specify (nrows, ncols, axnum)
         plt.subplots_adjust(bottom=0.2)

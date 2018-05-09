@@ -199,56 +199,56 @@ if __name__ == '__main__':
                                                 progress_estimator = progress_estimator,
                                                 session = sess)
 
-    if algorithm in [ALL, GREEDY, CONTINUOUS]:
-        reset()
-        for i in range(size):
-            print (i)
-            start_time = time.time()
-            ## GREEDY
-            # ==================
-            e.reset_env_to_state(stored_envs[i], [])
-            searcher = als.ActionLearner_Search(progress_estimator.config, p, 
-                                                progress_estimator, session = sess, env = e)
-            action_level, progress, exploration = searcher.greedy(verbose = verbose)
-            add_stat (action_level, progress, exploration)
-            times.append(time.time() - start_time)
+    # if algorithm in [ALL, GREEDY, CONTINUOUS]:
+    #     reset()
+    #     for i in range(size):
+    #         print (i)
+    #         start_time = time.time()
+    #         ## GREEDY
+    #         # ==================
+    #         e.reset_env_to_state(stored_envs[i], [])
+    #         searcher = als.ActionLearner_Search(progress_estimator.config, p, 
+    #                                             progress_estimator, session = sess, env = e)
+    #         action_level, progress, exploration = searcher.greedy(verbose = verbose)
+    #         add_stat (action_level, progress, exploration)
+    #         times.append(time.time() - start_time)
 
-        print ('GREEDY CONTINUOUS')
-        summary_state()
+    #     print ('GREEDY CONTINUOUS')
+    #     summary_state()
     
-    if algorithm in [ALL, GREEDY, DISCRETE]:
-        reset()
-        for i in range(size):
-            print (i)
-            start_time = time.time()
-            ## GREEDY    
-            # ==================
-            e.reset_env_to_state(stored_envs[i], [])
-            searcher = dals.Discrete_ActionLearner_Search(progress_estimator.config, p, 
-                                                progress_estimator, session = sess, env = e)
-            action_level, progress, exploration = searcher.greedy(verbose = verbose)
-            add_stat (action_level, progress, exploration)
-            times.append(time.time() - start_time)
+    # if algorithm in [ALL, GREEDY, DISCRETE]:
+    #     reset()
+    #     for i in range(size):
+    #         print (i)
+    #         start_time = time.time()
+    #         ## GREEDY    
+    #         # ==================
+    #         e.reset_env_to_state(stored_envs[i], [])
+    #         searcher = dals.Discrete_ActionLearner_Search(progress_estimator.config, p, 
+    #                                             progress_estimator, session = sess, env = e)
+    #         action_level, progress, exploration = searcher.greedy(verbose = verbose)
+    #         add_stat (action_level, progress, exploration)
+    #         times.append(time.time() - start_time)
 
-        print ('GREEDY DISCRETE')
-        summary_state()
+    #     print ('GREEDY DISCRETE')
+    #     summary_state()
     
-    if algorithm in [ALL, BACKUP, CONTINUOUS]:
-        reset()
-        for i in range(size):
-            print (i)
-            start_time = time.time()
-            ## BACK UP SEARCH
-            # ==================
-            e.reset_env_to_state(stored_envs[i], [])
-            searcher = als.ActionLearner_Search(progress_estimator.config, p, 
-                                                progress_estimator, session = sess, env = e)
-            action_level, progress, exploration = searcher.back_up(verbose = verbose)
-            add_stat (action_level, progress, exploration)
-            times.append(time.time() - start_time)
+    # if algorithm in [ALL, BACKUP, CONTINUOUS]:
+    #     reset()
+    #     for i in range(size):
+    #         print (i)
+    #         start_time = time.time()
+    #         ## BACK UP SEARCH
+    #         # ==================
+    #         e.reset_env_to_state(stored_envs[i], [])
+    #         searcher = als.ActionLearner_Search(progress_estimator.config, p, 
+    #                                             progress_estimator, session = sess, env = e)
+    #         action_level, progress, exploration = searcher.back_up(verbose = verbose)
+    #         add_stat (action_level, progress, exploration)
+    #         times.append(time.time() - start_time)
 
-        print ('BACKUP CONTINUOUS')
-        summary_state()
+    #     print ('BACKUP CONTINUOUS')
+    #     summary_state()
     
     if algorithm in [ALL, BACKUP, DISCRETE]:
         reset()
