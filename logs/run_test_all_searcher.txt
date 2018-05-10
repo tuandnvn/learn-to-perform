@@ -540,3 +540,541 @@ Average progress = 0.92
 Average score = 0.50
 Average time = 9.17
 
+(tensorflow-cpu) D:\git\learn-to-perform>python test_all_searcher.py -a SlideAround -p learned_models/progress_SlideAround.mod.updated.updated -s data/stored_envs_2.dat -n 30
+2018-05-10 00:10:38.165814: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 00:10:38.172193: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 00:10:38.177722: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 00:10:38.182667: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 00:10:38.187786: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+========================================================
+Load for action type = SlideAround
+-------- Load progress model ---------
+is_training True
+is_dropout False
+Set lr
+self.inputs.shape = (?, 20, 200)  after linear layer
+output.shape = (30, 200) after LSTM
+self.output.shape = (30,) after linear
+self._targets.shape = (?,)
+model/SlideAround/Variable:0
+model/SlideAround/linear/weight:0
+model/SlideAround/linear/bias:0
+model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel:0
+model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias:0
+model/SlideAround/output_linear/weight:0
+model/SlideAround/output_linear/bias:0
+model/SlideAround/beta1_power:0
+model/SlideAround/beta2_power:0
+model/SlideAround/model/SlideAround/linear/weight/Adam:0
+model/SlideAround/model/SlideAround/linear/weight/Adam_1:0
+model/SlideAround/model/SlideAround/linear/bias/Adam:0
+model/SlideAround/model/SlideAround/linear/bias/Adam_1:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel/Adam:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel/Adam_1:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias/Adam:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias/Adam_1:0
+model/SlideAround/model/SlideAround/output_linear/weight/Adam:0
+model/SlideAround/model/SlideAround/output_linear/weight/Adam_1:0
+model/SlideAround/model/SlideAround/output_linear/bias/Adam:0
+model/SlideAround/model/SlideAround/output_linear/bias/Adam_1:0
+Load progress learner from learned_models/progress_SlideAround.mod.updated.updated
+Load data/stored_envs_2.dat
+=====================
+SlideAround
+0
+Score = 1.00
+1
+Score = 0.00
+2
+Score = 1.00
+3
+Score = 0.00
+4
+Score = 0.00
+5
+Score = 1.00
+6
+Score = 0.50
+7
+Score = 0.00
+8
+Score = 0.00
+9
+Score = 0.50
+10
+Score = 0.00
+11
+Score = 1.00
+12
+Score = 0.00
+13
+Score = 0.50
+14
+Score = 0.00
+15
+Score = 0.00
+16
+Score = 1.00
+17
+Score = 0.00
+18
+Score = 1.00
+19
+Score = 0.50
+20
+Score = 0.00
+21
+Score = 0.50
+22
+Score = 0.00
+23
+Score = 0.50
+24
+Score = 0.00
+25
+Score = 0.50
+26
+Score = 0.50
+27
+Score = 0.00
+28
+Score = 0.00
+29
+Score = 1.00
+GREEDY DISCRETE
+Average action level = 2.90
+Average progress = 0.86
+Average score = 0.37
+Average time = 11.69
+0
+Score = 0.00
+1
+Score = 0.00
+2
+Score = 1.00
+3
+Score = 0.50
+4
+Score = 1.00
+5
+Score = 0.00
+6
+Score = 0.50
+7
+Score = 0.00
+8
+Score = 0.50
+9
+Score = 0.00
+10
+Score = 1.00
+11
+Score = 0.00
+12
+Score = 0.50
+13
+Score = 0.50
+14
+Score = 0.50
+15
+Score = 0.50
+16
+Score = 0.50
+17
+Score = 0.50
+18
+Score = 1.00
+19
+Score = 0.50
+20
+Score = 1.00
+21
+Score = 0.50
+22
+Score = 0.50
+23
+Score = 0.00
+24
+Score = 0.50
+25
+Score = 0.00
+26
+Score = 0.00
+27
+Score = 0.50
+28
+Score = 0.50
+29
+Score = 0.00
+BACKUP CONTINUOUS
+Average action level = 2.63
+Average progress = 0.96
+Average score = 0.42
+Average time = 62.18
+0
+Score = 0.00
+1
+Score = 0.50
+2
+Score = 0.00
+3
+Score = 0.00
+4
+Score = 0.00
+5
+Score = 0.00
+6
+Score = 0.50
+7
+Score = 0.50
+8
+Score = 0.50
+9
+Score = 0.50
+10
+Score = 0.00
+11
+Score = 0.50
+12
+Score = 0.50
+13
+Score = 0.50
+14
+Score = 0.50
+15
+Score = 0.50
+16
+Score = 0.00
+17
+Score = 0.00
+18
+Score = 0.00
+19
+Score = 0.00
+20
+Score = 0.00
+21
+Score = 0.50
+22
+Score = 0.50
+23
+Score = 0.00
+24
+Score = 0.50
+25
+Score = 0.50
+26
+Score = 0.50
+27
+Score = 0.50
+28
+Score = 0.50
+29
+Score = 0.50
+BACKUP DISCRETE
+Average action level = 2.10
+Average progress = 0.97
+Average score = 0.30
+Average time = 22.41
+
+(tensorflow-cpu) D:\git\learn-to-perform>python test_all_searcher.py -a SlideAround -p learned_models/progress_SlideAround.mod -s data/stored_envs_2.dat -n 30 -l ALL
+2018-05-10 01:16:59.771984: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 01:16:59.775439: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE2 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 01:16:59.778587: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 01:16:59.783467: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2018-05-10 01:16:59.786920: W c:\l\tensorflow_1501907206084\work\tensorflow-1.2.1\tensorflow\core\platform\cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+========================================================
+Load for action type = SlideAround
+-------- Load progress model ---------
+is_training True
+is_dropout False
+Set lr
+self.inputs.shape = (?, 20, 200)  after linear layer
+output.shape = (30, 200) after LSTM
+self.output.shape = (30,) after linear
+self._targets.shape = (?,)
+model/SlideAround/Variable:0
+model/SlideAround/linear/weight:0
+model/SlideAround/linear/bias:0
+model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel:0
+model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias:0
+model/SlideAround/output_linear/weight:0
+model/SlideAround/output_linear/bias:0
+model/SlideAround/beta1_power:0
+model/SlideAround/beta2_power:0
+model/SlideAround/model/SlideAround/linear/weight/Adam:0
+model/SlideAround/model/SlideAround/linear/weight/Adam_1:0
+model/SlideAround/model/SlideAround/linear/bias/Adam:0
+model/SlideAround/model/SlideAround/linear/bias/Adam_1:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel/Adam:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel/Adam_1:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias/Adam:0
+model/SlideAround/model/SlideAround/lstm/rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias/Adam_1:0
+model/SlideAround/model/SlideAround/output_linear/weight/Adam:0
+model/SlideAround/model/SlideAround/output_linear/weight/Adam_1:0
+model/SlideAround/model/SlideAround/output_linear/bias/Adam:0
+model/SlideAround/model/SlideAround/output_linear/bias/Adam_1:0
+Load progress learner from learned_models/progress_SlideAround.mod
+Load data/stored_envs_2.dat
+=====================
+SlideAround
+0
+Score = 0.50
+1
+Score = 0.00
+2
+Score = 0.00
+3
+Score = 1.00
+4
+Score = 0.00
+5
+Score = 1.00
+6
+Score = 1.00
+7
+Score = 1.00
+8
+Score = 0.00
+9
+Score = 0.00
+10
+Score = 0.50
+11
+Score = 0.00
+12
+Score = 0.00
+13
+Score = 0.00
+14
+Score = 0.00
+15
+Score = 0.00
+16
+Score = 0.50
+17
+Score = 0.00
+18
+Score = 0.00
+19
+Score = 0.00
+20
+Score = 0.00
+21
+Score = 0.00
+22
+Score = 0.00
+23
+Score = 0.00
+24
+Score = 0.50
+25
+Score = 0.50
+26
+Score = 0.00
+27
+Score = 0.00
+28
+Score = 0.50
+29
+Score = 0.00
+GREEDY CONTINUOUS
+Average action level = 2.30
+Average progress = 0.79
+Average score = 0.23
+Average time = 12.43
+0
+Score = 0.00
+1
+Score = 0.00
+2
+Score = 1.00
+3
+Score = 0.00
+4
+Score = 0.00
+5
+Score = 0.50
+6
+Score = 0.50
+7
+Score = 0.00
+8
+Score = 0.00
+9
+Score = 0.50
+10
+Score = 0.50
+11
+Score = 0.00
+12
+Score = 0.00
+13
+Score = 0.00
+14
+Score = 0.00
+15
+Score = 0.00
+16
+Score = 0.00
+17
+Score = 1.00
+18
+Score = 0.00
+19
+Score = 0.00
+20
+Score = 0.00
+21
+Score = 0.00
+22
+Score = 0.00
+23
+Score = 0.00
+24
+Score = 0.00
+25
+Score = 0.00
+26
+Score = 0.00
+27
+Score = 0.00
+28
+Score = 0.00
+29
+Score = 0.50
+GREEDY DISCRETE
+Average action level = 1.80
+Average progress = 0.75
+Average score = 0.15
+Average time = 8.33
+0
+Score = 0.50
+1
+Score = 1.00
+2
+Score = 0.00
+3
+Score = 0.50
+4
+Score = 0.00
+5
+Score = 1.00
+6
+Score = 0.00
+7
+Score = 1.00
+8
+Score = 0.50
+9
+Score = 0.50
+10
+Score = 0.00
+11
+Score = 0.00
+12
+Score = 0.50
+13
+Score = 0.00
+14
+Score = 0.00
+15
+Score = 0.00
+16
+Score = 0.00
+17
+Score = 0.00
+18
+Score = 0.00
+19
+Score = 0.00
+20
+Score = 0.00
+21
+Score = 0.00
+22
+Score = 0.50
+23
+Score = 0.00
+24
+Score = 0.50
+25
+Score = 1.00
+26
+Score = 0.00
+27
+Score = 0.00
+28
+Score = 1.00
+29
+Score = 0.00
+BACKUP CONTINUOUS
+Average action level = 2.93
+Average progress = 0.89
+Average score = 0.28
+Average time = 119.99
+0
+Score = 0.00
+1
+Score = 0.00
+2
+Score = 1.00
+3
+Score = 0.00
+4
+Score = 0.00
+5
+Score = 0.00
+6
+Score = 0.50
+7
+Score = 1.00
+8
+Score = 0.50
+9
+Score = 0.00
+10
+Score = 0.00
+11
+Score = 0.00
+12
+Score = 0.00
+13
+Score = 0.00
+14
+Score = 0.50
+15
+Score = 0.00
+16
+Score = 0.00
+17
+Score = 0.50
+18
+Score = 0.50
+19
+Score = 0.50
+20
+Score = 0.50
+21
+Score = 0.00
+22
+Score = 0.00
+23
+Score = 0.00
+24
+Score = 0.00
+25
+Score = 0.50
+26
+Score = 0.50
+27
+Score = 0.00
+28
+Score = 0.50
+29
+Score = 0.00
+BACKUP DISCRETE
+Average action level = 2.63
+Average progress = 0.85
+Average score = 0.23
+Average time = 40.52

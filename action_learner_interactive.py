@@ -5,6 +5,7 @@ import tensorflow as tf
 from importlib import reload
 import pickle
 import numpy as np
+import argparse
 
 sys.path.append(os.path.join("strands_qsr_lib", "qsr_lib", "src3"))
 
@@ -25,6 +26,8 @@ from project import Project
 from rl import action_learner_search as als 
 from rl import discrete_action_learner_search as dals
 from rl import block_movement_env
+
+from test_all_searcher import get_model
 
 class InteractiveLearner ( object ):
     def __init__(self, c = None, action_type = "SlideAround", discrete = True, 
@@ -57,31 +60,14 @@ class InteractiveLearner ( object ):
             action_type = "SlideAround"
 
         self.action_type = action_type
-        
-        print ('========================================================')
-        print ('Load for action type = ' + action_type)
+
         if project_path is None:
-            p_name = action_type.lower() + "_project.proj"
-            self.project = p = project.Project.load(os.path.join('learned_models', p_name))
-        else:
-            self.project = p = project.Project.load(project_path)
-
-        with tf.variable_scope("model") as scope:
-            print('-------- Load progress model ---------')
-            self.pe = pe = progress_learner.EventProgressEstimator(is_training = True,
-                                                        is_dropout = False, 
-                                                        name = action_type, 
-                                                        config = c)  
-
-        # Print out all variables that would be restored
-        for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
-            print (variable.name)
+            project_path = os.path.join('learned_models', action_type.lower() + "_project.proj")
         
-        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + action_type))
-
-        if progress_model_path is None:
-            progress_model_path = os.path.join('learned_models', 'progress_' + action_type + '.mod')
-        saver.restore(sess, progress_model_path)
+        p, pe = get_model ( action_type, sess, project_path = project_path, 
+                    progress_path = progress_model_path)
+        self.project = p
+        self.pe = pe
 
         if discrete:
             self.searcher = dals.Discrete_ActionLearner_Search(c, p, pe, self.sess )
@@ -292,11 +278,33 @@ class InteractiveLearner ( object ):
         plt.show()
 
 if __name__ == '__main__':
-    # I have used progress_SlideAround.mod for continuous search
-    # and progress_SlideAround.mod.1 for discrete search
-    # Couldn't remember for sure what is the difference
+    parser = argparse.ArgumentParser(description='Test greedy interactive API.')
 
-    il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated'))
+    parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
+                                help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
+    parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_' + action + '.mod.updated'" )
+    parser.add_argument('-d', '--discrete', action='store', metavar = ('DISCRETE'),
+                                help = "Whether it is discrete greedy search. Default is False" )
+
+    args = parser.parse_args()
+
+    progress_path = args.progress
+
+    project_name = args.action
+
+    if project_name is None:
+        project_name = 'SlideAround'
+
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
+
+    if args.discrete == 'True':
+        discrete = True
+    else:
+        discrete = False
+
+    il = InteractiveLearner(discrete = discrete, action_type = project_name, online = True, progress_model_path = progress_path)
     # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '9.dat'))
 
     # il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod'))

@@ -26,6 +26,7 @@ from rl import action_learner, action_learner_search, value_estimator
 from rl import block_movement_env
 from rl import discrete_value_estimator as  dve
 from rl import discrete_action_learner as dal
+from test_all_searcher import get_model
 
 def print_action_prob(policy_est, progress_state = True):
     if progress_state:
@@ -124,6 +125,9 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--progress_state', action='store', default = True,
                                 help = "Whether to keep progress as state component. Default is True." )
 
+    parser.add_argument('-f', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_SlideAround.mod'" )
+
     args = parser.parse_args()
 
     breadth = int(args.breadth)
@@ -132,6 +136,8 @@ if __name__ == '__main__':
         progress_state = True
     else:
         progress_state = False
+
+    progress_path = args.progress
 
 
     print (progress_state)
@@ -163,40 +169,20 @@ if __name__ == '__main__':
 
     sess.run(tf.global_variables_initializer())
 
-    projects = {}
-    progress_estimators = {}
+    project_name = "SlideAround"
 
-    action_types = ["SlideAround"]
-
-    for project_name in action_types:
-        print ('========================================================')
-        print ('Load for action type = ' + project_name)
-        p_name = project_name.lower() + "_project.proj"
-
-        projects[project_name] = project.Project.load(os.path.join('learned_models', p_name))
-
-        with tf.variable_scope("model") as scope:
-            print('-------- Load progress model ---------')
-            progress_estimators[project_name] = progress_learner.EventProgressEstimator(is_training = False,
-                                                                                        is_dropout = False, 
-                                                                                        name = projects[project_name].name, 
-                                                                                        config = c)  
-
-    # Print out all variables that would be restored
-    for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
-        print (variable.name)
-
-    for project_name in action_types:
-        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
-
-        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.1'))
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
+    
+    p, pe = get_model ( project_name, sess, project_path = os.path.join('learned_models', project_name.lower() + "_project.proj"), 
+        progress_path = progress_path)
 
 
     start_time = time.time()
 
     c.num_episodes = num_episodes
 
-    action_ln = dal.DiscreteActionLearner(c, projects['SlideAround'], progress_estimators['SlideAround'], 
+    action_ln = dal.DiscreteActionLearner(c, p, pe, 
                                    policy_est, value_est, session = sess, limit_step = 12, progress_state = progress_state)
 
     past_envs, stats, es_stats = action_ln.policy_learn(dal.random_action, breadth = breadth, verbose = False,

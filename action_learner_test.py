@@ -14,7 +14,6 @@ import matplotlib
 from matplotlib import pyplot as plt
 import plotting
 
-
 ### IMPORT FROM CURRENT PROJECT
 import progress_learner
 import config
@@ -119,13 +118,14 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--breadth', action='store', metavar = ('BREADTH'), default = 1,
                                 help = "Breadth. Number of actions generated at each step. Default is 1" )
 
-    parser.add_argument('-p', '--progress', action='store', metavar = ('BREADTH'), default = 1,
-                                help = "Breadth. Number of actions generated at each step. Default is 1" )
+    parser.add_argument('-f', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_' + project_name + '.mod'" )
 
     args = parser.parse_args()
 
     breadth = int(args.breadth)
     num_episodes = int(args.episode)
+    progress_path = args.progress
 
     model_type = args.model
 
@@ -146,43 +146,20 @@ if __name__ == '__main__':
 
 
     sess =  tf.Session()
-
     sess.run(tf.global_variables_initializer())
 
-    projects = {}
-    progress_estimators = {}
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
 
-    action_types = ["SlideAround"]
-
-    for project_name in action_types:
-        print ('========================================================')
-        print ('Load for action type = ' + project_name)
-        p_name = project_name.lower() + "_project.proj"
-
-        projects[project_name] = project.Project.load(os.path.join('learned_models', p_name))
-
-        with tf.variable_scope("model") as scope:
-            print('-------- Load progress model ---------')
-            progress_estimators[project_name] = progress_learner.EventProgressEstimator(is_training = False,
-                                                                                        is_dropout = False, 
-                                                                                        name = projects[project_name].name, 
-                                                                                        config = c)  
-
-    # Print out all variables that would be restored
-    for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
-        print (variable.name)
-
-    for project_name in action_types:
-        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
-
-        saver.restore(sess, os.path.join('learned_models', 'progress_' + project_name + '.mod.1'))
-
+    project_name = "SlideAround"
+    p, pe = get_model ( project_name, sess, project_path = os.path.join('learned_models', project_name.lower() + "_project.proj"), 
+        progress_path = progress_path)
 
     start_time = time.time()
 
     c.num_episodes = num_episodes
 
-    action_ln = action_learner.ActionLearner(c, projects['SlideAround'], progress_estimators['SlideAround'], 
+    action_ln = action_learner.ActionLearner(c, p, pe, 
                                policy_est, value_est, session = sess, limit_step = 12)
 
     past_envs, stats, es_stats = action_ln.policy_learn(action_learner_search.action_policy(c), breadth = breadth, verbose = False,

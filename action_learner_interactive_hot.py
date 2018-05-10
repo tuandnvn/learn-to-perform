@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+import argparse
 
 import tensorflow as tf
 import matplotlib
@@ -268,13 +269,34 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         plt.show()
 
 if __name__ == '__main__':
-    # I have used progress_SlideAround.mod for continuous search
-    # and progress_SlideAround.mod.1 for discrete search
-    # Couldn't remember for sure what is the difference
+    parser = argparse.ArgumentParser(description='Test greedy interactive API with immediate update.')
 
-    il = InteractiveLearnerHot(online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated.updated'),
-        new_progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated.updated'))
-    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'), online = True)
+    parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
+                                help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
+    parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_' + action + '.mod.updated'" )
+    parser.add_argument('-s', '--save', action='store', metavar = ('SAVE'),
+                                help = "Where to save updated progress file." )
+
+    args = parser.parse_args()
+
+    progress_path = args.progress
+    project_name = args.action
+    progress_path_save = args.save
+
+    if project_name is None:
+        project_name = 'SlideAround'
+
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
+
+    if progress_path_save is None:
+        progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.updated')
+
+    il = InteractiveLearnerHot(action_type = project_name, online = True, progress_model_path = progress_path,
+        new_progress_model_path = progress_path_save)
+
+    # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'), online = True)
 
     il.visualize()
            
