@@ -1,10 +1,13 @@
 import os
 from collections import defaultdict
+
+import tensorflow as tf
 import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
 
 from action_learner_interactive import InteractiveLearner
+from feedback_improver import create_batch_size
 
 class HistoryStorage ( object ) :
     """
@@ -39,9 +42,12 @@ class InteractiveLearnerHot ( InteractiveLearner ):
     
     This interactive learner should only use Greedy search on Continuous space, because the new actions are taken on Continuous space.
     """
-    def __init__(self, c = None, action_type = "SlideAround", online = True, project_path = None, progress_model_path = None):
+    def __init__(self, c = None, action_type = "SlideAround", online = True, project_path = None, 
+                        progress_model_path = None, new_progress_model_path = None):
         super().__init__(c = c, action_type = action_type, discrete = False, online = online, 
             project_path = project_path, progress_model_path = progress_model_path)
+
+        self.new_progress_model_path = new_progress_model_path
         """
         We store history of searching 
         so that we can update the reward at a later phase
@@ -143,6 +149,28 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         return onclick
 
     def save ( self, event ):
+        """
+        Save the progress model to a file
+        """
+        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + self.action_type))
+        saver.save(self.sess, self.new_progress_model_path)
+
+        print ('Model is saved at %s' % self.new_progress_model_path)
+
+    def update_with_data ( self, X, y, episode = 10 ):
+        c = self.pe.config
+        for i in range(episode):
+            print ('-------------------------------')
+            lr_decay = c.lr_decay ** i
+            new_learning_rate = c.learning_rate * 0.05 * lr_decay
+            print ('Rate = %.5f' % (new_learning_rate))
+            self.pe.assign_lr(new_learning_rate, sess = self.sess)
+            
+            # Update with negative samples
+            self.pe.update(X, y, sess = self.sess)
+
+    def update ( self, event ):
+        print ('================')
         print ('Samples')
         for step in self.history_storage.samples:
             vals = [('%.3f' % y) for X, y in self.history_storage.samples[step]]
@@ -151,13 +179,61 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         for step in self.history_storage.corrected_samples:
             X, y = self.history_storage.corrected_samples[step]
             print ('step = %d, correct val = %.3f' % (step, y))
-
-    def update ( self ):
+        print ('================')
+        print ('Update')
+        alpha = self.config.interactive_alpha
         """
         Collect samples from self.history_storage
         and update right away
         """
-        pass
+        # First type of update
+        # Update all other positions so that progress values = correct position * ( 1 - alpha )
+        X_samples_1 = []
+        y_samples_original = []
+        y_samples_1 = []
+
+        for step in self.history_storage.corrected_samples:
+            X_corrected, y_corrected = self.history_storage.corrected_samples[step]
+
+            for X, y in self.history_storage.samples[step]:
+                if y > y_corrected * ( 1 - alpha ):
+                    X_samples_1.append(X)
+                    y_samples_original.append(y)
+                    y_samples_1.append( y_corrected * ( 1 - alpha ) )
+
+        print (y_samples_original)
+
+        batch_size = self.config.batch_size
+
+        X_1 = create_batch_size ( X_samples_1, batch_size )
+        y_1 = create_batch_size ( y_samples_1, batch_size )
+        self.update_with_data ( X_1, y_1 )
+
+
+        # Update all correct positions so that progress values = step / total_step 
+        # if  step / total_step > current_progress
+        X_samples_2 = []
+        y_samples_2 = []
+        for step in self.history_storage.corrected_samples:
+            X_corrected, y_corrected = self.history_storage.corrected_samples[step]
+
+            if y_corrected < step / self.callback.index:
+                X_samples_2.append(X_corrected)
+                y_samples_2.append(step / self.callback.index)
+
+        print ([self.history_storage.corrected_samples[step][1] for step in self.history_storage.corrected_samples])
+
+        X_2 = create_batch_size ( X_samples_2, batch_size )
+        y_2 = create_batch_size ( y_samples_2, batch_size )
+        self.update_with_data ( X_2, y_2 )
+
+        # There might me one more update step to order progress values, but let's see
+
+        print ('Recalculate')
+        updated = self.pe.predict(X_1, sess = self.sess)[:len(X_samples_1)]
+        print (updated)
+        updated = self.pe.predict(X_2, sess = self.sess)[:len(X_samples_2)]
+        print (updated)
 
     def visualize (self):
         # super().visualize()
@@ -179,7 +255,11 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         bnext = Button(axnext, 'Next')
         bnext.on_clicked(callback.next)
 
-        axsave = plt.axes([0.48, 0.05, 0.1, 0.075])
+        axupdate = plt.axes([0.48, 0.05, 0.1, 0.075])
+        bupdate = Button(axupdate, 'Update')
+        bupdate.on_clicked(self.update)
+
+        axsave = plt.axes([0.37, 0.05, 0.1, 0.075])
         bsave = Button(axsave, 'Save')
         bsave.on_clicked(self.save)
 
@@ -192,11 +272,10 @@ if __name__ == '__main__':
     # and progress_SlideAround.mod.1 for discrete search
     # Couldn't remember for sure what is the difference
 
-    il = InteractiveLearnerHot(online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated'))
-    # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAroundDiscrete', '9.dat'))
+    il = InteractiveLearnerHot(online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated.updated'),
+        new_progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod.updated.updated'))
+    il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'), online = True)
 
-    # il = InteractiveLearner(discrete = False, online = True, progress_model_path = os.path.join('learned_models', 'progress_SlideAround.mod'))
-    # il.load_demo(os.path.join('experiments', 'human_evaluation_2d', 'SlideAround', '0.dat'))
     il.visualize()
            
         

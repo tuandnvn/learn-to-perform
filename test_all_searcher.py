@@ -63,9 +63,9 @@ def get_default_models( action_types, sess ):
         with tf.variable_scope("model") as scope:
             print('-------- Load progress model ---------')
             progress_estimator = progress_learner.EventProgressEstimator(is_training=True, 
-                                                                                        is_dropout = False, 
-                                                                                        name = p.name, 
-                                                                                        config = progress_estimator.config)  
+                                                                        is_dropout = False, 
+                                                                        name = p.name, 
+                                                                        config = progress_estimator.config)  
             
         saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
 
@@ -127,23 +127,6 @@ TEST_FUNCION = {
 }
 
 if __name__ == '__main__':
-    # stored_envs = []
-    # stored_config_prefix = os.path.join("experiments", "human_evaluation_2d" , 'SlideAround')
-    # STORE_ENVS = os.path.join('data', "stored_envs_1.dat")
-    # for index in range(30):
-    #     stored_config_file = os.path.join(stored_config_prefix, str(index) + ".dat")
-    #     try:
-    #         with open(stored_config_file, 'rb') as fh:
-    #             # need this encoding 
-    #             stored_config = pickle.load(fh, encoding='latin-1')
-        
-    #             stored_envs.append(stored_config['start_config'])
-
-    #     except FileNotFoundError as e:
-    #         print (e)
-
-    # pickle.dump( stored_envs, open( STORE_ENVS, "wb" ) )
-
     parser = argparse.ArgumentParser(description='Test searcher.')
 
     parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
@@ -154,14 +137,19 @@ if __name__ == '__main__':
                                 help = "Choose one of the followings: ALL, GREEDY, BACKUP, CONTINUOUS, DISCRETE. Default is ALL" )
     parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
                                 help = "Path of progress file. Default is 'learned_models/progress_' + project_name + '.mod'" )
+    parser.add_argument('-s', '--setup', action='store', metavar = ('SETUP'),
+                                help = "Path to setup file. Default is 'data/stored_envs_1.dat (first set)" )
 
     args = parser.parse_args()
     size = int(args.size)
     project_name = args.action
     algorithm = args.algorithm
     progress_path = args.progress
+    store_envs = args.setup
 
-    
+    if algorithm is None:
+        algorithm = ALL
+
     ### MAIN CODE
     tf.reset_default_graph()
     sess =  tf.Session()
@@ -170,12 +158,14 @@ if __name__ == '__main__':
 
 
     # Save it down so we can load it later
-    STORE_ENVS = os.path.join('data', "stored_envs_2.dat")
-    if os.path.isfile(STORE_ENVS):
-        print ('Load ' + STORE_ENVS)
-        stored_envs = pickle.load( open( STORE_ENVS, "rb" ) )
+    if store_envs is None:
+        store_envs = os.path.join('data', "stored_envs_1.dat")
+
+    if os.path.isfile(store_envs):
+        print ('Load ' + store_envs)
+        stored_envs = pickle.load( open( store_envs, "rb" ) )
     else:
-        print ('Create ' + STORE_ENVS)
+        print ('Create ' + store_envs)
         stored_envs = []
 
         for i in range(50):
@@ -183,7 +173,7 @@ if __name__ == '__main__':
             e = block_movement_env.BlockMovementEnv(config.Config(), 1, session = sess)
             
             stored_envs.append(e.start_config)
-        pickle.dump( stored_envs, open( STORE_ENVS, "wb" ) )
+        pickle.dump( stored_envs, open( store_envs, "wb" ) )
 
     verbose = False
 
@@ -218,22 +208,22 @@ if __name__ == '__main__':
                                                 progress_estimator = progress_estimator,
                                                 session = sess)
 
-    if algorithm in [ALL, GREEDY, CONTINUOUS]:
-        reset()
-        for i in range(size):
-            print (i)
-            start_time = time.time()
-            ## GREEDY
-            # ==================
-            e.reset_env_to_state(stored_envs[i], [])
-            searcher = als.ActionLearner_Search(progress_estimator.config, p, 
-                                                progress_estimator, session = sess, env = e)
-            action_level, progress, exploration = searcher.greedy(verbose = verbose)
-            add_stat (action_level, progress, exploration)
-            times.append(time.time() - start_time)
+    # if algorithm in [ALL, GREEDY, CONTINUOUS]:
+    #     reset()
+    #     for i in range(size):
+    #         print (i)
+    #         start_time = time.time()
+    #         ## GREEDY
+    #         # ==================
+    #         e.reset_env_to_state(stored_envs[i], [])
+    #         searcher = als.ActionLearner_Search(progress_estimator.config, p, 
+    #                                             progress_estimator, session = sess, env = e)
+    #         action_level, progress, exploration = searcher.greedy(verbose = verbose)
+    #         add_stat (action_level, progress, exploration)
+    #         times.append(time.time() - start_time)
 
-        print ('GREEDY CONTINUOUS')
-        summary_state()
+    #     print ('GREEDY CONTINUOUS')
+    #     summary_state()
     
     if algorithm in [ALL, GREEDY, DISCRETE]:
         reset()

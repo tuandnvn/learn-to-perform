@@ -53,12 +53,10 @@ class InteractiveLearner ( object ):
 
         sess.run(tf.global_variables_initializer())
 
-        projects = {}
-        progress_estimators = {}
-
         if action_type is None:
             action_type = "SlideAround"
 
+        self.action_type = action_type
         
         print ('========================================================')
         print ('Load for action type = ' + action_type)
@@ -70,7 +68,7 @@ class InteractiveLearner ( object ):
 
         with tf.variable_scope("model") as scope:
             print('-------- Load progress model ---------')
-            self.pe = pe = progress_learner.EventProgressEstimator(is_training = False,
+            self.pe = pe = progress_learner.EventProgressEstimator(is_training = True,
                                                         is_dropout = False, 
                                                         name = action_type, 
                                                         config = c)  
@@ -94,18 +92,20 @@ class InteractiveLearner ( object ):
         self.no_of_search = 24
         self.progress = [0]
 
-    def load_demo( self, demo_file ):
+    def load_demo( self, demo_file, online = False ):
         """
         Set self.e to the initial state in demo_file if demo_file store a demonstration
 
         Parameters:
         -----
         demo_file: a .dat file that has been saved as picked file
+        online: = False: just watch the old demonstration
+                = True: Re planning
 
         Returns:
         --------
         """
-        self.online = False
+        self.online = online
 
         with open(demo_file, 'rb') as fh:
             # need this encoding 

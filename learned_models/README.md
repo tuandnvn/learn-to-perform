@@ -23,3 +23,9 @@ Using demonstrations (experiments/human_evaluation_2d/SlideAround) and grades (e
 SlideAround.mod 1: Using index 0 to 14
 
 SlideAround.mod 2: Using index 0 to 14
+
+SlideAround.mod.updated with all indices
+
+SlideAround.mod.updated.2 with all indices but with automatic oracle
+
+SlideAround.mod.updated.updated follows the hot feedback update method

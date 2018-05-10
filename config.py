@@ -12,7 +12,7 @@ class Config (object):
 	n_objects = 2 #
 	# Real block_size = 0.15
 	block_size = 0.20
-	progress_threshold = 0.85
+	progress_threshold = 0.95
 
 	num_steps = 20
 	n_input = 7
@@ -79,6 +79,8 @@ class Config (object):
 	keep_branching = 9
 	branching = 36 # Target is so that at the last loop, we reduce branching down so that we lower
 				   # the number of searching steps we spend
+
+	interactive_alpha = 0.1
 
 
 class Raw_Config (Config):

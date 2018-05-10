@@ -17,7 +17,9 @@ class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training, is_dropout = True, name=None, config = Config()):
+    def __init__(self, is_training = True, is_dropout = True, name=None, config = Config()):
+        print ('is_training', is_training)
+        print ('is_dropout', is_dropout)
         self.config = config
         self.num_steps = num_steps = config.num_steps
         self.n_input = n_input = config.n_input
@@ -25,9 +27,6 @@ class EventProgressEstimator(object):
         # This is an option, if self.s2s = True -> Use all progress values
         # otherwise just use the last progress value
         self.s2s = config.s2s
-
-        if is_training:
-            self.dropout = True
         
         with tf.variable_scope(name):
             "Declare all placeholders"
@@ -54,6 +53,7 @@ class EventProgressEstimator(object):
                 
             
             if is_training:
+                print ('Set lr')
                 self.lr = tf.Variable(initial_value=0.0, trainable=False)
             
             lstm_cell = BasicLSTMCell(size, forget_bias = 1.0, state_is_tuple=True)
