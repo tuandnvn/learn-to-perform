@@ -159,6 +159,8 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         print ('Model is saved at %s' % self.new_progress_model_path)
 
     def update_with_data ( self, X, y, episode = 10 ):
+        print (X.shape)
+        print (y.shape)
         c = self.pe.config
         for i in range(episode):
             print ('-------------------------------')
@@ -206,9 +208,11 @@ class InteractiveLearnerHot ( InteractiveLearner ):
 
         batch_size = self.config.batch_size
 
-        X_1 = create_batch_size ( X_samples_1, batch_size )
-        y_1 = create_batch_size ( y_samples_1, batch_size )
-        self.update_with_data ( X_1, y_1 )
+        if len(X_samples_1) != 0 and len(y_samples_1) != 0:
+            X_1_s = create_batch_size ( X_samples_1, batch_size )
+            y_1_s = create_batch_size ( y_samples_1, batch_size )
+            for X, y in zip(X_1_s, y_1_s):
+                self.update_with_data ( X, y )
 
 
         # Update all correct positions so that progress values = step / total_step 
@@ -224,17 +228,36 @@ class InteractiveLearnerHot ( InteractiveLearner ):
 
         print ([self.history_storage.corrected_samples[step][1] for step in self.history_storage.corrected_samples])
 
-        X_2 = create_batch_size ( X_samples_2, batch_size )
-        y_2 = create_batch_size ( y_samples_2, batch_size )
-        self.update_with_data ( X_2, y_2 )
+        if len(X_samples_2) != 0 and len(y_samples_2) != 0:
+            X_2_s = create_batch_size ( X_samples_2, batch_size )
+            y_2_s = create_batch_size ( y_samples_2, batch_size )
+            for X, y in zip(X_2_s, y_2_s):
+                self.update_with_data ( X, y )
 
         # There might me one more update step to order progress values, but let's see
-
         print ('Recalculate')
-        updated = self.pe.predict(X_1, sess = self.sess)[:len(X_samples_1)]
-        print (updated)
-        updated = self.pe.predict(X_2, sess = self.sess)[:len(X_samples_2)]
-        print (updated)
+        try:
+            results = []
+            for X in X_1_s:
+                updated = self.pe.predict(X, sess = self.sess)
+                for v in updated:
+                    results.append(v)
+
+            print (results[:len(X_samples_1)])
+        except NameError:
+            pass
+
+        try:
+            results = []
+            for X in X_2_s:
+                updated = self.pe.predict(X, sess = self.sess)
+                for v in updated:
+                    results.append(v)
+
+            print (results[:len(X_samples_2)])
+        except NameError:
+            pass
+
 
     def visualize (self):
         # super().visualize()
@@ -287,8 +310,8 @@ if __name__ == '__main__':
     if project_name is None:
         project_name = 'SlideAround'
 
-    if progress_path is None:
-        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
+    # if progress_path is None:
+    #     progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
 
     if progress_path_save is None:
         progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.updated')

@@ -91,8 +91,8 @@ def get_model ( project_name, sess, project_path = None, progress_path = None):
     if project_path is None:
         project_path = os.path.join('learned_models', project_name.lower() + "_project.proj")
 
-    if progress_path is None:
-        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
+    # if progress_path is None:
+    #     progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
 
     p = project.Project.load(project_path)
     
@@ -105,10 +105,15 @@ def get_model ( project_name, sess, project_path = None, progress_path = None):
     
     for variable in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'):
         print (variable.name)
-    saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
-    saver.restore(sess, progress_path)
 
-    print ('Load progress learner from ' + progress_path)
+    if progress_path is None:
+        print ('No progress path. Use random initializer')
+        sess.run(tf.global_variables_initializer())
+    else:
+        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + project_name))
+        saver.restore(sess, progress_path)
+
+        print ('Load progress learner from ' + progress_path)
 
     return p, pe
 

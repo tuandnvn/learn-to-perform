@@ -44,12 +44,23 @@ from rl import block_movement_env
 from test_all_searcher import get_model, get_default_models, TEST_FUNCION
 
 def create_batch_size ( samples, batch_size ):
-    if len(samples) < batch_size:
+    """
+    A list pack samples into batch of $batch_size items
+    Fill it up by copying same elements to other locations
+    """
+    if len(samples) <= batch_size:
         repeat = batch_size // len(samples)
         remain = batch_size % len(samples)
         
         q = samples * repeat + samples[:remain]
-        return np.stack(q)
+        return [np.stack(q)]
+    else:
+        # Round up
+        num = (len(samples) - 1) // batch_size + 1
+
+        q = samples + samples [: batch_size - (len(samples) - 1) % batch_size - 1]
+
+        return [np.stack ( q[i * batch_size : (i + 1) * batch_size]) for i in range( num )] 
 
 def get_prev_demonstration ( p, pe, stored_config_prefix = None ) :
     """
