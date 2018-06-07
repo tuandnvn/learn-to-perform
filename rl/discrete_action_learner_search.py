@@ -88,6 +88,15 @@ def quantized_random_action(c, env, select_object, discretized_space = [0.18, 0.
                     if len(actions) >= no_of_actions:
                         return None, None, actions
 
+
+def deterministic_quantized_action_policy(c, env, select_object, 
+                discretized_space = [0.18, 0.36, 0.72], no_of_actions = 1, 
+                verbose = False, constraint_function = lambda a : True):
+    """
+    Plan action based on a deterministic policy
+    """
+
+
 class Discrete_ActionLearner_Search(action_learner_search.ActionLearner_Search):
     """
 

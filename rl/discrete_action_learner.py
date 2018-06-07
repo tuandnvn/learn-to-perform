@@ -28,6 +28,23 @@ def random_action(state, policy_estimator, no_of_actions = 1, verbose = False, s
 
     return actions
 
+def e_greedy_random_action(state, policy_estimator, no_of_actions = 1, verbose = False, session = None, e = 0.2):
+    random_or_policy = np.random.choice(2, p = [e, 1-e])
+
+    if random_or_policy == 0:
+        # random
+        actions = np.random.choice(len(action_probs), size = 1)
+
+        return actions
+    else:
+        # policy
+        action_probs = policy_estimator.predict(state, sess = session)
+        # print ('action_probs', action_probs)
+
+        actions = np.random.choice(len(action_probs), size = no_of_actions, p = action_probs)
+
+        return actions
+
 def get_prob(policy_estimator, state, action, sess = None):
     action_probs = policy_estimator.predict(state, sess = sess)
 

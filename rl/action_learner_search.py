@@ -53,26 +53,27 @@ def random_action_constraint(state = None, policy_estimator = None, action_means
 
     return action_means, action_stds, actions[:no_of_actions]
 
-def action_policy(config):
+def boundary_constraint(config, action):
+    # Ignore rotation
+    for i in range(2):
+        if action[i] < config.playground_x[i]:
+            return False
+        if action[i] > config.playground_x[i] + config.playground_dim[i]:
+            return False
+    
+    return True
+
+def random_action_policy(config):
     """
     Given a config that has defined a playground
     """
-    def boundary_constraint(action):
-        # Ignore rotation
-        for i in range(2):
-            if action[i] < config.playground_x[i]:
-                return False
-            if action[i] > config.playground_x[i] + config.playground_dim[i]:
-                return False
-        
-        return True
-    
     def q(state = None, policy_estimator = None, action_means = None, action_stds = None, no_of_actions = 1, verbose = False, 
        session = None):
         return random_action_constraint(state = state, policy_estimator = policy_estimator, action_means = action_means, action_stds = action_stds,
-                    no_of_actions = no_of_actions, verbose = verbose, session = session, constraint_function = boundary_constraint)
+                    no_of_actions = no_of_actions, verbose = verbose, session = session, constraint_function = lambda action: boundary_constraint(config, action) )
     
     return q
+
 
 class ActionLearner_Search(object):
     """
@@ -90,7 +91,7 @@ class ActionLearner_Search(object):
     - When the number of actions need to search doesn't improve at a step
     
     """
-    def __init__(self, config, project, progress_estimator, session = None, env = None):
+    def __init__(self, config, project, progress_estimator, session = None, env = None, action_policy = random_action_policy):
         self.config = config
 
         # All of these components should be 
@@ -117,7 +118,7 @@ class ActionLearner_Search(object):
         
         self.env = env
 
-        self.action_policy = action_policy(self.config)
+        self.action_policy = random_action_policy(self.config)
 
     def _get_actions(self, select_object, exploration, no_of_search, verbose) :
         # Simply use the static object as means
