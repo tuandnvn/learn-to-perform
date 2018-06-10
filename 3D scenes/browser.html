@@ -1,0 +1,32 @@
+<html>
+<head>
+<script type="application/javascript">
+	var current_id = 0; // currently shown image id
+
+	function updateImg(d) {
+      current_id += d;
+      current_id = Math.max(0,Math.min(input_struct.results.length-1, current_id)) // clamp
+      renderImage();
+    }
+</script>
+</head>
+	<center>
+	<div id="video">
+		<video width="640" height="480" controls>
+	    <source src="1.mp4" type="video/mp4">
+		</video>
+	</div>
+
+	<div>
+		<button onclick="updateImg(-1)" class="bb">Previous video</button>
+	    <button onclick="updateImg(1)" class="bb">Next video</button>
+	</div>
+	<div>
+		<button onclick="save" class="bb">Save</button>
+	</div>
+</center>
+<body>
+</body>
+</html>
+
+
