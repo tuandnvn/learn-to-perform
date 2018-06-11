@@ -1,0 +1,156 @@
+<html>
+<head>
+<style>
+	.button {
+	    margin-top: 10px;
+	    margin-bottom: 10px;
+	    width:150px; height:30px;
+	}
+
+	.answer {
+		text-align:left;
+		width:600px;
+		margin-left: 300px;
+		margin-top: 10px;
+	    margin-bottom: 10px;
+	    font-size: 20px;
+	}
+</style>
+<script src="static/jquery-1.8.3.min.js" ></script>
+<script type="text/javascript">
+	var current_id = 0; // currently shown image id
+	var answers = {}; // Keep answer
+
+	function clearRads() {
+	    var radList = document.getElementsByName("answer");
+
+	    for (var i = 0; i < radList.length; i++) {
+	    	if(radList[i].checked) {
+	    		console.log(radList[i].id);
+	    		document.getElementById(radList[i].id).checked = false;
+	    	}
+	    }
+	 }
+
+	function recordAnswer() {
+		// Record answer
+		var answer = $("input[name='answer']:checked").val();
+		answers[current_id] = answer;
+		console.log(answers);
+	}
+
+	function updateVideo(d) {
+		// Change video 
+		if (!$("input[name='answer']:checked").val()) {
+			if (d == 1) {
+				alert('Bạn phải lựa chọn mới được đi tiếp!');
+				return;
+			}
+		} else {
+			recordAnswer();
+		}
+
+		
+		current_id += d;
+
+		// Change radio buttons
+		clearRads();
+		if (current_id in answers) {
+			$('#' + answers[current_id]).prop("checked", true);
+		}
+
+		current_id = Math.max(0,Math.min(149, current_id));
+		renderImage();
+    }
+
+    function renderImage() {
+    	var videocontainer = document.getElementById('video');
+		var videosource = document.getElementById('source');
+		var newmp4 = 'videos/' + current_id + '.mp4';
+
+		$('#title').html(current_id + '.mp4');
+		videocontainer.pause();
+	    videosource.setAttribute('src', newmp4);
+	    videocontainer.load();
+    }
+
+    function save() {
+		//Saving string to file using html clicking trick
+		var hiddenElement = document.createElement('a');
+		hiddenElement.href = 'data:attachment/text,' + encodeURI(JSON.stringify(answers));
+		hiddenElement.target = '_blank';
+		hiddenElement.download = 'answers.txt';
+		hiddenElement.click();
+    }
+
+</script>
+</head>
+	<div style="text-align:center; width:1000px"> 
+		<h3>
+		Trong thí nghiệm này, có 150 đoạn video.
+		Với mỗi đoạn, bạn hãy click vào nút Play để xem 1 đoạn video ngắn mô tả chuyển động của 2 hình lập phương.
+		Khi chuyển sang đoạn tiếp theo, click vào TIẾP THEO. Muốn sửa lại lựa chọn của đoạn trước, click vào TRƯỚC.
+		Hãy lựa chọn 1 trong 6 câu trả lời sau, câu nào phù hợp nhất hành động trong đoạn video.
+		Sau khi làm xong, nhớ ấn vào nút SAVE để save kết quả ra 1 file tên là answers.txt.
+		Đổi tên file thành answers_[TÊN_BẠN].txt
+		</h3> 
+
+		<div>
+			<h1 id='title'>0.mp4</h1>
+		</div>
+		<div>
+			<video  id="video" width="1000" height="400" controls>
+		    <source id="source" src="videos/0.mp4" type="video/mp4">
+			</video>
+		</div>
+	</div>
+	
+	
+	
+
+	<!-- Away -> Closer -> Past -> Around -> Next -->
+	<div style="text-align:center; width:1000px">
+		<div class="answer">
+		Choose one of the followings:
+		</div>
+		<div class='answer'>
+	    <input type="radio" id="Away" name="answer" value="Away">
+	    <label for="Away"> Khối màu <a style="color: #889124">VÀNG</a> dịch chuyển XA DẦN khối màu <a style="color: #3346c4">XANH</a></label>
+		</div>
+		<div class='answer'>
+	    <input type="radio" id="Closer" name="answer" value="Closer">
+	    <label for="Closer"> Khối màu <a style="color: #889124">VÀNG</a> dịch chuyển VÀO GẦN khối màu <a style="color: #3346c4">XANH</a> </label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Past" name="answer" value="Past">
+	    <label for="Past"> Khối màu <a style="color: #889124">VÀNG</a> dịch chuyển VƯỢT MẶT khối màu <a style="color: #3346c4">XANH</a> </label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Around" name="answer" value="Around">
+	    <label for="Around"> Khối màu <a style="color: #889124">VÀNG</a> dịch chuyển VÒNG QUA khối màu <a style="color: #3346c4">XANH</a> </label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Next" name="answer" value="Next">
+	    <label for="Next"> Khối màu <a style="color: #889124">VÀNG</a> dịch chuyển SANG BÊN CẠNH khối màu <a style="color: #3346c4">XANH</a> </label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="None" name="answer" value="None">
+	    <label for="None"> Không có lựa chọn nào phù hợp </label>
+	    </div>
+	</div>
+	<div style="text-align:center; width:1000px"> 
+		<div>
+			<button class='button' onclick="updateVideo(-1)">TRƯỚC</button>
+		    <button class='button' onclick="updateVideo(1)">TIẾP THEO</button>
+		</div>
+		<div>
+		</div>
+		<div >
+			<button class='button' onclick="save()">Save</button>
+		</div>
+	</div>
+<body>
+</body>
+</html>
+
+
