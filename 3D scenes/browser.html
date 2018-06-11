@@ -1,30 +1,153 @@
 <html>
 <head>
-<script type="application/javascript">
-	var current_id = 0; // currently shown image id
+<style>
+	.button {
+	    margin-top: 10px;
+	    margin-bottom: 10px;
+	    width:150px; height:30px;
+	}
 
-	function updateImg(d) {
-      current_id += d;
-      current_id = Math.max(0,Math.min(input_struct.results.length-1, current_id)) // clamp
-      renderImage();
+	.answer {
+		text-align:left;
+		width:600px;
+		margin-left: 300px;
+		margin-top: 10px;
+	    margin-bottom: 10px;
+	    font-size: 20px;
+	}
+</style>
+<script src="static/jquery-1.8.3.min.js" ></script>
+<script type="text/javascript">
+	var current_id = 0; // currently shown image id
+	var answers = {}; // Keep answer
+
+	function clearRads() {
+	    var radList = document.getElementsByName("answer");
+
+	    for (var i = 0; i < radList.length; i++) {
+	    	if(radList[i].checked) {
+	    		console.log(radList[i].id);
+	    		document.getElementById(radList[i].id).checked = false;
+	    	}
+	    }
+	 }
+
+	function recordAnswer() {
+		// Record answer
+		var answer = $("input[name='answer']:checked").val();
+		answers[current_id] = answer;
+		console.log(answers);
+	}
+
+	function updateVideo(d) {
+		// Change video 
+		if (!$("input[name='answer']:checked").val()) {
+			if (d == 1) {
+				alert('Nothing is checked!');
+				return;
+			}
+		} else {
+			recordAnswer();
+		}
+
+		
+		current_id += d;
+
+		// Change radio buttons
+		clearRads();
+		if (current_id in answers) {
+			$('#' + answers[current_id]).prop("checked", true);
+		}
+
+		current_id = Math.max(0,Math.min(149, current_id));
+		renderImage();
     }
+
+    function renderImage() {
+    	var videocontainer = document.getElementById('video');
+		var videosource = document.getElementById('source');
+		var newmp4 = 'videos/' + current_id + '.mp4';
+
+		$('#title').html(current_id + '.mp4');
+		videocontainer.pause();
+	    videosource.setAttribute('src', newmp4);
+	    videocontainer.load();
+    }
+
+    function save() {
+		//Saving string to file using html clicking trick
+		var hiddenElement = document.createElement('a');
+		hiddenElement.href = 'data:attachment/text,' + encodeURI(JSON.stringify(answers));
+		hiddenElement.target = '_blank';
+		hiddenElement.download = 'answers.txt';
+		hiddenElement.click();
+    }
+
 </script>
 </head>
-	<center>
-	<div id="video">
-		<video width="640" height="480" controls>
-	    <source src="1.mp4" type="video/mp4">
-		</video>
-	</div>
+	<div style="text-align:center; width:1000px"> 
+		<h3>
+		This is an experiment to measure ability of algorithm learner
+		in performing actions. There are five actions this AI learner has learned:
+		Slide Away From, Slide Closer To, Slide Past, Slide Around, and Slide Next To.
+		Please select one answer from the following answers
+		that best matches the scene you see.
+		</h3> 
 
-	<div>
-		<button onclick="updateImg(-1)" class="bb">Previous video</button>
-	    <button onclick="updateImg(1)" class="bb">Next video</button>
+		<div>
+			<h1 id='title'>0.mp4</h1>
+		</div>
+		<div>
+			<video  id="video" width="1000" height="400" controls>
+		    <source id="source" src="videos/0.mp4" type="video/mp4">
+			</video>
+		</div>
 	</div>
-	<div>
-		<button onclick="save" class="bb">Save</button>
+	
+	
+	
+
+	<!-- Away -> Closer -> Past -> Around -> Next -->
+	<div style="text-align:center; width:1000px">
+		<div class="answer">
+		Choose one of the followings:
+		</div>
+		<div class='answer'>
+	    <input type="radio" id="Away" name="answer" value="Away">
+	    <label for="Away">Slide the <a style="color: #889124">YELLOW</a> block Away from the <a style="color: #3346c4">BLUE</a> block</label>
+		</div>
+		<div class='answer'>
+	    <input type="radio" id="Closer" name="answer" value="Closer">
+	    <label for="Closer">Slide the <a style="color: #889124">YELLOW</a> block Closer to the <a style="color: #3346c4">BLUE</a> block</label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Past" name="answer" value="Past">
+	    <label for="Past">Slide the <a style="color: #889124">YELLOW</a> block Past the <a style="color: #3346c4">BLUE</a> block</label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Around" name="answer" value="Around">
+	    <label for="Around">Slide the <a style="color: #889124">YELLOW</a> block Around the <a style="color: #3346c4">BLUE</a> block</label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="Next" name="answer" value="Next">
+	    <label for="Next">Slide the <a style="color: #889124">YELLOW</a> block Next To the <a style="color: #3346c4">BLUE</a> block</label>
+	    </div>
+		<div class='answer'>
+	    <input type="radio" id="None" name="answer" value="None">
+	    <label for="None">None of the above</label>
+	    </div>
 	</div>
-</center>
+	<div style="text-align:center; width:1000px"> 
+		<div>
+			<button class='button' onclick="updateVideo(-1)">Previous video</button>
+		    <button class='button' onclick="updateVideo(1)">Next video</button>
+		</div>
+		<div>
+		</div>
+		<div >
+			<button class='button' onclick="save()">Save</button>
+		</div>
+	</div>
 <body>
 </body>
 </html>
