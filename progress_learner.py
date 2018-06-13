@@ -1,7 +1,10 @@
-import os
+import os, sys
 import time
+import argparse
 import numpy as np
 import tensorflow as tf
+
+sys.path.append("strands_qsr_lib\qsr_lib\src3")
 try:
     from tensorflow.nn.rnn_cell import BasicLSTMCell, DropoutWrapper, MultiRNNCell
 except:
@@ -303,7 +306,25 @@ def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    p = Project.load(os.path.join('learned_models', "slidearound_project.proj"))
+    parser = argparse.ArgumentParser(description='Test performance of progress learners for TRAINING/VALIDATING data.')
+
+    parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
+                                help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
+    parser.add_argument('-d', '--data', action='store', metavar = ('FULL'),
+                                help = "Choose one of the followings: FULL, HALF, QUARTER. Default is FULL" )
+    args = parser.parse_args()
+    data_type = args.data
+    project_name = args.action
+
+    if data_type == 'FULL':
+        factor = 1
+    elif data_type == 'HALF':
+        factor = 2
+    elif data_type == 'QUARTER':
+        factor = 4
+
+    file_name = os.path.join('learned_models', project_name.lower() + "_project.proj")
+    p = Project.load(file_name)
     
     config = Config()
     
@@ -338,7 +359,7 @@ if __name__ == "__main__":
 
             print("Epoch: %d Learning rate: %.6f" % (i + 1, session.run(m.lr)))
             
-            indices = np.arange(p.training_data.shape[0] // 4)
+            indices = np.arange(p.training_data.shape[0] // factor)
 
             if config.epoch_shuffle:
                 np.random.shuffle(indices)

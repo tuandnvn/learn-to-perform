@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 import time
@@ -15,7 +16,7 @@ if __name__ == "__main__":
     def learn_all_simple(project_name):
         print ('==============================================')
         print ('Learn progress model for ' + project_name)
-        file_name = project_name.lower() + "_project.proj"
+        file_name = os.path.join('learned_models', project_name.lower() + "_project.proj")
 
         p = Project.load(file_name)
         
@@ -47,12 +48,13 @@ if __name__ == "__main__":
 
 
             saver = tf.train.Saver()
-            saver.save(session, "progress_" + project_name + ".mod")
+            progress_path = os.path.join('learned_models', "progress_" + project_name + ".mod")
+            saver.save(session, progress_path)
 
-            print('-------- Saved progress.mod ---------')
+            print('-------- Saved progress file to ' + progress_path)
 
-    for project_name in ["SlideNext"]:
-    # for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
+    # for project_name in ["SlideNext"]:
+    for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
         learn_all_simple(project_name)
 
 

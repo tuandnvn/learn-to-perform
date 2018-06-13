@@ -161,7 +161,6 @@ if __name__ == '__main__':
 
     p, progress_estimator = get_model (project_name, sess, progress_path = progress_path)
 
-
     # Save it down so we can load it later
     if store_envs is None:
         store_envs = os.path.join('data', "stored_envs_1.dat")

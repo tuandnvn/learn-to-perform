@@ -299,7 +299,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
                                 help = "Path of progress file. Default is 'learned_models/progress_' + action + '.mod.updated'" )
     parser.add_argument('-s', '--save', action='store', metavar = ('SAVE'),
-                                help = "Where to save updated progress file." )
+                                help = "Where to save updated progress file. Default is 'learned_models/progress_' + action + '.mod.updated.updated'" )
 
     args = parser.parse_args()
 
@@ -310,8 +310,8 @@ if __name__ == '__main__':
     if project_name is None:
         project_name = 'SlideAround'
 
-    # if progress_path is None:
-    #     progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
 
     if progress_path_save is None:
         progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.updated')

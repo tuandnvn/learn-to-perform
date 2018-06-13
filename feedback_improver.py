@@ -29,6 +29,7 @@ import sys
 import collections
 import numpy as np
 import pickle
+import argparse
 
 sys.path.append("strands_qsr_lib\qsr_lib\src3")
 
@@ -166,7 +167,7 @@ def retrain_action ( project_name, sess, stored_config_prefix = None, demonstrat
     """
     print ('=== For ' + project_name)
 
-    p, pe = get_model ( project_name , sess)
+    p, pe = get_model ( project_name, sess, project_path = project_path, progress_path = progress_path)
 
     prev_demonstrations = get_prev_demonstration ( p, pe, stored_config_prefix )
 
@@ -220,30 +221,38 @@ def update_model ( progress_estimator, project_name, episode, sess, positive_dat
 
     print ('Model is saved at %s' % output_file)
 
+AUTOMATIC = 'AUTOMATIC'
+HUMAN = 'HUMAN'
+
 if __name__ == '__main__':
-    import argparse
-
-    AUTOMATIC = 'AUTOMATIC'
-    HUMAN = 'HUMAN'
-
-    tf.reset_default_graph()
-    sess =  tf.Session()
-
     parser = argparse.ArgumentParser(description='This file load a progress learner and update it with demonstrations from a directory.\
                 Note that these demonstrations need to be generated with this progress learner.')
 
     parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'), 
                                 help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
 
-    parser.add_argument('-m', '--mode', action='store', metavar = ('MODE'), 
-                                help = "Choose between HUMAN and AUTOMATIC. HUMAN mode run experiments with real human scores. AUTOMATIC uses automatic oracles.")
+    parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
+                                help = "Path of progress file. Default is 'learned_models/progress_' + action + '.mod'" )
 
     parser.add_argument('-m', '--mode', action='store', metavar = ('MODE'), 
                                 help = "Choose between HUMAN and AUTOMATIC. HUMAN mode run experiments with real human scores. AUTOMATIC uses automatic oracles.")
 
+    parser.add_argument('-s', '--save', action='store', metavar = ('SAVE'),
+                                help = "Where to save updated progress file. Default is 'learned_models/progress_' + action + '.mod.2'" )
+
+    tf.reset_default_graph()
+    sess =  tf.Session()
     args = parser.parse_args()
+    progress_path = args.progress
     project_name = args.action
+    progress_path_save = args.save
     mode = args.mode
+
+    if progress_path is None:
+        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
+
+    if progress_path_save is None:
+        progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.2')
 
     if mode == HUMAN:
         lower_threshold = 3.5
@@ -262,4 +271,5 @@ if __name__ == '__main__':
         demonstration_evaluator = automatic_feedback_evaluator ( project_name ) 
 
     retrain_action ( project_name, sess, demonstration_evaluator = demonstration_evaluator, 
-        stored_config_prefix = os.path.join("experiments", "human_evaluation_2d" , 'SlideAroundDiscrete') )
+        stored_config_prefix = os.path.join("experiments", "human_evaluation_2d" , 'SlideAroundDiscrete'),
+        progress_path = progress_path, output_file = progress_path_save )
