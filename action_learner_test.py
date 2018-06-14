@@ -7,7 +7,7 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append("strands_qsr_lib\qsr_lib\src3")
+sys.path.append( os.path.join( "strands_qsr_lib", "qsr_lib", "src3") )
 
 ## PLOTTING 
 import matplotlib
@@ -148,10 +148,10 @@ if __name__ == '__main__':
     sess =  tf.Session()
     sess.run(tf.global_variables_initializer())
 
+    project_name = "SlideAround"
     if progress_path is None:
         progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod')
 
-    project_name = "SlideAround"
     p, pe = get_model ( project_name, sess, project_path = os.path.join('learned_models', project_name.lower() + "_project.proj"), 
         progress_path = progress_path)
 

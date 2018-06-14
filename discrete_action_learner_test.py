@@ -7,7 +7,7 @@ import time
 import numpy as np
 import argparse
 
-sys.path.append("strands_qsr_lib\qsr_lib\src3")
+sys.path.append( os.path.join( "strands_qsr_lib", "qsr_lib", "src3") )
 
 ## PLOTTING 
 import matplotlib

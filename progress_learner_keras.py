@@ -89,7 +89,7 @@ class EventProgressEstimatorKeras(object):
 
 
 if __name__ == '__main__':
-    p = Project.load("slidearound_p2.proj")
+    p = Project.load("slidearound_data.proj")
     
     config = Config()
 

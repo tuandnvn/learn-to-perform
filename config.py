@@ -1,10 +1,9 @@
 import numpy as np
 
+QUAN = 'QUANTITATIVE'
+QUAL = 'QUALITATIVE'
 
 class Config (object):
-	QUAN = 'QUANTITATIVE'
-	QUAL = 'QUALITATIVE'
-
 	# For reinforce learning
 	playground_x = [-1.1,-1.1, 0]
 	playground_dim = [2.2, 2.2, np.pi/2]
@@ -15,8 +14,6 @@ class Config (object):
 	progress_threshold = 0.95
 
 	num_steps = 20
-	n_input = 7
-	input_type = QUAL
 	
 	state_dimension = 4
 	action_dimension = 2
@@ -85,6 +82,14 @@ class Config (object):
 
 class Raw_Config (Config):
 	n_input = 40
+
+class Qual_Config (Config):
+	n_input = 7
+	input_type = QUAL
+
+class Quan_Config (Config):
+	n_input = 40
+	input_type = QUAN
 
 class Next_Frame_Config (object):
 	# Probably just simple location/orientation difference btw two objects

@@ -12,7 +12,7 @@ except:
 
 import stateful_lstm
 
-from config import Config, Raw_Config
+from config import Config, Qual_Config, Quan_Config
 from project import Project
 from generate_utils import gothrough
 
@@ -306,16 +306,22 @@ def run_epoch(m, data, lbl, info = none_info(), verbose=False, training = True):
     return costs / cost_iters
     
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Test performance of progress learners for TRAINING/VALIDATING data.')
+    parser = argparse.ArgumentParser(description='Test performance of progress learners for TRAIN/VALIDATE/TEST data.')
 
     parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
                                 help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
-    parser.add_argument('-d', '--data', action='store', metavar = ('FULL'),
+    parser.add_argument('-d', '--data', action='store', metavar = ('DATA'), default='FULL',
                                 help = "Choose one of the followings: FULL, HALF, QUARTER. Default is FULL" )
+    parser.add_argument('-t', '--type', action='store', metavar = ('TYPE'), default='QUAL',
+                                help = "Choose one of the followings: QUAL (qualitative), QUAN (quantitative). Default is QUAL" )
+    parser.add_argument('-p', '--project', action='store', metavar = ('PROJECT'),
+                                help = "Location of project file." )
+
     args = parser.parse_args()
-    data_type = args.data
+    
     project_name = args.action
 
+    data_type = args.data
     if data_type == 'FULL':
         factor = 1
     elif data_type == 'HALF':
@@ -323,10 +329,21 @@ if __name__ == "__main__":
     elif data_type == 'QUARTER':
         factor = 4
 
-    file_name = os.path.join('learned_models', project_name.lower() + "_project.proj")
-    p = Project.load(file_name)
+    feature_type = args.type
+    if feature_type == 'QUAL':
+        config = Qual_Config()
+    elif feature_type == 'QUAN':
+        config = Quan_Config()
+
+    project_file = args.project
+
+    if project_file is None:
+        if feature_type == 'QUAL':
+            project_file = os.path.join('learned_models', project_name.lower() + "_project.proj")
+        elif feature_type == 'QUAN':
+            project_file = os.path.join('learned_models', project_name.lower() + "_raw.proj")
     
-    config = Config()
+    p = Project.load(project_file)
     
     np.random.seed()
 

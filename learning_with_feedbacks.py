@@ -3,10 +3,7 @@ import os
 import sys
 import collections
 
-module_path = os.path.abspath(os.path.join('..'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-a = os.path.join(module_path, "strands_qsr_lib\qsr_lib\src3")
+sys.path.append( os.path.join( "strands_qsr_lib", "qsr_lib", "src3") )
 
 sys.path.append(a)
 from rl import action_learner, action_learner_search, value_estimator, discrete_action_learner_search
