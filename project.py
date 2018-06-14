@@ -186,8 +186,7 @@ if __name__ == "__main__":
     """
     def create_projects():
         from project import Project, ProjectData
-        for project_name in ["SlideNext"]:
-        # for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
+        for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
             p_data = ProjectData(project_name, ["Session1", "Session2"])
             print ('Load project ' + p_data.name)
             p_data.load_data()
@@ -199,27 +198,18 @@ if __name__ == "__main__":
             p.save(project_name.lower() + "_project.proj")
 
     # create_projects()
-
-
-    # p_data = ProjectData("SlideAround", ["Session1", "Session2"])
-    # print ('Load project ' + p_data.name)
-    # p_data.load_data()
-    # p_data.preprocess()
-    # p_data.save("slidearound_p2.proj")
      
-    p_data = ProjectData.load(os.path.join('learned_models', "slidearound_p2.proj"))
+    p_data = ProjectData.load(os.path.join('learned_models', "slidearound_data.proj"))
     p = Project(p_data)
     p.standardize(feature_utils.marker_feature_extractor) 
     p.generate_data()
     p.save(os.path.join('learned_models', "slidearound_raw.proj"))
 
-    # p = Project.load("slidearound_p2.proj")
-
 
     def load_multi_project(output_name):
         ps = []
         for project_name in ["SlideToward", "SlideAway", "SlideNext", "SlidePast", "SlideAround"]:
-            p_data = ProjectData.load(project_name.lower() + "_p2.proj")
+            p_data = ProjectData.load(project_name.lower() + "_data.proj")
 
             p = Project(p_data)
             p.standardize(feature_utils.marker_feature_extractor)
@@ -231,29 +221,4 @@ if __name__ == "__main__":
         multi_p.save(output_name)
 
     # load_multi_project("all_actions.proj")
-
-
-    # p.generate_data(linear_progress_lbl_func = 
-    #        generate_utils.linear_progress_lbl_generator_retreat)
-
-    # p.save("slidearound_hopstep_1_multiscale_quant.proj")
-
-    # print (p.training_data[0][0])
-    # print (p.training_lbl[0][0])
-    
-    # print (p.training_data[0][1])
-    # print (p.training_lbl[0][1])
-
-    # print (p.training_data.shape)
-    # print (p.training_lbl.shape)
-    
-    # print (p.testing_data.shape)
-    # print (p.testing_lbl.shape)
-
-    # p_data = ProjectData.load("slidearound_data_raw.proj")
-
-    # for key in p_data.sessions[0][SESSION_OBJ_2D]:
-    #     print ('-------------------------------------------------------- ' +  key )
-    #     for frame in range(p_data.sessions[0][SESSION_LEN]):
-    #         print (p_data.sessions[0][SESSION_OBJ_2D][key][frame])
 
