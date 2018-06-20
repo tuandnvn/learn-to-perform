@@ -20,7 +20,7 @@ class EventProgressEstimator(object):
     """
     Estimate the progress of event using LSTM
     """
-    def __init__(self, is_training = True, is_dropout = True, name=None, config = Config()):
+    def __init__(self, is_training = True, is_dropout = True, name=None, config = Qual_Config()):
         print ('is_training', is_training)
         print ('is_dropout', is_dropout)
         self.config = config

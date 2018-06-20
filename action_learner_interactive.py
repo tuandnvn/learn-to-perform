@@ -46,7 +46,7 @@ class InteractiveLearner ( object ):
         self.online = online
 
         if c is None:
-            c = config.Config()
+            c = config.Qual_Config()
 
         self.config = c
 
@@ -65,7 +65,7 @@ class InteractiveLearner ( object ):
             project_path = os.path.join('learned_models', action_type.lower() + "_project.proj")
         
         p, pe = get_model ( action_type, sess, project_path = project_path, 
-                    progress_path = progress_model_path)
+                    progress_path = progress_model_path, c = self.config)
         self.project = p
         self.pe = pe
 

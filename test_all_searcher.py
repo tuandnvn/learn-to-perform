@@ -73,7 +73,7 @@ def get_default_models( action_types, sess ):
 
     return configs, projects, progress_estimators
 
-def get_model ( project_name, sess, project_path = None, progress_path = None):
+def get_model ( project_name, sess, project_path = None, progress_path = None, c = config.Qual_Config()):
     import tensorflow as tf
     import project
     # Need to add this import to load class
@@ -81,7 +81,6 @@ def get_model ( project_name, sess, project_path = None, progress_path = None):
     import config
     import progress_learner
 
-    c = config.Config()
     if project_name == 'SlideNext':
         c.n_input = 8
         
