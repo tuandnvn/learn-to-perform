@@ -153,10 +153,13 @@ class InteractiveLearnerHot ( InteractiveLearner ):
         """
         Save the progress model to a file
         """
-        saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + self.action_type))
-        saver.save(self.sess, self.new_progress_model_path)
+        if self.new_progress_model_path is not None:
+            saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model/' + self.action_type))
+            saver.save(self.sess, self.new_progress_model_path)
 
-        print ('Model is saved at %s' % self.new_progress_model_path)
+            print ('Model is saved at %s' % self.new_progress_model_path)
+        else:
+            print ('No path to save')
 
     def update_with_data ( self, X, y, episode = 10 ):
         print (X.shape)
@@ -297,7 +300,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--action', action='store', metavar = ('ACTION'),
                                 help = "Action type. Choose from 'SlideToward', 'SlideAway', 'SlideNext', 'SlidePast', 'SlideAround'" )
     parser.add_argument('-p', '--progress', action='store', metavar = ('PROGRESS'),
-                                help = "Path of progress file. Default is 'learned_models/progress_' + action + '.mod.updated'" )
+                                help = "Path of progress file. A recommended path is 'learned_models/progress_' + action + '.mod.updated'" )
     parser.add_argument('-s', '--save', action='store', metavar = ('SAVE'),
                                 help = "Where to save updated progress file. Default is 'learned_models/progress_' + action + '.mod.updated.updated'" )
 
@@ -310,11 +313,11 @@ if __name__ == '__main__':
     if project_name is None:
         project_name = 'SlideAround'
 
-    if progress_path is None:
-        progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
+    # if progress_path is None:
+    #     progress_path = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated')
 
-    if progress_path_save is None:
-        progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.updated')
+    # if progress_path_save is None:
+    #     progress_path_save = os.path.join('learned_models', 'progress_' + project_name + '.mod.updated.updated')
 
     il = InteractiveLearnerHot(action_type = project_name, online = True, progress_model_path = progress_path,
         new_progress_model_path = progress_path_save)
